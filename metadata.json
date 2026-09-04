@@ -1,0 +1,6 @@
+{
+  "name": "Project Management Dashboard",
+  "description": "Clean, focused project and task management dashboard with custom team member management, workload tracking, and Kanban boards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

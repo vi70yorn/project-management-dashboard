@@ -1,0 +1,419 @@
+import React, { useState, useEffect } from 'react';
+import { X, FolderPlus, Users, Briefcase, Check, UserPlus, ChevronDown, AlertCircle, Edit3 } from 'lucide-react';
+import { Project, StatusType, TeamMember } from '../types';
+import { isDueToday } from '../utils/dateUtils';
+import { FORM_STYLES } from '../utils/formStyles';
+
+interface NewProjectModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (project: Omit<Project, 'id' | 'createdAt'>, projectId?: string) => void;
+  initialProject?: Project | null;
+  teamMembers: TeamMember[];
+  onOpenAddMember?: () => void;
+}
+
+const COLOR_OPTIONS = [
+  '#2563eb', // Blue
+  '#7c3aed', // Purple
+  '#ea580c', // Orange
+  '#059669', // Emerald
+  '#db2777', // Pink
+  '#0891b2', // Cyan
+];
+
+export const NewProjectModal: React.FC<NewProjectModalProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  initialProject,
+  teamMembers,
+  onOpenAddMember,
+}) => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [client, setClient] = useState('');
+  const [status, setStatus] = useState<StatusType>('In Progress');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [targetDeadline, setTargetDeadline] = useState(
+    new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+  );
+  const [managerId, setManagerId] = useState(teamMembers[0]?.id || '');
+  const [selectedMembers, setSelectedMembers] = useState<string[]>(
+    teamMembers.slice(0, 3).map((m) => m.id)
+  );
+  const [tagsInput, setTagsInput] = useState('Core, Sprint 1');
+  const [color, setColor] = useState(COLOR_OPTIONS[0]);
+
+  useEffect(() => {
+    if (initialProject) {
+      setName(initialProject.name || '');
+      setDescription(initialProject.description || '');
+      setClient(initialProject.client || '');
+      setStatus(initialProject.status || 'In Progress');
+      setStartDate(initialProject.startDate || new Date().toISOString().split('T')[0]);
+      setTargetDeadline(initialProject.targetDeadline || new Date().toISOString().split('T')[0]);
+      setManagerId(initialProject.managerId || teamMembers[0]?.id || '');
+      setSelectedMembers(initialProject.memberIds && initialProject.memberIds.length > 0 ? initialProject.memberIds : [teamMembers[0]?.id || '']);
+      setTagsInput(Array.isArray(initialProject.tags) ? initialProject.tags.join(', ') : 'Core');
+      setColor(initialProject.color || COLOR_OPTIONS[0]);
+    } else {
+      setName('');
+      setDescription('');
+      setClient('');
+      setStatus('In Progress');
+      setStartDate(new Date().toISOString().split('T')[0]);
+      setTargetDeadline(new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);
+      setManagerId(teamMembers[0]?.id || '');
+      setSelectedMembers(teamMembers.slice(0, 3).map((m) => m.id));
+      setTagsInput('Core, Sprint 1');
+      setColor(COLOR_OPTIONS[0]);
+    }
+  }, [initialProject, isOpen, teamMembers]);
+
+  const toggleMember = (id: string) => {
+    if (selectedMembers.includes(id)) {
+      if (selectedMembers.length > 1) {
+        setSelectedMembers(selectedMembers.filter((m) => m !== id));
+      }
+    } else {
+      setSelectedMembers([...selectedMembers, id]);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !targetDeadline) return;
+
+    const tags = tagsInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    onSave(
+      {
+        name: name.trim(),
+        description: description.trim(),
+        client: client.trim() || 'Internal Initiative',
+        status,
+        startDate,
+        targetDeadline,
+        managerId: managerId || selectedMembers[0] || teamMembers[0]?.id || '',
+        memberIds: selectedMembers.length > 0 ? selectedMembers : [teamMembers[0]?.id || ''],
+        tags: tags.length > 0 ? tags : ['General'],
+        color,
+      },
+      initialProject ? initialProject.id : undefined
+    );
+
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      id="new-project-modal-backdrop"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+    >
+      <div
+        id="new-project-modal-card"
+        className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+              {initialProject ? <Edit3 className="w-5 h-5" /> : <FolderPlus className="w-5 h-5" />}
+            </div>
+            <div>
+              <h2 id="new-project-title" className="text-base font-semibold text-slate-900">
+                {initialProject ? 'Edit Project Details' : 'Create New Project'}
+              </h2>
+              <p className="text-xs text-slate-500">
+                {initialProject
+                  ? 'Update deliverables timeline, status, and assigned project team'
+                  : 'Set timeline, status, and assign team members to this project'}
+              </p>
+            </div>
+          </div>
+          <button
+            id="close-new-project-btn"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Project Name <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="new-project-name-input"
+              type="text"
+              required
+              placeholder="e.g. Mobile Banking Application 2.0"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={FORM_STYLES.input}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Description & Objectives
+            </label>
+            <textarea
+              id="new-project-description-input"
+              rows={2}
+              placeholder="Key project goals, deliverables, and scope..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={FORM_STYLES.textarea}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Client or Department
+              </label>
+              <div className="relative">
+                <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  id="new-project-client-input"
+                  type="text"
+                  placeholder="e.g. Apex Horizon Bank"
+                  value={client}
+                  onChange={(e) => setClient(e.target.value)}
+                  className={FORM_STYLES.inputWithIcon}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Project Status
+              </label>
+              <div className="relative">
+                <select
+                  id="new-project-status-select"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as StatusType)}
+                  className={FORM_STYLES.select}
+                >
+                  <option value="In Progress">In Progress</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Blocked">Blocked</option>
+                  <option value="Completed">Completed</option>
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Start Date
+              </label>
+              <input
+                id="new-project-start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className={FORM_STYLES.input}
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Target Deadline <span className="text-rose-500">*</span>
+                </label>
+                {targetDeadline && isDueToday(targetDeadline) && (
+                  <span className="text-2xs font-bold text-rose-700 bg-rose-50 border border-rose-300 px-1.5 py-0.5 rounded flex items-center gap-1 animate-pulse shadow-2xs">
+                    <AlertCircle className="w-3 h-3 text-rose-600" />
+                    Due Today!
+                  </span>
+                )}
+              </div>
+              <input
+                id="new-project-deadline-input"
+                type="date"
+                required
+                value={targetDeadline}
+                onChange={(e) => setTargetDeadline(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg text-xs font-medium shadow-2xs transition-colors focus:outline-hidden ${
+                  targetDeadline && isDueToday(targetDeadline)
+                    ? 'border-rose-400 bg-rose-50/60 text-rose-900 font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500'
+                    : FORM_STYLES.input
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* Project Lead */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Project Lead / Manager
+            </label>
+            <div className="relative">
+              <select
+                id="new-project-manager-select"
+                value={managerId}
+                onChange={(e) => setManagerId(e.target.value)}
+                className={FORM_STYLES.select}
+              >
+                {teamMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.role})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Assign Team Members */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-slate-500" />
+                Assign Team Members to Project
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-2xs text-slate-400">
+                  {selectedMembers.length} of {teamMembers.length} selected
+                </span>
+                {onOpenAddMember && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenAddMember();
+                    }}
+                    className="text-2xs text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-0.5"
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    + New Member
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1 border border-slate-200 rounded-lg bg-slate-50/50">
+              {teamMembers.map((member) => {
+                const isSelected = selectedMembers.includes(member.id);
+                return (
+                  <div
+                    key={member.id}
+                    onClick={() => toggleMember(member.id)}
+                    className={`flex items-center justify-between p-2 rounded-md cursor-pointer text-xs transition-colors ${
+                      isSelected
+                        ? 'bg-blue-50 border border-blue-200 text-blue-900 font-medium'
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      {member.avatar ? (
+                        <img
+                          src={member.avatar}
+                          alt={member.name}
+                          className="w-6 h-6 rounded-full object-cover shrink-0"
+                        />
+                      ) : (
+                        <div
+                          style={{ backgroundColor: member.color || '#2563eb' }}
+                          className="w-6 h-6 rounded-full text-white text-3xs font-semibold flex items-center justify-center shrink-0"
+                        >
+                          {member.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="truncate">
+                        <p className="truncate font-medium">{member.name}</p>
+                        <p className="text-2xs text-slate-500 truncate">{member.role}</p>
+                      </div>
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-blue-600 shrink-0 ml-1" />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tags & Color */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Category Tags (comma-separated)
+              </label>
+              <input
+                id="new-project-tags-input"
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="Mobile, UI/UX, Sprint"
+                className={FORM_STYLES.input}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Project Color Accent
+              </label>
+              <div className="flex items-center gap-2 pt-1">
+                {COLOR_OPTIONS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    style={{ backgroundColor: c }}
+                    className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center text-white ${
+                      color === c ? 'scale-110 ring-2 ring-offset-2 ring-slate-400' : 'opacity-80 hover:opacity-100'
+                    }`}
+                  >
+                    {color === c && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <button
+              id="cancel-new-project-btn"
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              id="submit-new-project-btn"
+              type="submit"
+              className="px-5 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              {initialProject ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Save Project Changes
+                </>
+              ) : (
+                <>
+                  <FolderPlus className="w-4 h-4" />
+                  Create Project
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
