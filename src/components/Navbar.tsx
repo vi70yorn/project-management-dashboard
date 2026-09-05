@@ -3,12 +3,12 @@ import {
   LayoutDashboard,
   Plus,
   Layers,
-  ChevronDown,
   Users,
   UserPlus,
   LogOut,
   ShieldCheck,
   UserCheck,
+  Database,
 } from 'lucide-react';
 import { Project, AuthUser } from '../types';
 
@@ -24,6 +24,8 @@ interface NavbarProps {
   teamCount: number;
   currentUser?: AuthUser | null;
   onLogout?: () => void;
+  dbHealth?: { connected: boolean; database?: string } | null;
+  onOpenDbModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -38,6 +40,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   teamCount,
   currentUser,
   onLogout,
+  dbHealth,
+  onOpenDbModal,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
 
@@ -59,10 +63,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div>
               <h1 className="text-sm font-bold text-slate-900 tracking-tight leading-none">
-                Workspace PM
+                UX/UI
               </h1>
               <span className="text-2xs text-slate-500 font-medium leading-none">
-                Projects & Team Tracker
+                Pro Mgt
               </span>
             </div>
           </div>
@@ -98,28 +102,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {teamCount}
               </span>
             </button>
-
-            {/* Quick Project Switcher */}
-            <div className="relative group ml-1">
-              <select
-                id="nav-project-selector"
-                value={activeProject?.id || ''}
-                onChange={(e) => {
-                  if (e.target.value) onSelectProject(e.target.value);
-                }}
-                className="appearance-none pl-3 pr-8 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-white text-slate-700 hover:border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-              >
-                <option value="" disabled>
-                  Switch Project...
-                </option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.status})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
           </div>
         </div>
 
@@ -148,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Admin-only: Add Member */}
-          {isAdmin && (
+        {/*   {isAdmin && (
             <button
               id="nav-add-member-btn"
               onClick={onOpenAddMember}
@@ -157,10 +139,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <UserPlus className="w-3.5 h-3.5 text-blue-600" />
               <span>Add Member</span>
             </button>
-          )}
+          )}*/}
 
           {/* Admin-only: New Project */}
-          {isAdmin && (
+        {/*   {isAdmin && (
             <button
               id="open-new-project-modal-btn"
               onClick={onOpenNewProject}
@@ -169,7 +151,29 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>New Project</span>
             </button>
-          )}
+          )} */}
+
+          {/* Database Connection Status Button */}
+          <button
+            id="nav-db-status-btn"
+            onClick={onOpenDbModal}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-2xs font-semibold border transition-all cursor-pointer ${
+              dbHealth?.connected
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 shadow-2xs'
+                : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 shadow-2xs'
+            }`}
+            title="PostgreSQL & DBeaver Status"
+          >
+            <Database className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">
+              {dbHealth?.connected ? 'Connected' : 'DB: Local/Offline'}
+            </span>
+            <span
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                dbHealth?.connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+              }`}
+            />
+          </button>
 
           {/* Current Logged In User Pill */}
           {currentUser && (

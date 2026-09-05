@@ -25,7 +25,27 @@ import { TaskModal } from './components/TaskModal';
 import { NewProjectModal } from './components/NewProjectModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { LoginScreen } from './components/LoginScreen';
+import { DatabaseStatusModal } from './components/DatabaseStatusModal';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
+import {
+  checkDatabaseHealth,
+  fetchProjectsApi,
+  createProjectApi,
+  updateProjectApi,
+  updateProjectStatusApi,
+  updateProjectMembersApi,
+  deleteProjectApi,
+  fetchTasksApi,
+  createTaskApi,
+  updateTaskApi,
+  updateTaskStatusApi,
+  deleteTaskApi,
+  fetchMembersApi,
+  createMemberApi,
+  updateMemberApi,
+  deleteMemberApi,
+  DatabaseHealthResponse,
+} from './services/api';
 
 export default function App() {
   // Authentication State
@@ -70,6 +90,58 @@ export default function App() {
     type: 'success' | 'error' | 'info';
     message: string;
   } | null>(null);
+
+  // Database Connection State (PostgreSQL + DBeaver)
+  const [dbHealth, setDbHealth] = useState<DatabaseHealthResponse | null>(null);
+  const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+  const [isCheckingDb, setIsCheckingDb] = useState(false);
+
+  const refreshDatabase = async (silent = false) => {
+    setIsCheckingDb(true);
+    try {
+      const health = await checkDatabaseHealth();
+      setDbHealth(health);
+
+      if (health.connected) {
+        // Fetch fresh data directly from PostgreSQL
+        const [remoteProjects, remoteTasks, remoteMembers] = await Promise.all([
+          fetchProjectsApi().catch(() => null),
+          fetchTasksApi().catch(() => null),
+          fetchMembersApi().catch(() => null),
+        ]);
+
+        if (remoteProjects && remoteProjects.length > 0) {
+          setProjects(remoteProjects);
+        }
+        if (remoteTasks && remoteTasks.length > 0) {
+          setTasks(remoteTasks);
+        }
+        if (remoteMembers && remoteMembers.length > 0) {
+          setTeamMembers(remoteMembers);
+        }
+
+        if (!silent) {
+          showToast('success', `Connected to PostgreSQL database "${health.database}"!`);
+        }
+      } else {
+        if (!silent) {
+          showToast('info', 'Running in local storage mode. Connect PostgreSQL via .env & "npm run server".');
+        }
+      }
+    } catch (err: any) {
+      setDbHealth({ status: 'error', connected: false, message: err.message });
+      if (!silent) {
+        showToast('info', 'Running in local storage fallback mode.');
+      }
+    } finally {
+      setIsCheckingDb(false);
+    }
+  };
+
+  // Check database on initial load
+  useEffect(() => {
+    refreshDatabase(true);
+  }, []);
 
   // Persistence effects
   useEffect(() => {
@@ -169,6 +241,9 @@ export default function App() {
             : p
         )
       );
+      updateProjectApi(targetId, projectData).catch((err) =>
+        console.warn('[PostgreSQL Sync] Update project error:', err)
+      );
       showToast('success', `Project "${projectData.name}" updated successfully.`);
       setEditingProject(null);
     } else {
@@ -180,6 +255,9 @@ export default function App() {
       };
 
       setProjects((prev) => [newProject, ...prev]);
+      createProjectApi(newProject).catch((err) =>
+        console.warn('[PostgreSQL Sync] Create project error:', err)
+      );
       showToast('success', `Project "${newProject.name}" created!`);
 
       // Switch directly to the new project workspace
@@ -214,6 +292,10 @@ export default function App() {
         setProjects((prev) => prev.filter((p) => p.id !== project.id));
         setTasks((prev) => prev.filter((t) => t.projectId !== project.id));
 
+        deleteProjectApi(project.id).catch((err) =>
+          console.warn('[PostgreSQL Sync] Delete project error:', err)
+        );
+
         if (activeProjectId === project.id) {
           setActiveProjectId('');
           setCurrentView('dashboard');
@@ -228,6 +310,9 @@ export default function App() {
     setProjects((prev) =>
       prev.map((p) => (p.id === projectId ? { ...p, status: newStatus } : p))
     );
+    updateProjectStatusApi(projectId, newStatus).catch((err) =>
+      console.warn('[PostgreSQL Sync] Update status error:', err)
+    );
     showToast('info', `Project status changed to "${newStatus}"`);
   };
 
@@ -238,6 +323,9 @@ export default function App() {
     }
     setProjects((prev) =>
       prev.map((p) => (p.id === projectId ? { ...p, memberIds } : p))
+    );
+    updateProjectMembersApi(projectId, memberIds).catch((err) =>
+      console.warn('[PostgreSQL Sync] Update members error:', err)
     );
     showToast('success', 'Project team roster updated.');
   };
@@ -277,6 +365,9 @@ export default function App() {
       } as Task;
 
       setTasks((prev) => prev.map((t) => (t.id === editingTask.id ? updatedTask : t)));
+      updateTaskApi(editingTask.id, updatedTask).catch((err) =>
+        console.warn('[PostgreSQL Sync] Update task error:', err)
+      );
       showToast('success', `Task "${updatedTask.title}" updated.`);
     } else {
       const newTask: Task = {
@@ -298,6 +389,9 @@ export default function App() {
       };
 
       setTasks((prev) => [newTask, ...prev]);
+      createTaskApi(newTask).catch((err) =>
+        console.warn('[PostgreSQL Sync] Create task error:', err)
+      );
       showToast('success', `Task "${newTask.title}" added to project.`);
     }
   };
@@ -340,6 +434,7 @@ export default function App() {
               p.id === targetProjectId ? { ...p, status: 'In Progress' } : p
             )
           );
+          updateProjectStatusApi(targetProjectId, 'In Progress').catch(() => {});
           showToast(
             'success',
             `All blocked tasks resolved! Project "${currentProject.name}" status auto-updated to In Progress.`
@@ -349,6 +444,10 @@ export default function App() {
 
       return updated;
     });
+
+    updateTaskStatusApi(taskId, newStatus).catch((err) =>
+      console.warn('[PostgreSQL Sync] Update task status error:', err)
+    );
 
     if (movedTaskTitle) {
       showToast('info', `"${movedTaskTitle}" moved to ${newStatus}`);
@@ -367,6 +466,9 @@ export default function App() {
           ? { ...t, assigneeId, updatedAt: new Date().toISOString() }
           : t
       )
+    );
+    updateTaskApi(taskId, { assigneeId }).catch((err) =>
+      console.warn('[PostgreSQL Sync] Reassign task error:', err)
     );
     const member = teamMembers.find((m) => m.id === assigneeId);
     showToast('info', `Task reassigned to ${member ? member.name : 'member'}`);
@@ -393,6 +495,9 @@ export default function App() {
       onConfirm: () => {
         setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
         setTasks((prev) => prev.filter((t) => t.id !== task.id));
+        deleteTaskApi(task.id).catch((err) =>
+          console.warn('[PostgreSQL Sync] Delete task error:', err)
+        );
         showToast('info', `Task "${task.title}" deleted.`);
       },
     });
@@ -468,6 +573,10 @@ export default function App() {
         })
       );
 
+      updateMemberApi(editingMember.id, baseData).catch((err) =>
+        console.warn('[PostgreSQL Sync] Update member error:', err)
+      );
+
       showToast('success', `Team member "${updatedMember.name}" updated.`);
     } else {
       // Create new member
@@ -490,6 +599,10 @@ export default function App() {
           })
         );
       }
+
+      createMemberApi(newMember).catch((err) =>
+        console.warn('[PostgreSQL Sync] Create member error:', err)
+      );
 
       showToast('success', `Team member "${newMember.name}" added to roster!`);
     }
@@ -548,6 +661,10 @@ export default function App() {
           )
         );
 
+        deleteMemberApi(member.id).catch((err) =>
+          console.warn('[PostgreSQL Sync] Delete member error:', err)
+        );
+
         showToast('info', `${member.name} has been removed from team roster.`);
       },
     });
@@ -597,6 +714,8 @@ export default function App() {
         teamCount={teamMembers.length}
         currentUser={currentUser}
         onLogout={handleLogout}
+        dbHealth={dbHealth}
+        onOpenDbModal={() => setIsDbModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -710,6 +829,15 @@ export default function App() {
         isDestructive={confirmationModal.isDestructive}
         onConfirm={confirmationModal.onConfirm}
         onCancel={() => setConfirmationModal((prev) => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* PostgreSQL & DBeaver Status Modal */}
+      <DatabaseStatusModal
+        isOpen={isDbModalOpen}
+        onClose={() => setIsDbModalOpen(false)}
+        health={dbHealth}
+        onRefresh={() => refreshDatabase(false)}
+        isRefreshing={isCheckingDb}
       />
 
       {/* Toast Notification */}
