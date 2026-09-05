@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   UserCheck,
   Database,
+  KeyRound,
+  User,
 } from 'lucide-react';
 import { Project, AuthUser } from '../types';
 
@@ -24,6 +26,8 @@ interface NavbarProps {
   teamCount: number;
   currentUser?: AuthUser | null;
   onLogout?: () => void;
+  onOpenResetPassword?: () => void;
+  onOpenEditProfile?: () => void;
   dbHealth?: { connected: boolean; database?: string } | null;
   onOpenDbModal?: () => void;
 }
@@ -40,6 +44,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   teamCount,
   currentUser,
   onLogout,
+  onOpenResetPassword,
+  onOpenEditProfile,
   dbHealth,
   onOpenDbModal,
 }) => {
@@ -66,7 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 UX/UI
               </h1>
               <span className="text-2xs text-slate-500 font-medium leading-none">
-                Pro Mgt
+                Management
               </span>
             </div>
           </div>
@@ -215,10 +221,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </span>
                   </div>
                   <p className="text-3xs text-slate-500 truncate max-w-[130px]">
-                    {currentUser.email}
+                    {currentUser.username ? `@${currentUser.username}` : currentUser.email}
                   </p>
                 </div>
               </div>
+
+              {onOpenEditProfile && (
+                <button
+                  id="navbar-edit-profile-btn"
+                  onClick={onOpenEditProfile}
+                  title="Update your user profile & info"
+                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  <User className="w-4 h-4" />
+                </button>
+              )}
+
+              {onOpenResetPassword && (
+                <button
+                  id="navbar-change-password-btn"
+                  onClick={onOpenResetPassword}
+                  title="Reset your password"
+                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  <KeyRound className="w-4 h-4" />
+                </button>
+              )}
 
               {onLogout && (
                 <button

@@ -77,12 +77,19 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [dragOverColumn, setDragOverColumn] = useState<StatusType | null>(null);
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    if (!isAdmin) {
+    const task = safeTasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const canMove =
+      isAdmin ||
+      (task.createdBy && task.createdBy === currentUser?.memberId) ||
+      task.assigneeId === currentUser?.memberId;
+
+    if (!canMove) {
       e.preventDefault();
       return;
     }
-    const task = safeTasks.find((t) => t.id === taskId);
-    if (!task) return;
+
     e.dataTransfer.setData('text/plain', taskId);
     e.dataTransfer.effectAllowed = 'move';
     setDraggedTaskId(taskId);

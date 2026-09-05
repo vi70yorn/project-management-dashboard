@@ -25,6 +25,7 @@ import { TaskModal } from './components/TaskModal';
 import { NewProjectModal } from './components/NewProjectModal';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { LoginScreen } from './components/LoginScreen';
+import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { DatabaseStatusModal } from './components/DatabaseStatusModal';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import {
@@ -68,6 +69,7 @@ export default function App() {
   // Team Member Modal State
   const [isTeamMemberModalOpen, setIsTeamMemberModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
 
   // Confirmation Dialog State
   const [confirmationModal, setConfirmationModal] = useState<{
@@ -96,27 +98,28 @@ export default function App() {
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
   const [isCheckingDb, setIsCheckingDb] = useState(false);
 
-  const refreshDatabase = async (silent = false) => {
+  const refreshDatabase = async (silent = false, roleOverride?: string) => {
     setIsCheckingDb(true);
     try {
       const health = await checkDatabaseHealth();
       setDbHealth(health);
 
       if (health.connected) {
+        const activeRole = roleOverride !== undefined ? roleOverride : currentUser?.role;
         // Fetch fresh data directly from PostgreSQL
         const [remoteProjects, remoteTasks, remoteMembers] = await Promise.all([
           fetchProjectsApi().catch(() => null),
           fetchTasksApi().catch(() => null),
-          fetchMembersApi().catch(() => null),
+          fetchMembersApi(activeRole).catch(() => null),
         ]);
 
-        if (remoteProjects && remoteProjects.length > 0) {
+        if (Array.isArray(remoteProjects)) {
           setProjects(remoteProjects);
         }
-        if (remoteTasks && remoteTasks.length > 0) {
+        if (Array.isArray(remoteTasks)) {
           setTasks(remoteTasks);
         }
-        if (remoteMembers && remoteMembers.length > 0) {
+        if (Array.isArray(remoteMembers)) {
           setTeamMembers(remoteMembers);
         }
 
@@ -176,6 +179,7 @@ export default function App() {
     setCurrentUser(user);
     saveAuthUser(user);
     showToast('success', `Welcome back, ${user.name}! (${user.role.toUpperCase()} role active)`);
+    refreshDatabase(true, user.role);
   };
 
   const handleLogout = () => {
@@ -514,23 +518,58 @@ export default function App() {
   };
 
   const handleOpenEditMember = (member: TeamMember) => {
-    if (currentUser?.role !== 'admin') {
-      showToast('error', 'Only Admins can edit team members.');
+    if (currentUser?.role !== 'admin' && currentUser?.memberId !== member.id) {
+      showToast('error', 'You can only edit your own user info.');
       return;
     }
     setEditingMember(member);
     setIsTeamMemberModalOpen(true);
   };
 
+  const handleOpenEditOwnProfile = () => {
+    if (!currentUser?.memberId) return;
+    const myMember = teamMembers.find((m) => m.id === currentUser.memberId);
+    if (myMember) {
+      setEditingMember(myMember);
+      setIsTeamMemberModalOpen(true);
+    } else {
+      setEditingMember({
+        id: currentUser.memberId,
+        name: currentUser.name,
+        username: currentUser.username,
+        email: currentUser.email,
+        role: currentUser.jobRole || 'Team Member',
+        systemRole: currentUser.role,
+        department: currentUser.department,
+        avatar: currentUser.avatar,
+        status: 'active',
+      });
+      setIsTeamMemberModalOpen(true);
+    }
+  };
+
   const handleSaveMember = (
     memberData: Omit<TeamMember, 'id'> & { projectIds?: string[] }
   ) => {
-    if (currentUser?.role !== 'admin') {
-      showToast('error', 'Only Admins can modify team members.');
+    const isAdmin = currentUser?.role === 'admin';
+    const isEditingOwnProfile = editingMember && currentUser?.memberId === editingMember.id;
+
+    if (!isAdmin && !isEditingOwnProfile) {
+      showToast('error', 'You can only update your own user profile.');
+      return;
+    }
+
+    if (!editingMember && !isAdmin) {
+      showToast('error', 'Only Admins can add new team members.');
       return;
     }
 
     const { projectIds = [], ...baseData } = memberData;
+
+    // Prevent non-admins from changing their role
+    if (!isAdmin && editingMember) {
+      baseData.systemRole = editingMember.systemRole || 'staff';
+    }
 
     if (editingMember) {
       // Update member
@@ -549,35 +588,44 @@ export default function App() {
           ...currentUser,
           name: updatedMember.name,
           email: updatedMember.email,
-          role: updatedMember.systemRole || 'staff',
+          username: updatedMember.username || currentUser.username,
+          avatar: updatedMember.avatar,
+          department: updatedMember.department,
+          jobRole: updatedMember.role,
         };
         setCurrentUser(updatedAuth);
         saveAuthUser(updatedAuth);
       }
 
-      // Sync project memberships
-      setProjects((prev) =>
-        prev.map((p) => {
-          const shouldHaveMember = projectIds.includes(p.id);
-          const currentHasMember = p.memberIds.includes(editingMember.id);
-          if (shouldHaveMember && !currentHasMember) {
-            return { ...p, memberIds: [...p.memberIds, editingMember.id] };
-          }
-          if (!shouldHaveMember && currentHasMember) {
-            return {
-              ...p,
-              memberIds: p.memberIds.filter((id) => id !== editingMember.id),
-            };
-          }
-          return p;
+      // Sync project memberships only if admin
+      if (isAdmin) {
+        setProjects((prev) =>
+          prev.map((p) => {
+            const shouldHaveMember = projectIds.includes(p.id);
+            const currentHasMember = p.memberIds.includes(editingMember.id);
+            if (shouldHaveMember && !currentHasMember) {
+              return { ...p, memberIds: [...p.memberIds, editingMember.id] };
+            }
+            if (!shouldHaveMember && currentHasMember) {
+              return {
+                ...p,
+                memberIds: p.memberIds.filter((id) => id !== editingMember.id),
+              };
+            }
+            return p;
+          })
+        );
+      }
+
+      updateMemberApi(editingMember.id, baseData, currentUser?.role, currentUser?.memberId)
+        .then(() => {
+          showToast('success', isEditingOwnProfile ? 'Your profile has been updated!' : `Team member "${updatedMember.name}" updated.`);
+          refreshDatabase(true, currentUser?.role);
         })
-      );
-
-      updateMemberApi(editingMember.id, baseData).catch((err) =>
-        console.warn('[PostgreSQL Sync] Update member error:', err)
-      );
-
-      showToast('success', `Team member "${updatedMember.name}" updated.`);
+        .catch((err) => {
+          console.warn('[PostgreSQL Sync] Update member error:', err);
+          showToast('error', err.message || 'Failed to update member');
+        });
     } else {
       // Create new member
       const newMemberId = `mem-${Date.now()}`;
@@ -600,11 +648,15 @@ export default function App() {
         );
       }
 
-      createMemberApi(newMember).catch((err) =>
-        console.warn('[PostgreSQL Sync] Create member error:', err)
-      );
-
-      showToast('success', `Team member "${newMember.name}" added to roster!`);
+      createMemberApi(newMember, currentUser?.role)
+        .then(() => {
+          showToast('success', `Team member "${newMember.name}" added to roster!`);
+          refreshDatabase(true, currentUser?.role);
+        })
+        .catch((err) => {
+          console.warn('[PostgreSQL Sync] Create member error:', err);
+          showToast('error', err.message || 'Failed to create member');
+        });
     }
 
     setIsTeamMemberModalOpen(false);
@@ -714,6 +766,8 @@ export default function App() {
         teamCount={teamMembers.length}
         currentUser={currentUser}
         onLogout={handleLogout}
+        onOpenResetPassword={() => setIsResetPasswordOpen(true)}
+        onOpenEditProfile={handleOpenEditOwnProfile}
         dbHealth={dbHealth}
         onOpenDbModal={() => setIsDbModalOpen(true)}
       />
@@ -817,7 +871,19 @@ export default function App() {
         onSave={handleSaveMember}
         initialMember={editingMember}
         projects={projects}
+        currentUser={currentUser}
       />
+
+      {/* Reset Password Modal */}
+      {currentUser && (
+        <ResetPasswordModal
+          isOpen={isResetPasswordOpen}
+          onClose={() => setIsResetPasswordOpen(false)}
+          memberId={currentUser.memberId}
+          userName={currentUser.name}
+          onSuccessToast={(msg) => showToast('success', msg)}
+        />
+      )}
 
       {/* Confirmation Modal */}
       <ConfirmationModal

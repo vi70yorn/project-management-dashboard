@@ -7,6 +7,7 @@ export type UserRole = 'admin' | 'staff';
 export interface AuthUser {
   id: string;
   name: string;
+  username?: string;
   email: string;
   role: UserRole;
   memberId: string;
@@ -18,6 +19,8 @@ export interface AuthUser {
 export interface TeamMember {
   id: string;
   name: string;
+  username?: string;
+  password?: string;
   email: string;
   role: string;
   systemRole: UserRole; // 'admin' or 'staff'

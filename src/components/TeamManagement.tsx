@@ -272,11 +272,18 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         <Briefcase className="w-3 h-3 text-slate-400 shrink-0" />
                         <span className="truncate">{member.role}</span>
                       </p>
-                      {member.department && (
-                        <span className="inline-block px-2 py-0.5 mt-1 rounded-sm text-2xs font-medium bg-slate-100 text-slate-600">
-                          {member.department}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                        {member.username && (
+                          <span className="inline-block px-1.5 py-0.2 rounded-sm text-3xs font-mono font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            @{member.username}
+                          </span>
+                        )}
+                        {member.department && (
+                          <span className="inline-block px-1.5 py-0.2 rounded-sm text-2xs font-medium bg-slate-100 text-slate-600">
+                            {member.department}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -403,12 +410,22 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 >
                   Assign to Projects &rarr;
                 </button>
-                <button
-                  onClick={() => setInspectingMemberTasks(member)}
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900"
-                >
-                  View Tasks
-                </button>
+                <div className="flex items-center gap-3">
+                  {(isAdmin || currentUser?.memberId === member.id) && (
+                    <button
+                      onClick={() => onEditMember(member)}
+                      className="text-xs font-medium text-slate-600 hover:text-blue-600 hover:underline"
+                    >
+                      {isAdmin ? 'View Details / Password' : 'My Details'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setInspectingMemberTasks(member)}
+                    className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                  >
+                    View Tasks
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -421,13 +438,15 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             <p className="text-xs text-slate-400 mt-1">
               Try adjusting your search query or add a new team member.
             </p>
-            <button
-              onClick={onAddMember}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700"
-            >
-              <UserPlus className="w-4 h-4" />
-              Add First Member
-            </button>
+            {isAdmin && (
+              <button
+                onClick={onAddMember}
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700"
+              >
+                <UserPlus className="w-4 h-4" />
+                Add First Member
+              </button>
+            )}
           </div>
         )}
       </div>

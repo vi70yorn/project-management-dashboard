@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Mail, Briefcase, Tag, Check, Sparkles, ChevronDown, ShieldCheck, UserCheck } from 'lucide-react';
-import { TeamMember, Project, UserRole } from '../types';
+import {
+  X,
+  UserPlus,
+  Mail,
+  Briefcase,
+  Tag,
+  Check,
+  Sparkles,
+  ChevronDown,
+  ShieldCheck,
+  UserCheck,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  KeyRound,
+} from 'lucide-react';
+import { TeamMember, Project, UserRole, AuthUser } from '../types';
 import { FORM_STYLES } from '../utils/formStyles';
 
 interface TeamMemberModalProps {
@@ -12,6 +28,7 @@ interface TeamMemberModalProps {
   ) => void;
   initialMember?: TeamMember | null;
   projects?: Project[];
+  currentUser?: AuthUser | null;
 }
 
 const PRESET_AVATARS = [
@@ -41,10 +58,15 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
   onSave,
   initialMember,
   projects = [],
+  currentUser,
 }) => {
+  const isAdmin = currentUser?.role === 'admin';
   const safeProjects = Array.isArray(projects) ? projects : [];
 
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('');
   const [email, setEmail] = useState('');
   const [department, setDepartment] = useState('Engineering');
@@ -54,16 +76,21 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
   const [avatarUrl, setAvatarUrl] = useState('');
   const [color, setColor] = useState('#2563eb');
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     if (initialMember) {
       setName(initialMember.name);
+      setUsername(initialMember.username || '');
+      setPassword(initialMember.password || '');
+      setShowPassword(false);
       setRole(initialMember.role);
       setSystemRole(initialMember.systemRole || 'staff');
       setEmail(initialMember.email);
       setDepartment(initialMember.department || 'Engineering');
       setStatus(initialMember.status);
       setColor(initialMember.color || '#2563eb');
+      setFormError('');
       if (initialMember.avatar) {
         setAvatarType('photo');
         setAvatarUrl(initialMember.avatar);
@@ -78,6 +105,9 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
       setSelectedProjectIds(memberProjects);
     } else {
       setName('');
+      setUsername('');
+      setPassword('');
+      setShowPassword(false);
       setRole('');
       setSystemRole('staff');
       setEmail('');
@@ -87,6 +117,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
       setAvatarUrl('');
       setColor(COLOR_THEMES[Math.floor(Math.random() * COLOR_THEMES.length)].hex);
       setSelectedProjectIds([]);
+      setFormError('');
     }
   }, [initialMember, isOpen, projects]);
 
@@ -109,11 +140,23 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !role.trim()) return;
+    setFormError('');
+
+    if (!name.trim() || !role.trim()) {
+      setFormError('Please enter member name and role.');
+      return;
+    }
+
+    if (!initialMember && (!username.trim() || !password.trim())) {
+      setFormError('Username and password are required to create a new team member.');
+      return;
+    }
 
     onSave(
       {
         name: name.trim(),
+        username: username.trim().toLowerCase() || name.trim().toLowerCase().replace(/\s+/g, ''),
+        password: password.trim() || undefined,
         role: role.trim(),
         systemRole,
         email: email.trim() || `${name.trim().toLowerCase().replace(/\s+/g, '.')}@team.org`,
@@ -145,10 +188,16 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
             </div>
             <div>
               <h2 id="team-member-modal-title" className="text-base font-semibold text-slate-900">
-                {initialMember ? 'Edit Team Member' : 'Add Team Member'}
+                {initialMember
+                  ? initialMember.id === currentUser?.memberId
+                    ? 'Update Your Profile'
+                    : 'Edit Team Member'
+                  : 'Add Team Member'}
               </h2>
               <p className="text-xs text-slate-500">
-                Configure profile details, role, and department
+                {initialMember?.id === currentUser?.memberId
+                  ? 'Update your personal name, role title, department, email, and avatar'
+                  : 'Configure profile details, role, and department'}
               </p>
             </div>
           </div>
@@ -244,73 +293,183 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
           {/* System Access Role (Admin vs Staff) */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Access Permission Level (System Role) <span className="text-rose-500">*</span>
+              Access Permission Level (System Role) {isAdmin && <span className="text-rose-500">*</span>}
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                id="member-role-admin-toggle"
-                onClick={() => setSystemRole('admin')}
-                className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                  systemRole === 'admin'
-                    ? 'bg-indigo-50/70 border-indigo-400 ring-2 ring-indigo-500/20 shadow-2xs'
-                    : 'bg-white border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+            {isAdmin ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  id="member-role-admin-toggle"
+                  onClick={() => setSystemRole('admin')}
+                  className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                     systemRole === 'admin'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-slate-500'
+                      ? 'bg-indigo-50/70 border-indigo-400 ring-2 ring-indigo-500/20 shadow-2xs'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900">Admin</span>
-                    {systemRole === 'admin' && (
-                      <span className="w-2 h-2 rounded-full bg-indigo-600" />
-                    )}
+                  <div
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      systemRole === 'admin'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4" />
                   </div>
-                  <p className="text-2xs text-slate-500 leading-tight mt-0.5">
-                    Can create, edit & delete projects, tasks, and team roster
-                  </p>
-                </div>
-              </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900">Admin</span>
+                      {systemRole === 'admin' && (
+                        <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                      )}
+                    </div>
+                    <p className="text-2xs text-slate-500 leading-tight mt-0.5">
+                      Can create, edit & delete projects, tasks, and team roster
+                    </p>
+                  </div>
+                </button>
 
-              <button
-                type="button"
-                id="member-role-staff-toggle"
-                onClick={() => setSystemRole('staff')}
-                className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                  systemRole === 'staff'
-                    ? 'bg-emerald-50/70 border-emerald-400 ring-2 ring-emerald-500/20 shadow-2xs'
-                    : 'bg-white border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                <button
+                  type="button"
+                  id="member-role-staff-toggle"
+                  onClick={() => setSystemRole('staff')}
+                  className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                     systemRole === 'staff'
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-100 text-slate-500'
+                      ? 'bg-emerald-50/70 border-emerald-400 ring-2 ring-emerald-500/20 shadow-2xs'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <UserCheck className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900">Staff</span>
-                    {systemRole === 'staff' && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                    )}
+                  <div
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      systemRole === 'staff'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    <UserCheck className="w-4 h-4" />
                   </div>
-                  <p className="text-2xs text-slate-500 leading-tight mt-0.5">
-                    Can only create, edit & delete their own tasks in assigned projects
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-900">Staff</span>
+                      {systemRole === 'staff' && (
+                        <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                      )}
+                    </div>
+                    <p className="text-2xs text-slate-500 leading-tight mt-0.5">
+                      Can only create, edit & delete their own tasks in assigned projects
+                    </p>
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div className="p-3 bg-slate-100/90 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      systemRole === 'admin' ? 'bg-indigo-600 text-white' : 'bg-emerald-600 text-white'
+                    }`}
+                  >
+                    {systemRole === 'admin' ? <ShieldCheck className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 capitalize">{systemRole} Account</span>
+                    <p className="text-3xs text-slate-500">Access permission level managed by Administrator.</p>
+                  </div>
                 </div>
-              </button>
+                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                  Fixed
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Form Error Alert */}
+          {formError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-medium flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
+              <span>{formError}</span>
             </div>
+          )}
+
+          {/* Login Credentials Section */}
+          <div className="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center">
+                  <KeyRound className="w-3.5 h-3.5" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-900">
+                  Login Credentials {initialMember ? '(User Account)' : '(Required for Login)'}
+                </h4>
+              </div>
+              {isAdmin && (
+                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  Admin Visible & Editable
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Username field */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Username <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    id="member-username-input"
+                    type="text"
+                    required={!initialMember}
+                    placeholder="e.g. rachel or jordan"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                    className={FORM_STYLES.inputWithIcon}
+                  />
+                </div>
+              </div>
+
+              {/* Password field with show/hide icon */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    {initialMember ? 'Password' : 'Password *'}
+                  </label>
+                  <span className="text-3xs text-slate-400">
+                    {showPassword ? 'Visible' : 'Hidden'}
+                  </span>
+                </div>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    id="member-password-input"
+                    type={showPassword ? 'text' : 'password'}
+                    required={!initialMember}
+                    placeholder={initialMember ? 'Current or new password' : 'Enter password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`${FORM_STYLES.inputWithIcon} pr-10`}
+                  />
+                  <button
+                    type="button"
+                    id="toggle-member-password-visibility-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors cursor-pointer"
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-3xs text-slate-500 leading-normal">
+              {initialMember
+                ? (isAdmin
+                    ? 'As an Admin, click the eye icon to view the password or type a new password to modify it.'
+                    : 'Your login credentials for accessing the platform.')
+                : 'Team member will use this username and password to log in.'}
+            </p>
           </div>
 
           {/* Role & Department */}

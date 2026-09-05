@@ -497,14 +497,149 @@ app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
 // Team Members Endpoints
 // ==========================================
 
-// GET all team members
-app.get('/api/members', async (_req: Request, res: Response) => {
+// ==========================================
+// Authentication & Password Management Endpoints
+// ==========================================
+
+// POST login
+app.post('/api/auth/login', async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
   try {
     const pool = getPool();
     const query = `
       SELECT 
         id,
         name,
+        username,
+        password,
+        email,
+        role,
+        system_role AS "systemRole",
+        avatar,
+        color,
+        status,
+        department,
+        created_at AS "createdAt"
+      FROM team_members 
+      WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1);
+    `;
+    const result = await pool.query(query, [username.trim()]);
+
+    if (result.rowCount === 0) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    const member = result.rows[0];
+
+    if (!member.password || member.password !== password) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    const authUser = {
+      id: `usr-${member.id}`,
+      name: member.name,
+      username: member.username,
+      email: member.email,
+      role: member.systemRole || 'staff',
+      memberId: member.id,
+      avatar: member.avatar,
+      department: member.department,
+      jobRole: member.role,
+    };
+
+    res.json({ status: 'ok', user: authUser });
+  } catch (err: any) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST change password (for any user role with current password verification)
+app.post('/api/auth/change-password', async (req: Request, res: Response) => {
+  const { memberId, currentPassword, newPassword } = req.body;
+
+  if (!memberId || !currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Member ID, current password, and new password are required' });
+  }
+
+  if (newPassword.length < 4) {
+    return res.status(400).json({ error: 'New password must be at least 4 characters' });
+  }
+
+  try {
+    const pool = getPool();
+    const checkRes = await pool.query(`SELECT id, password FROM team_members WHERE id = $1`, [memberId]);
+
+    if (checkRes.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (checkRes.rows[0].password !== currentPassword) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    await pool.query(`UPDATE team_members SET password = $1 WHERE id = $2`, [newPassword, memberId]);
+    res.json({ status: 'ok', message: 'Password updated successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST admin reset password for staff member (or any member)
+app.post('/api/auth/admin-reset-password', async (req: Request, res: Response) => {
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  if (callerRole !== 'admin') {
+    return res.status(403).json({ error: 'Permission denied. Only admins can modify other members\' passwords.' });
+  }
+
+  const { memberId, newPassword } = req.body;
+  if (!memberId || !newPassword) {
+    return res.status(400).json({ error: 'Member ID and new password are required' });
+  }
+
+  if (newPassword.length < 4) {
+    return res.status(400).json({ error: 'New password must be at least 4 characters' });
+  }
+
+  try {
+    const pool = getPool();
+    const result = await pool.query(`UPDATE team_members SET password = $1 WHERE id = $2 RETURNING id, name, username`, [
+      newPassword,
+      memberId,
+    ]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    res.json({ status: 'ok', message: 'Password updated successfully by admin', member: result.rows[0] });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// Team Members Endpoints
+// ==========================================
+
+// GET all team members
+app.get('/api/members', async (req: Request, res: Response) => {
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  const isAdmin = callerRole === 'admin';
+
+  try {
+    const pool = getPool();
+    const query = `
+      SELECT 
+        id,
+        name,
+        username,
+        ${isAdmin ? 'password,' : ''}
         email,
         role,
         system_role AS "systemRole",
@@ -523,11 +658,18 @@ app.get('/api/members', async (_req: Request, res: Response) => {
   }
 });
 
-// POST create team member
+// POST create team member (admin only)
 app.post('/api/members', async (req: Request, res: Response) => {
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  if (callerRole !== 'admin') {
+    return res.status(403).json({ error: 'Permission denied. Team members can only be created by admin.' });
+  }
+
   const {
     id,
     name,
+    username,
+    password,
     email,
     role,
     systemRole = 'staff',
@@ -537,28 +679,48 @@ app.post('/api/members', async (req: Request, res: Response) => {
     department,
   } = req.body;
 
+  if (!username || !username.trim()) {
+    return res.status(400).json({ error: 'Username is required' });
+  }
+
+  if (!password || !password.trim()) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+
   const memberId = id || `mem-${Date.now()}`;
+  const cleanUsername = username.trim().toLowerCase();
+
   try {
     const pool = getPool();
+
+    // Check duplicate username
+    const existing = await pool.query(`SELECT id FROM team_members WHERE LOWER(username) = $1`, [cleanUsername]);
+    if (existing.rowCount && existing.rowCount > 0) {
+      return res.status(400).json({ error: `Username "${cleanUsername}" is already taken.` });
+    }
+
     const query = `
-      INSERT INTO team_members (id, name, email, role, system_role, avatar, color, status, department)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO team_members (id, name, username, password, email, role, system_role, avatar, color, status, department)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING 
-        id, name, email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
+        id, name, username, password, email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
     `;
     const result = await pool.query(query, [
       memberId,
       name,
+      cleanUsername,
+      password,
       email,
       role,
       systemRole,
-      avatar,
+      avatar || null,
       color,
       status,
       department,
     ]);
     res.status(201).json(result.rows[0]);
   } catch (err: any) {
+    console.error('Error creating member:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -566,27 +728,54 @@ app.post('/api/members', async (req: Request, res: Response) => {
 // PUT update team member
 app.put('/api/members/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, email, role, systemRole, avatar, color, status, department } = req.body;
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  const callerMemberId = (req.headers['x-user-member-id'] as string) || '';
+  const isAdmin = callerRole === 'admin';
+  const isSelf = callerMemberId === id;
+
+  if (!isAdmin && !isSelf) {
+    return res.status(403).json({ error: 'Permission denied. You can only update your own user info.' });
+  }
+
+  const { name, username, password, email, role, systemRole, avatar, color, status, department } = req.body;
 
   try {
     const pool = getPool();
+
+    // Check if username is being changed and conflicts
+    if (username) {
+      const conflictCheck = await pool.query(
+        `SELECT id FROM team_members WHERE LOWER(username) = LOWER($1) AND id != $2`,
+        [username.trim(), id]
+      );
+      if (conflictCheck.rowCount && conflictCheck.rowCount > 0) {
+        return res.status(400).json({ error: `Username "${username}" is already in use.` });
+      }
+    }
+
+    // Only Admin can change systemRole or update password directly here
     const query = `
       UPDATE team_members
       SET 
         name = COALESCE($1, name),
-        email = COALESCE($2, email),
-        role = COALESCE($3, role),
-        system_role = COALESCE($4, system_role),
-        avatar = COALESCE($5, avatar),
-        color = COALESCE($6, color),
-        status = COALESCE($7, status),
-        department = COALESCE($8, department)
-      WHERE id = $9
+        username = COALESCE($2, username),
+        ${isAdmin && password ? 'password = $3,' : ''}
+        email = COALESCE($4, email),
+        role = COALESCE($5, role),
+        ${isAdmin ? 'system_role = COALESCE($6, system_role),' : ''}
+        avatar = COALESCE($7, avatar),
+        color = COALESCE($8, color),
+        status = COALESCE($9, status),
+        department = COALESCE($10, department)
+      WHERE id = $11
       RETURNING 
-        id, name, email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
+        id, name, username, ${isAdmin ? 'password,' : ''} email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
     `;
+
     const result = await pool.query(query, [
       name,
+      username ? username.trim().toLowerCase() : null,
+      password || null,
       email,
       role,
       systemRole,
@@ -596,15 +785,22 @@ app.put('/api/members/:id', async (req: Request, res: Response) => {
       department,
       id,
     ]);
+
     if (result.rowCount === 0) return res.status(404).json({ error: 'Member not found' });
     res.json(result.rows[0]);
   } catch (err: any) {
+    console.error('Error updating member:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// DELETE team member
+// DELETE team member (admin only)
 app.delete('/api/members/:id', async (req: Request, res: Response) => {
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  if (callerRole !== 'admin') {
+    return res.status(403).json({ error: 'Permission denied. Only admin can delete team members.' });
+  }
+
   const { id } = req.params;
   try {
     const pool = getPool();

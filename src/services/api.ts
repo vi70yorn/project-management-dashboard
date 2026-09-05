@@ -158,41 +158,130 @@ export async function deleteTaskApi(id: string): Promise<void> {
 }
 
 // -------------------------------------------------------------
+// Authentication & Password Management API
+// -------------------------------------------------------------
+
+export async function loginApi(username: string, password: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Authentication failed');
+  }
+  return data;
+}
+
+export async function changePasswordApi(
+  memberId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/auth/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ memberId, currentPassword, newPassword }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to change password');
+  }
+  return data;
+}
+
+export async function adminResetPasswordApi(
+  memberId: string,
+  newPassword: string,
+  callerRole: string = 'admin'
+): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE}/auth/admin-reset-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-role': callerRole,
+    },
+    body: JSON.stringify({ memberId, newPassword }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to reset member password');
+  }
+  return data;
+}
+
+// -------------------------------------------------------------
 // Team Members API
 // -------------------------------------------------------------
 
-export async function fetchMembersApi(): Promise<TeamMember[]> {
-  const res = await fetch(`${API_BASE}/members`);
+export async function fetchMembersApi(userRole?: string): Promise<TeamMember[]> {
+  const headers: Record<string, string> = {};
+  if (userRole) {
+    headers['x-user-role'] = userRole;
+  }
+
+  const res = await fetch(`${API_BASE}/members`, { headers });
   if (!res.ok) throw new Error(`Failed to fetch team members (${res.status})`);
   return res.json();
 }
 
-export async function createMemberApi(memberData: Partial<TeamMember>): Promise<TeamMember> {
+export async function createMemberApi(
+  memberData: Partial<TeamMember>,
+  userRole: string = 'admin'
+): Promise<TeamMember> {
   const res = await fetch(`${API_BASE}/members`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-role': userRole,
+    },
     body: JSON.stringify(memberData),
   });
-  if (!res.ok) throw new Error(`Failed to create member (${res.status})`);
-  return res.json();
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Failed to create member (${res.status})`);
+  return data;
 }
 
 export async function updateMemberApi(
   id: string,
-  memberData: Partial<TeamMember>
+  memberData: Partial<TeamMember>,
+  userRole?: string,
+  callerMemberId?: string
 ): Promise<TeamMember> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (userRole) {
+    headers['x-user-role'] = userRole;
+  }
+  if (callerMemberId) {
+    headers['x-user-member-id'] = callerMemberId;
+  }
+
   const res = await fetch(`${API_BASE}/members/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(memberData),
   });
-  if (!res.ok) throw new Error(`Failed to update member (${res.status})`);
-  return res.json();
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Failed to update member (${res.status})`);
+  return data;
 }
 
-export async function deleteMemberApi(id: string): Promise<void> {
+export async function deleteMemberApi(id: string, userRole: string = 'admin'): Promise<void> {
   const res = await fetch(`${API_BASE}/members/${id}`, {
     method: 'DELETE',
+    headers: {
+      'x-user-role': userRole,
+    },
   });
-  if (!res.ok) throw new Error(`Failed to delete member (${res.status})`);
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to delete member (${res.status})`);
+  }
 }

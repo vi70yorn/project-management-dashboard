@@ -97,7 +97,39 @@ export async function runMigrationsAndSeed(): Promise<void> {
   try {
     console.log('[PostgreSQL] Executing database/init.sql schema and seed data...');
     await client.query(sql);
-    console.log('[PostgreSQL] Database schema & initial seeds verified successfully.');
+
+    // Apply migrations for username and password columns if existing table didn't have them
+    await client.query(`
+      ALTER TABLE team_members ADD COLUMN IF NOT EXISTS username VARCHAR(64) UNIQUE;
+      ALTER TABLE team_members ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT '123456';
+    `);
+
+    // Ensure known existing members have clean usernames and passwords
+    await client.query(`
+      UPDATE team_members
+      SET username = 'vichet', password = COALESCE(password, 'admin123')
+      WHERE (LOWER(name) LIKE '%vichet%' OR LOWER(email) LIKE '%vichet%') AND (username IS NULL OR username = '');
+
+      UPDATE team_members
+      SET username = 'david', password = COALESCE(password, 'staff123')
+      WHERE (LOWER(name) LIKE '%david%' OR LOWER(email) LIKE '%david%') AND (username IS NULL OR username = '');
+
+      UPDATE team_members
+      SET username = 'likka', password = COALESCE(password, 'staff123')
+      WHERE (LOWER(name) LIKE '%likka%' OR LOWER(email) LIKE '%likka%') AND (username IS NULL OR username = '');
+
+      -- Fallback for any other members with empty username
+      UPDATE team_members
+      SET username = LOWER(REGEXP_REPLACE(SPLIT_PART(email, '@', 1), '[^a-zA-Z0-9]', '', 'g'))
+      WHERE username IS NULL OR username = '';
+
+      -- Ensure default passwords are not null
+      UPDATE team_members
+      SET password = '123456'
+      WHERE password IS NULL OR password = '';
+    `);
+
+    console.log('[PostgreSQL] Database schema, credentials & initial seeds verified successfully.');
   } finally {
     client.release();
   }
