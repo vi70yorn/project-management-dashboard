@@ -88,9 +88,7 @@ VALUES
     ('mem-1788624319284', 'Y.VICHET', 'vichet', '123456', 'y.vichet@team.org', 'UX/UI Lead', 'admin', '#2563eb', 'active'),
     ('mem-1788624380119', 'David', 'david', '123456', 'david@team.org', 'UX/UI Designer', 'staff', '#2563eb', 'active'),
     ('mem-1788624800573', 'Likka', 'likka', '1234', 'likka@team.org', 'UX/UI Designer', 'staff', '#2563eb', 'active')
-ON CONFLICT (id) DO UPDATE SET
-    username = EXCLUDED.username,
-    password = EXCLUDED.password;
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, created_at, updated_at)
 VALUES
