@@ -222,7 +222,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              InProgress Tasks
+              In Progress Tasks
             </span>
             <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Clock className="w-4 h-4" />
