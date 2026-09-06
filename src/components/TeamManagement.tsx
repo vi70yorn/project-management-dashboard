@@ -104,14 +104,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
-            <h1 id="team-roster-title" className="text-xl font-bold text-slate-900">
+            <h1 id="team-roster-title" className="text-xl font-bold text-slate-900 dark:text-white">
               Team Members & Roster
             </h1>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Add team members, configure their roles, and manage their assignments across projects and tasks.
           </p>
         </div>
@@ -130,41 +130,41 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* Stats Summary Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-xs text-slate-500 font-medium block">Total Roster</span>
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Total Roster</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-xl font-bold text-slate-900">{teamMembers.length}</span>
-            <span className="text-2xs text-slate-400">members</span>
+            <span className="text-xl font-bold text-slate-900 dark:text-white">{teamMembers.length}</span>
+            <span className="text-2xs text-slate-400 dark:text-slate-500">members</span>
           </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-xs text-slate-500 font-medium block">Active & Available</span>
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Active & Available</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-xl font-bold text-emerald-600">{activeCount}</span>
-            <span className="text-2xs text-slate-400">members</span>
+            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{activeCount}</span>
+            <span className="text-2xs text-slate-400 dark:text-slate-500">members</span>
           </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-xs text-slate-500 font-medium block">Busy / In Meetings</span>
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Busy / In Meetings</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-xl font-bold text-amber-600">{busyCount}</span>
-            <span className="text-2xs text-slate-400">members</span>
+            <span className="text-xl font-bold text-amber-600 dark:text-amber-400">{busyCount}</span>
+            <span className="text-2xs text-slate-400 dark:text-slate-500">members</span>
           </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-          <span className="text-xs text-slate-500 font-medium block">Away / On Leave</span>
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Away / On Leave</span>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-xl font-bold text-slate-500">{awayCount}</span>
-            <span className="text-2xs text-slate-400">members</span>
+            <span className="text-xl font-bold text-slate-500 dark:text-slate-400">{awayCount}</span>
+            <span className="text-2xs text-slate-400 dark:text-slate-500">members</span>
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
@@ -178,7 +178,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -190,10 +190,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors cursor-pointer ${
                 statusFilter === status
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                  ? 'bg-slate-900 dark:bg-blue-600 text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-700/70'
               }`}
             >
               {status === 'All' ? 'All Members' : status}
@@ -215,7 +215,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             <div
               key={member.id}
               id={`member-card-${member.id}`}
-              className="bg-white rounded-xl border border-slate-200 shadow-2xs hover:shadow-sm transition-shadow p-5 flex flex-col justify-between"
+              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-sm transition-shadow p-5 flex flex-col justify-between"
             >
               <div>
                 {/* Member Header */}
@@ -226,7 +226,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         <img
                           src={member.avatar}
                           alt={member.name}
-                          className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                          className="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700"
                         />
                       ) : (
                         <div
@@ -237,7 +237,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         </div>
                       )}
                       <span
-                        className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                        className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
                           member.status === 'active'
                             ? 'bg-emerald-500'
                             : member.status === 'busy'
@@ -249,15 +249,15 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="text-sm font-semibold text-slate-900 truncate">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                           {member.name}
                         </h3>
                         {/* System Role Badge */}
                         <span
                           className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 text-3xs font-semibold rounded-md border ${
                             member.systemRole === 'admin'
-                              ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                              : 'bg-slate-100 border-slate-200 text-slate-700'
+                              ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400'
+                              : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                           }`}
                         >
                           {member.systemRole === 'admin' ? (
@@ -268,18 +268,18 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                           {member.systemRole === 'admin' ? 'Admin' : 'Staff'}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-1 mt-0.5">
                         <Briefcase className="w-3 h-3 text-slate-400 shrink-0" />
                         <span className="truncate">{member.role}</span>
                       </p>
                       <div className="flex items-center gap-1 mt-1 flex-wrap">
                         {member.username && (
-                          <span className="inline-block px-1.5 py-0.2 rounded-sm text-3xs font-mono font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="inline-block px-1.5 py-0.2 rounded-sm text-3xs font-mono font-medium bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             @{member.username}
                           </span>
                         )}
                         {member.department && (
-                          <span className="inline-block px-1.5 py-0.2 rounded-sm text-2xs font-medium bg-slate-100 text-slate-600">
+                          <span className="inline-block px-1.5 py-0.2 rounded-sm text-2xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                             {member.department}
                           </span>
                         )}
@@ -294,7 +294,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         id={`edit-member-btn-${member.id}`}
                         onClick={() => onEditMember(member)}
                         title={isAdmin ? "Edit member" : "Edit your profile"}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-colors cursor-pointer"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -304,7 +304,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         id={`delete-member-btn-${member.id}`}
                         onClick={() => onDeleteMember(member.id)}
                         title="Delete member"
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -313,20 +313,20 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
 
                 {/* Email line */}
-                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-2xs text-slate-500">
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-2xs text-slate-500 dark:text-slate-400">
                   <span className="flex items-center gap-1.5 truncate">
                     <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <a href={`mailto:${member.email}`} className="hover:text-blue-600 truncate">
+                    <a href={`mailto:${member.email}`} className="hover:text-blue-600 dark:hover:text-blue-400 truncate">
                       {member.email}
                     </a>
                   </span>
                   <span
                     className={`px-2 py-0.5 rounded-full capitalize font-medium ${
                       member.status === 'active'
-                        ? 'bg-emerald-50 text-emerald-700'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400'
                         : member.status === 'busy'
-                        ? 'bg-amber-50 text-amber-700'
-                        : 'bg-slate-100 text-slate-600'
+                        ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                     }`}
                   >
                     {member.status}
@@ -335,7 +335,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
                 {/* Assigned Projects Section */}
                 <div className="mt-3 space-y-1.5">
-                  <div className="flex items-center justify-between text-2xs font-semibold text-slate-600">
+                  <div className="flex items-center justify-between text-2xs font-semibold text-slate-600 dark:text-slate-400">
                     <span className="flex items-center gap-1">
                       <FolderKanban className="w-3 h-3 text-slate-400" />
                       Projects ({assignedProjects.length})
@@ -343,7 +343,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     {isAdmin && (
                       <button
                         onClick={() => openProjectManager(member)}
-                        className="text-blue-600 hover:underline text-2xs cursor-pointer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline text-2xs cursor-pointer"
                       >
                         Manage Projects
                       </button>
@@ -356,7 +356,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         <button
                           key={p.id}
                           onClick={() => onSelectProject(p.id)}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-2xs font-medium bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 transition-colors border border-slate-200"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-2xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
                         >
                           <span
                             className="w-1.5 h-1.5 rounded-full"
@@ -366,7 +366,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         </button>
                       ))
                     ) : (
-                      <span className="text-2xs text-slate-400 italic">
+                      <span className="text-2xs text-slate-400 dark:text-slate-500 italic">
                         Not assigned to any project
                       </span>
                     )}
@@ -374,39 +374,39 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
 
                 {/* Workload / Task distribution */}
-                <div className="mt-3 pt-2.5 border-t border-slate-100">
-                  <div className="flex items-center justify-between text-2xs font-semibold text-slate-600 mb-1.5">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between text-2xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
                     <span>Task Workload</span>
                     <button
                       onClick={() => setInspectingMemberTasks(member)}
-                      className="text-blue-600 hover:underline text-2xs"
+                      className="text-blue-600 dark:text-blue-400 hover:underline text-2xs cursor-pointer"
                     >
                       {memberTasks.length} {memberTasks.length === 1 ? 'task' : 'tasks'}
                     </button>
                   </div>
 
                   <div className="grid grid-cols-3 gap-1.5 text-center text-2xs">
-                    <div className="p-1.5 bg-blue-50/60 rounded-md border border-blue-100">
-                      <span className="block font-bold text-blue-700">{activeTasks.length}</span>
-                      <span className="text-slate-500 text-3xs">In Progress</span>
+                    <div className="p-1.5 bg-blue-50/60 dark:bg-blue-950/40 rounded-md border border-blue-100 dark:border-blue-900/50">
+                      <span className="block font-bold text-blue-700 dark:text-blue-400">{activeTasks.length}</span>
+                      <span className="text-slate-500 dark:text-slate-400 text-3xs">In Progress</span>
                     </div>
-                    <div className="p-1.5 bg-amber-50/60 rounded-md border border-amber-100">
-                      <span className="block font-bold text-amber-700">{blockedTasks.length}</span>
-                      <span className="text-slate-500 text-3xs">Blocked</span>
+                    <div className="p-1.5 bg-amber-50/60 dark:bg-amber-950/40 rounded-md border border-amber-100 dark:border-amber-900/50">
+                      <span className="block font-bold text-amber-700 dark:text-amber-400">{blockedTasks.length}</span>
+                      <span className="text-slate-500 dark:text-slate-400 text-3xs">Blocked</span>
                     </div>
-                    <div className="p-1.5 bg-emerald-50/60 rounded-md border border-emerald-100">
-                      <span className="block font-bold text-emerald-700">{completedTasks.length}</span>
-                      <span className="text-slate-500 text-3xs">Completed</span>
+                    <div className="p-1.5 bg-emerald-50/60 dark:bg-emerald-950/40 rounded-md border border-emerald-100 dark:border-emerald-900/50">
+                      <span className="block font-bold text-emerald-700 dark:text-emerald-400">{completedTasks.length}</span>
+                      <span className="text-slate-500 dark:text-slate-400 text-3xs">Completed</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Card Footer Quick Action */}
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <button
                   onClick={() => openProjectManager(member)}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer"
                 >
                   Assign to Projects &rarr;
                 </button>
@@ -414,14 +414,14 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   {(isAdmin || currentUser?.memberId === member.id) && (
                     <button
                       onClick={() => onEditMember(member)}
-                      className="text-xs font-medium text-slate-600 hover:text-blue-600 hover:underline"
+                      className="text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer"
                     >
                       {isAdmin ? 'View Details / Password' : 'My Details'}
                     </button>
                   )}
                   <button
                     onClick={() => setInspectingMemberTasks(member)}
-                    className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                    className="text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
                   >
                     View Tasks
                   </button>
@@ -432,16 +432,16 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         })}
 
         {filteredMembers.length === 0 && (
-          <div className="col-span-full py-12 text-center bg-white rounded-xl border border-dashed border-slate-300">
-            <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-medium text-slate-700">No team members found</p>
-            <p className="text-xs text-slate-400 mt-1">
+          <div className="col-span-full py-12 text-center bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+            <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No team members found</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
               Try adjusting your search query or add a new team member.
             </p>
             {isAdmin && (
               <button
                 onClick={onAddMember}
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700"
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 cursor-pointer"
               >
                 <UserPlus className="w-4 h-4" />
                 Add First Member
@@ -455,33 +455,33 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       {managingProjectsForMember && (
         <div
           id="manage-member-projects-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   <FolderKanban className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                     Assign to Projects
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {managingProjectsForMember.name} ({managingProjectsForMember.role})
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setManagingProjectsForMember(null)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-5 max-h-80 overflow-y-auto space-y-2">
-              <p className="text-xs text-slate-600 mb-3">
+              <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
                 Select which projects this team member should have access to:
               </p>
               {safeProjects.map((project) => {
@@ -492,8 +492,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     onClick={() => toggleProjectSelection(project.id)}
                     className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer text-xs transition-colors ${
                       isSelected
-                        ? 'bg-blue-50 border-blue-200 text-blue-900 font-medium'
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 font-medium'
+                        : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
@@ -502,8 +502,8 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         style={{ backgroundColor: project.color }}
                       />
                       <div className="truncate">
-                        <p className="font-semibold text-slate-900 truncate">{project.name}</p>
-                        <p className="text-2xs text-slate-500 truncate">
+                        <p className="font-semibold text-slate-900 dark:text-white truncate">{project.name}</p>
+                        <p className="text-2xs text-slate-500 dark:text-slate-400 truncate">
                           Client: {project.client} &bull; Status: {project.status}
                         </p>
                       </div>
@@ -513,25 +513,25 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         <Check className="w-3.5 h-3.5 stroke-[3]" />
                       </div>
                     ) : (
-                      <div className="w-5 h-5 rounded-md border border-slate-300 shrink-0" />
+                      <div className="w-5 h-5 rounded-md border border-slate-300 dark:border-slate-600 shrink-0" />
                     )}
                   </div>
                 );
               })}
             </div>
 
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setManagingProjectsForMember(null)}
-                className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 rounded-lg"
+                className="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveProjects}
-                className="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs"
+                className="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs cursor-pointer"
               >
                 Save Project Assignments
               </button>
@@ -544,21 +544,21 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       {inspectingMemberTasks && (
         <div
           id="member-tasks-inspect-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
               <div>
-                <h3 className="text-sm font-semibold text-slate-900">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   Tasks for {inspectingMemberTasks.name}
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {inspectingMemberTasks.role} &bull; {tasks.filter((t) => t.assigneeId === inspectingMemberTasks.id).length} total deliverables
                 </p>
               </div>
               <button
                 onClick={() => setInspectingMemberTasks(null)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -573,32 +573,32 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     return (
                       <div
                         key={task.id}
-                        className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-1.5"
+                        className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-1.5"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-slate-900 truncate">
+                          <span className="font-semibold text-slate-900 dark:text-white truncate">
                             {task.title}
                           </span>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-2xs font-semibold shrink-0 ${
+                            className={`px-2 py-0.5 rounded-full text-2xs font-semibold shrink-0 border ${
                               task.status === 'Completed'
-                                ? 'bg-emerald-100 text-emerald-800'
+                                ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                                 : task.status === 'In Progress'
-                                ? 'bg-blue-100 text-blue-800'
+                                ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800'
                                 : task.status === 'Blocked'
-                                ? 'bg-rose-100 text-rose-800'
-                                : 'bg-amber-100 text-amber-800'
+                                ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                                : 'bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                             }`}
                           >
                             {task.status}
                           </span>
                         </div>
                         {task.description && (
-                          <p className="text-2xs text-slate-600 line-clamp-2">
+                          <p className="text-2xs text-slate-600 dark:text-slate-300 line-clamp-2">
                             {task.description}
                           </p>
                         )}
-                        <div className="flex items-center justify-between text-2xs text-slate-500 pt-1 border-t border-slate-200/60">
+                        <div className="flex items-center justify-between text-2xs text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-slate-700">
                           <span>Project: {taskProject ? taskProject.name : 'Unknown'}</span>
                           <span>Due: {task.dueDate}</span>
                         </div>
@@ -606,17 +606,17 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     );
                   })
               ) : (
-                <div className="py-8 text-center text-xs text-slate-400">
+                <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
                   No tasks currently assigned to this member.
                 </div>
               )}
             </div>
 
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex justify-end">
               <button
                 type="button"
                 onClick={() => setInspectingMemberTasks(null)}
-                className="px-4 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200 rounded-lg"
+                className="px-4 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
               >
                 Close
               </button>

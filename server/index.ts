@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 import { getPool, ensureDatabaseExists, runMigrationsAndSeed, checkConnection, dbConfig } from './db';
 
 dotenv.config();
@@ -811,6 +813,21 @@ app.delete('/api/members/:id', async (req: Request, res: Response) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ==========================================
+// Serve Static Frontend (Single-Service Deployment)
+// ==========================================
+
+const distPath = path.resolve(process.cwd(), 'dist');
+if (fs.existsSync(distPath)) {
+  console.log(`[Server] Serving static frontend from: ${distPath}`);
+  app.use(express.static(distPath));
+  app.get('*', (req: Request, res: Response) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(distPath, 'index.html'));
+    }
+  });
+}
 
 // ==========================================
 // Start Server & Bootstrap Database

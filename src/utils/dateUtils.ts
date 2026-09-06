@@ -35,7 +35,7 @@ export function getDueDateStatus(dateStr?: string): DueDateStatus {
       isOverdue: false,
       diffDays: 0,
       label: 'No deadline',
-      badgeClass: 'bg-slate-50 text-slate-600 border-slate-200',
+      badgeClass: 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700',
     };
   }
 
@@ -58,7 +58,7 @@ export function getDueDateStatus(dateStr?: string): DueDateStatus {
       diffDays: 0,
       label: 'Due Today',
       badgeClass:
-        'bg-rose-50 text-rose-700 border-rose-300 font-bold ring-1 ring-rose-300/80 shadow-2xs animate-pulse',
+        'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-bold ring-1 ring-rose-300/80 dark:ring-rose-800/80 shadow-2xs animate-pulse',
     };
   }
 
@@ -68,7 +68,7 @@ export function getDueDateStatus(dateStr?: string): DueDateStatus {
       isOverdue: true,
       diffDays,
       label: `Overdue (${Math.abs(diffDays)}d)`,
-      badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-semibold',
+      badgeClass: 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-semibold',
     };
   }
 
@@ -78,7 +78,7 @@ export function getDueDateStatus(dateStr?: string): DueDateStatus {
       isOverdue: false,
       diffDays,
       label: 'Due Tomorrow',
-      badgeClass: 'bg-amber-50 text-amber-700 border-amber-200 font-medium',
+      badgeClass: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 font-medium',
     };
   }
 
@@ -88,7 +88,7 @@ export function getDueDateStatus(dateStr?: string): DueDateStatus {
       isOverdue: false,
       diffDays,
       label: `Due in ${diffDays}d`,
-      badgeClass: 'bg-amber-50/70 text-amber-700 border-amber-200 font-medium',
+      badgeClass: 'bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 font-medium',
     };
   }
 
@@ -97,6 +97,6 @@ export function getDueDateStatus(dateStr?: string): DueDateStatus {
     isOverdue: false,
     diffDays,
     label: cleanDate,
-    badgeClass: 'bg-slate-50 text-slate-700 border-slate-200 font-medium',
+    badgeClass: 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 font-medium',
   };
 }

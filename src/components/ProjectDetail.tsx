@@ -192,28 +192,28 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const getStatusBadge = (status: StatusType) => {
     switch (status) {
       case 'In Progress':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
       case 'Pending':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
       case 'Blocked':
-        return 'bg-rose-50 text-rose-700 border-rose-200 font-semibold';
+        return 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 font-semibold';
       case 'Completed':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200';
+        return 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
     }
   };
 
   const getPriorityBadge = (priority: PriorityType) => {
     switch (priority) {
       case 'Urgent':
-        return 'bg-rose-100 text-rose-800 border-rose-200';
+        return 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800';
       case 'High':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800';
       case 'Medium':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800';
       case 'Low':
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
     }
   };
 
@@ -246,7 +246,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         <button
           id="back-to-dashboard-btn"
           onClick={onBackToDashboard}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-slate-50 transition-colors w-fit"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors w-fit cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to Dashboard Summary
@@ -260,9 +260,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 <button
                   id="header-edit-project-btn"
                   onClick={() => onEditProject(project)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
                 >
-                  <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                  <Edit2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   Edit Project
                 </button>
               )}
@@ -270,18 +270,18 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 <button
                   id="header-delete-project-btn"
                   onClick={() => onDeleteProject(project)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                   Delete Project
                 </button>
               )}
               <button
                 id="manage-project-members-btn"
                 onClick={() => setIsManagingMembers(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
               >
-                <Users className="w-3.5 h-3.5 text-slate-500" />
+                <Users className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 Manage Team ({projectTeam.length})
               </button>
               <button
@@ -297,9 +297,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             <div className="flex items-center gap-2">
               <span
                 id="staff-view-only-indicator"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold shadow-2xs"
               >
-                <Eye className="w-3.5 h-3.5 text-slate-500" />
+                <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 Staff Mode &bull; View Project Details
               </span>
               <button
@@ -316,7 +316,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       </div>
 
       {/* Project Overview Card */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-2xs">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
           <div className="space-y-2 max-w-3xl">
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -324,10 +324,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: project.color }}
               />
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 {project.client}
               </span>
-              <span className="text-slate-300">&bull;</span>
+              <span className="text-slate-300 dark:text-slate-600">&bull;</span>
               {/* Status Display: Editable by Admin, Read-only badge for Staff */}
               {isAdmin ? (
                 <div className="relative inline-flex items-center">
@@ -337,7 +337,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     onChange={(e) =>
                       onUpdateProjectStatus(project.id, e.target.value as StatusType)
                     }
-                    className={`appearance-none text-xs font-semibold pl-2.5 pr-6 py-1 rounded-lg border bg-white cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
+                    className={`appearance-none text-xs font-semibold pl-2.5 pr-6 py-1 rounded-lg border cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
                       project.status
                     )}`}
                   >
@@ -346,7 +346,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     <option value="Blocked">Blocked</option>
                     <option value="Completed">Completed</option>
                   </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-1.5 pointer-events-none" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute right-1.5 pointer-events-none" />
                 </div>
               ) : (
                 <span
@@ -360,18 +360,18 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               )}
             </div>
 
-            <h1 id="project-detail-name" className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            <h1 id="project-detail-name" className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
               {project.name}
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {project.description}
             </p>
 
             {/* Tags & Manager */}
             <div className="flex items-center gap-2 pt-1 flex-wrap text-2xs">
               {projectManager && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-medium border border-blue-200">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-medium border border-blue-200 dark:border-blue-800">
                   <Briefcase className="w-3 h-3" />
                   Lead: {projectManager.name}
                 </span>
@@ -379,7 +379,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               {project.tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium"
+                  className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium"
                 >
                   {tag}
                 </span>
@@ -388,32 +388,32 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           </div>
 
           {/* Right Summary Info */}
-          <div className="flex flex-row lg:flex-col items-start lg:items-end justify-between gap-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100">
+          <div className="flex flex-row lg:flex-col items-start lg:items-end justify-between gap-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100 dark:border-slate-800">
             <div className="text-left lg:text-right">
-              <span className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
+              <span className="text-2xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Target Deadline
               </span>
               {(() => {
                 const projDue = getDueDateStatus(project.targetDeadline);
                 if (projDue.isToday) {
                   return (
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-300 px-2 py-1 rounded-lg mt-1 ring-1 ring-rose-400/80 shadow-2xs animate-pulse">
-                      <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 px-2 py-1 rounded-lg mt-1 ring-1 ring-rose-400/80 shadow-2xs animate-pulse">
+                      <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
                       <span>Due Today! ({project.targetDeadline})</span>
                     </div>
                   );
                 }
                 if (projDue.isOverdue) {
                   return (
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-lg mt-0.5">
-                      <Clock className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-2 py-0.5 rounded-lg mt-0.5">
+                      <Clock className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
                       <span>Overdue ({project.targetDeadline})</span>
                     </div>
                   );
                 }
                 return (
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 mt-0.5">
-                    <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+                    <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                     <span>{project.targetDeadline}</span>
                   </div>
                 );
@@ -423,13 +423,13 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             {/* Project Team Avatars with Quick Add */}
             <div className="text-left lg:text-right">
               <div className="flex items-center justify-between lg:justify-end gap-2 mb-1">
-                <span className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
+                <span className="text-2xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   Project Team ({projectTeam.length})
                 </span>
                 {isAdmin && (
                   <button
                     onClick={() => setIsManagingMembers(true)}
-                    className="text-2xs text-blue-600 hover:underline font-medium cursor-pointer"
+                    className="text-2xs text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
                   >
                     Edit Roster
                   </button>
@@ -443,13 +443,13 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         src={mem.avatar}
                         alt={mem.name}
                         title={`${mem.name} (${mem.role})`}
-                        className="w-7 h-7 rounded-full ring-2 ring-white object-cover cursor-pointer"
+                        className="w-7 h-7 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover cursor-pointer"
                         onClick={() => setFilterMemberId(filterMemberId === mem.id ? 'all' : mem.id)}
                       />
                     ) : (
                       <div
                         style={{ backgroundColor: mem.color || '#2563eb' }}
-                        className="w-7 h-7 rounded-full ring-2 ring-white text-white text-3xs font-semibold flex items-center justify-center cursor-pointer shadow-2xs"
+                        className="w-7 h-7 rounded-full ring-2 ring-white dark:ring-slate-900 text-white text-3xs font-semibold flex items-center justify-center cursor-pointer shadow-2xs"
                         title={`${mem.name} (${mem.role})`}
                         onClick={() => setFilterMemberId(filterMemberId === mem.id ? 'all' : mem.id)}
                       >
@@ -461,7 +461,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 {isAdmin && (
                   <button
                     onClick={() => setIsManagingMembers(true)}
-                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 ring-2 ring-white flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                    className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 ring-2 ring-white dark:ring-slate-900 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
                     title="Add or remove members from project"
                   >
                     +
@@ -473,26 +473,26 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         </div>
 
         {/* Progress Strip */}
-        <div className="mt-6 pt-4 border-t border-slate-100">
+        <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="text-slate-500 font-medium">
+            <span className="text-slate-500 dark:text-slate-400 font-medium">
               Progress: {completedTasks} of {totalTasks} deliverables completed
               {blockedTasks > 0 && (
-                <span className="text-rose-600 font-semibold ml-2">
+                <span className="text-rose-600 dark:text-rose-400 font-semibold ml-2">
                   &bull; {blockedTasks} blocked
                 </span>
               )}
             </span>
-            <span className="font-bold text-slate-800">{completionRate}%</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200">{completionRate}%</span>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
                 project.status === 'Blocked'
                   ? 'bg-rose-500'
                   : project.status === 'Completed'
                   ? 'bg-emerald-500'
-                  : 'bg-blue-600'
+                  : 'bg-blue-600 dark:bg-blue-500'
               }`}
               style={{ width: `${completionRate}%` }}
             />
@@ -503,13 +503,13 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         {project.status === 'Blocked' && (
           <div
             id="project-blocked-alert-banner"
-            className="mt-4 p-3.5 bg-rose-50 border border-rose-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+            className="mt-4 p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
           >
-            <div className="flex items-center gap-2.5 text-rose-800">
-              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <div className="flex items-center gap-2.5 text-rose-800 dark:text-rose-300">
+              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
               <div>
-                <span className="font-bold text-rose-900">Project is currently Blocked:</span>{' '}
-                <span className="text-rose-700">
+                <span className="font-bold text-rose-900 dark:text-rose-200">Project is currently Blocked:</span>{' '}
+                <span className="text-rose-700 dark:text-rose-300">
                   {blockedTasks > 0
                     ? `${blockedTasks} deliverable task(s) currently marked as Blocked in the Task Board below.`
                     : 'Deliverables are stalled. You can change the project status back to In Progress.'}
@@ -540,15 +540,15 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       </div>
 
       {/* Tabs & Filters Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
         <div className="flex items-center gap-2">
           <button
             id="tab-btn-board"
             onClick={() => setActiveTab('board')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'board'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-2xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -558,10 +558,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           <button
             id="tab-btn-team"
             onClick={() => setActiveTab('team')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
               activeTab === 'team'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-slate-900 dark:bg-blue-600 text-white shadow-2xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -573,19 +573,19 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         {activeTab === 'board' && (
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search tasks..."
                 value={searchTaskQuery}
                 onChange={(e) => setSearchTaskQuery(e.target.value)}
-                className="h-8 pl-8 pr-7 py-1 text-xs bg-white border border-slate-200 hover:border-slate-300 rounded-lg shadow-2xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-36 sm:w-48 transition-colors"
+                className="h-8 pl-8 pr-7 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-lg shadow-2xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-36 sm:w-48 transition-colors"
               />
               {searchTaskQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchTaskQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
                   title="Clear"
                 >
                   <X className="w-3 h-3" />
@@ -594,12 +594,12 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             </div>
 
             <div className="relative inline-flex items-center">
-              <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Filter className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 id="filter-by-member-select"
                 value={filterMemberId}
                 onChange={(e) => setFilterMemberId(e.target.value)}
-                className="appearance-none h-8 pl-8 pr-7 py-1 text-xs bg-white border border-slate-200 hover:border-slate-300 rounded-lg shadow-2xs text-slate-700 font-medium cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                className="appearance-none h-8 pl-8 pr-7 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-lg shadow-2xs text-slate-700 dark:text-slate-200 font-medium cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
               >
                 <option value="all">All Members</option>
                 {projectTeam.map((m) => (
@@ -608,7 +608,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
         )}
@@ -629,8 +629,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 onDrop={(e) => handleDrop(e, status)}
                 className={`rounded-xl border p-3 flex flex-col gap-3 min-h-[460px] transition-all duration-150 ${
                   dragOverColumn === status
-                    ? 'border-blue-400 bg-blue-50/60 ring-2 ring-blue-300/40 shadow-xs'
-                    : 'bg-slate-50/80 border-slate-200'
+                    ? 'border-blue-400 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-300/40 shadow-xs'
+                    : 'bg-slate-50/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
                 }`}
               >
                 {/* Column Header */}
@@ -643,20 +643,20 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     >
                       {status}
                     </span>
-                    <span className="text-xs text-slate-400 font-semibold">
+                    <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">
                       {columnTasks.length}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <span className="text-3xs text-slate-400 hidden sm:inline">
+                    <span className="text-3xs text-slate-400 dark:text-slate-500 hidden sm:inline">
                       {isAdmin ? 'Drag & Drop' : 'Deliverables'}
                     </span>
                     <button
                       id={`add-task-to-column-${status}`}
                       onClick={() => onOpenTaskModal(null, status)}
                       title={`Add ${status} Task`}
-                      className="text-slate-400 hover:text-blue-600 p-1 rounded-md hover:bg-white transition-colors cursor-pointer"
+                      className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -680,7 +680,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         draggable={canModifyTask}
                         onDragStart={(e) => handleDragStart(e, task.id)}
                         onDragEnd={handleDragEnd}
-                        className={`bg-white rounded-lg border border-slate-200/90 p-3 shadow-2xs hover:border-slate-300 hover:shadow-xs transition-all space-y-2.5 select-none ${
+                        className={`bg-white dark:bg-slate-800/90 rounded-lg border border-slate-200/90 dark:border-slate-700/80 p-3 shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-xs transition-all space-y-2.5 select-none ${
                           canModifyTask ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
                         } group ${
                           draggedTaskId === task.id ? 'opacity-40 scale-[0.98] ring-2 ring-blue-400' : ''
@@ -690,9 +690,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {canModifyTask ? (
-                              <GripVertical className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
+                              <GripVertical className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors shrink-0" />
                             ) : (
-                              <Eye className="w-3.5 h-3.5 text-slate-400 shrink-0" title="Staff: View detail mode" />
+                              <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" title="Staff: View detail mode" />
                             )}
                             <span
                               className={`text-2xs px-2 py-0.5 rounded-md border font-semibold ${getPriorityBadge(
@@ -702,7 +702,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               {task.priority}
                             </span>
                             {isStaff && isOwnTask && (
-                              <span className="text-3xs font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                              <span className="text-3xs font-semibold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                                 My Task
                               </span>
                             )}
@@ -715,7 +715,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                                   id={`edit-task-btn-${task.id}`}
                                   onClick={() => onOpenTaskModal(task)}
                                   title="Edit Task"
-                                  className="text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100 cursor-pointer transition-colors"
+                                  className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
@@ -723,7 +723,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                                   id={`delete-task-btn-${task.id}`}
                                   onClick={() => onDeleteTaskRequest(task)}
                                   title="Delete Task"
-                                  className="text-slate-400 hover:text-rose-600 p-1 rounded-md hover:bg-slate-100 cursor-pointer transition-colors"
+                                  className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -732,7 +732,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               <button
                                 onClick={() => onOpenTaskModal(task)}
                                 title="View Task Detail"
-                                className="text-3xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded font-medium border border-blue-200/60 cursor-pointer transition-colors inline-flex items-center gap-1"
+                                className="text-3xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-2 py-0.5 rounded font-medium border border-blue-200/60 dark:border-blue-800/60 cursor-pointer transition-colors inline-flex items-center gap-1"
                               >
                                 View Detail
                               </button>
@@ -744,20 +744,20 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         <div>
                           <h4
                             onClick={() => onOpenTaskModal(task)}
-                            className="text-xs font-bold text-slate-900 leading-snug hover:text-blue-600 cursor-pointer transition-colors"
+                            className="text-xs font-bold text-slate-900 dark:text-white leading-snug hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
                             title={isAdmin ? 'Edit task details' : 'View task details'}
                           >
                             {task.title}
                           </h4>
                           {task.description && (
-                            <p className="text-2xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                            <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                               {task.description}
                             </p>
                           )}
                         </div>
 
                         {/* Assignee & Due Date */}
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-2xs text-slate-500 gap-1.5">
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-2xs text-slate-500 dark:text-slate-400 gap-1.5">
                           {/* Assignee pill / dropdown */}
                           <div className="relative flex-1 min-w-0">
                             {isAdmin ? (
@@ -766,7 +766,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                                   value={task.assigneeId}
                                   onChange={(e) => onReassignTask(task.id, e.target.value)}
                                   title="Change assignee (Admin only)"
-                                  className="appearance-none w-full text-2xs py-1 pl-2 pr-5 border border-slate-200 hover:border-slate-300 rounded-md bg-white text-slate-700 font-medium cursor-pointer truncate shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                  className="appearance-none w-full text-2xs py-1 pl-2 pr-5 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium cursor-pointer truncate shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                                 >
                                   {teamMembers.map((m) => (
                                     <option key={m.id} value={m.id}>
@@ -774,10 +774,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                                     </option>
                                   ))}
                                 </select>
-                                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                <ChevronDown className="w-3 h-3 text-slate-400 dark:text-slate-500 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                               </>
                             ) : (
-                              <div className="flex items-center gap-1.5 py-0.5 text-2xs text-slate-700 font-medium truncate">
+                              <div className="flex items-center gap-1.5 py-0.5 text-2xs text-slate-700 dark:text-slate-200 font-medium truncate">
                                 {assignee?.avatar ? (
                                   <img
                                     src={assignee.avatar}
@@ -803,9 +803,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               return (
                                 <div
                                   title={`Due Today (${task.dueDate})`}
-                                  className="flex items-center gap-1 text-rose-700 bg-rose-50 border border-rose-300 px-1.5 py-0.5 rounded text-2xs font-bold shrink-0 ring-1 ring-rose-400/80 shadow-2xs animate-pulse"
+                                  className="flex items-center gap-1 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 px-1.5 py-0.5 rounded text-2xs font-bold shrink-0 ring-1 ring-rose-400/80 shadow-2xs animate-pulse"
                                 >
-                                  <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" />
+                                  <AlertCircle className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
                                   <span>Today ({task.dueDate.slice(5)})</span>
                                 </div>
                               );
@@ -814,7 +814,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               return (
                                 <div
                                   title={`Overdue (${task.dueDate})`}
-                                  className="flex items-center gap-1 text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded text-2xs font-semibold shrink-0"
+                                  className="flex items-center gap-1 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-1.5 py-0.5 rounded text-2xs font-semibold shrink-0"
                                 >
                                   <Clock className="w-3 h-3 text-rose-500 shrink-0" />
                                   <span>{task.dueDate.slice(5)}</span>
@@ -822,8 +822,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               );
                             }
                             return (
-                              <div className="flex items-center gap-1 text-slate-500 shrink-0">
-                                <Clock className="w-3 h-3 text-slate-400" />
+                              <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 shrink-0">
+                                <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                                 <span>{task.dueDate.slice(5)}</span>
                               </div>
                             );
@@ -832,8 +832,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
                         {/* Quick Move status bar: if canModifyTask, allow status change; else View Detail prompt */}
                         {canModifyTask ? (
-                          <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 text-2xs">
-                            <span className="text-3xs font-semibold text-slate-400 uppercase tracking-wider">Move</span>
+                          <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/60 text-2xs">
+                            <span className="text-3xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Move</span>
                             <div className="relative inline-flex items-center">
                               <select
                                 id={`move-task-status-${task.id}`}
@@ -841,25 +841,25 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                                 onChange={(e) =>
                                   onUpdateTaskStatus(task.id, e.target.value as StatusType)
                                 }
-                                className="appearance-none text-2xs py-0.5 pl-2 pr-5 border border-slate-200 hover:border-slate-300 rounded-md bg-white text-slate-700 font-medium cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                className="appearance-none text-2xs py-0.5 pl-2 pr-5 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                               >
                                 <option value="In Progress">In Progress</option>
                                 <option value="Pending">Pending</option>
                                 <option value="Blocked">Blocked</option>
                                 <option value="Completed">Completed</option>
                               </select>
-                              <ChevronDown className="w-2.5 h-2.5 text-slate-400 absolute right-1.5 pointer-events-none" />
+                              <ChevronDown className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500 absolute right-1.5 pointer-events-none" />
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 text-2xs">
-                            <span className="text-3xs font-medium text-slate-400 flex items-center gap-1">
-                              <Eye className="w-3 h-3 text-slate-400" />
+                          <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/60 text-2xs">
+                            <span className="text-3xs font-medium text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                              <Eye className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                               View detail mode
                             </span>
                             <button
                               onClick={() => onOpenTaskModal(task)}
-                              className="text-3xs text-blue-600 hover:underline font-semibold cursor-pointer"
+                              className="text-3xs text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
                             >
                               Inspect &rarr;
                             </button>
@@ -872,9 +872,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   {columnTasks.length === 0 && (
                     <div
                       onClick={() => onOpenTaskModal(null, status)}
-                      className="p-5 border-2 border-dashed border-slate-200 hover:border-blue-300 rounded-lg text-center text-2xs text-slate-400 hover:text-blue-600 transition-colors flex flex-col items-center justify-center gap-1.5 bg-white/40 cursor-pointer"
+                      className="p-5 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-600 rounded-lg text-center text-2xs text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex flex-col items-center justify-center gap-1.5 bg-white/40 dark:bg-slate-800/30 cursor-pointer"
                     >
-                      <Plus className="w-4 h-4 text-slate-300" />
+                      <Plus className="w-4 h-4 text-slate-300 dark:text-slate-600" />
                       <span>{isAdmin ? 'Drag tasks here or click to add' : `Click to add ${status.toLowerCase()} task`}</span>
                     </div>
                   )}
@@ -888,12 +888,12 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       {/* VIEW 2: Project Team & Workload */}
       {activeTab === 'team' && (
         <div id="project-team-workload-view" className="space-y-4">
-          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Team Workload & Assignment Distribution
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 See individual task load and deliverables for this project
               </p>
             </div>
@@ -918,7 +918,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               return (
                 <div
                   key={member.id}
-                  className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs space-y-3"
+                  className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-2xs space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -937,72 +937,72 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         </div>
                       )}
                       <div>
-                        <h4 className="text-xs font-bold text-slate-900">{member.name}</h4>
-                        <p className="text-2xs text-slate-500">{member.role}</p>
-                        <span className="text-3xs text-slate-400">{member.email}</span>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white">{member.name}</h4>
+                        <p className="text-2xs text-slate-500 dark:text-slate-400">{member.role}</p>
+                        <span className="text-3xs text-slate-400 dark:text-slate-500">{member.email}</span>
                       </div>
                     </div>
 
                     <button
                       onClick={() => onOpenTaskModal(null, 'In Progress')}
-                      className="text-2xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                      className="text-2xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
                     >
                       + Assign Task
                     </button>
                   </div>
 
                   {/* Task Workload Bar */}
-                  <div className="grid grid-cols-3 gap-2 text-center text-2xs pt-2 border-t border-slate-100">
-                    <div className="p-1.5 bg-blue-50/60 rounded-md border border-blue-100">
-                      <span className="font-bold text-blue-700">{activeCount}</span>
-                      <p className="text-3xs text-slate-500">In Progress</p>
+                  <div className="grid grid-cols-3 gap-2 text-center text-2xs pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="p-1.5 bg-blue-50/60 dark:bg-blue-950/40 rounded-md border border-blue-100 dark:border-blue-900/50">
+                      <span className="font-bold text-blue-700 dark:text-blue-400">{activeCount}</span>
+                      <p className="text-3xs text-slate-500 dark:text-slate-400">In Progress</p>
                     </div>
-                    <div className="p-1.5 bg-amber-50/60 rounded-md border border-amber-100">
-                      <span className="font-bold text-amber-700">{blockedCount}</span>
-                      <p className="text-3xs text-slate-500">Blocked</p>
+                    <div className="p-1.5 bg-amber-50/60 dark:bg-amber-950/40 rounded-md border border-amber-100 dark:border-amber-900/50">
+                      <span className="font-bold text-amber-700 dark:text-amber-400">{blockedCount}</span>
+                      <p className="text-3xs text-slate-500 dark:text-slate-400">Blocked</p>
                     </div>
-                    <div className="p-1.5 bg-emerald-50/60 rounded-md border border-emerald-100">
-                      <span className="font-bold text-emerald-700">{completedCount}</span>
-                      <p className="text-3xs text-slate-500">Completed</p>
+                    <div className="p-1.5 bg-emerald-50/60 dark:bg-emerald-950/40 rounded-md border border-emerald-100 dark:border-emerald-900/50">
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400">{completedCount}</span>
+                      <p className="text-3xs text-slate-500 dark:text-slate-400">Completed</p>
                     </div>
                   </div>
 
                   {/* Task List */}
                   <div className="space-y-1 pt-1">
-                    <span className="text-2xs font-semibold text-slate-400 block">
+                    <span className="text-2xs font-semibold text-slate-400 dark:text-slate-500 block">
                       Deliverables ({memberProjectTasks.length}):
                     </span>
-                      {memberProjectTasks.slice(0, 4).map((t) => {
-                        const tDue = getDueDateStatus(t.dueDate);
-                        return (
-                          <div
-                            key={t.id}
-                            onClick={() => onOpenTaskModal(t)}
-                            className="flex items-center justify-between p-1.5 rounded-md hover:bg-slate-50 cursor-pointer text-2xs border border-slate-100 gap-1.5"
-                          >
-                            <span className="truncate max-w-[170px] text-slate-700 font-medium">
-                              {t.title}
-                            </span>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {tDue.isToday && (
-                                <span className="text-3xs font-bold text-rose-700 bg-rose-50 border border-rose-300 px-1 py-0.2 rounded-sm flex items-center gap-0.5 ring-1 ring-rose-400/80 animate-pulse">
-                                  <AlertCircle className="w-2.5 h-2.5 text-rose-600" />
-                                  Today
-                                </span>
-                              )}
-                              <span
-                                className={`px-1.5 py-0.2 rounded-sm text-3xs font-semibold ${getStatusBadge(
-                                  t.status
-                                )}`}
-                              >
-                                {t.status}
+                    {memberProjectTasks.slice(0, 4).map((t) => {
+                      const tDue = getDueDateStatus(t.dueDate);
+                      return (
+                        <div
+                          key={t.id}
+                          onClick={() => onOpenTaskModal(t)}
+                          className="flex items-center justify-between p-1.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer text-2xs border border-slate-100 dark:border-slate-800 gap-1.5"
+                        >
+                          <span className="truncate max-w-[170px] text-slate-700 dark:text-slate-300 font-medium">
+                            {t.title}
+                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {tDue.isToday && (
+                              <span className="text-3xs font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 px-1 py-0.2 rounded-sm flex items-center gap-0.5 ring-1 ring-rose-400/80 dark:ring-rose-800/80 animate-pulse">
+                                <AlertCircle className="w-2.5 h-2.5 text-rose-600 dark:text-rose-400" />
+                                Today
                               </span>
-                            </div>
+                            )}
+                            <span
+                              className={`px-1.5 py-0.2 rounded-sm text-3xs font-semibold ${getStatusBadge(
+                                t.status
+                              )}`}
+                            >
+                              {t.status}
+                            </span>
                           </div>
-                        );
-                      })}
+                        </div>
+                      );
+                    })}
                     {memberProjectTasks.length === 0 && (
-                      <p className="text-2xs text-slate-400 italic">No tasks currently assigned</p>
+                      <p className="text-2xs text-slate-400 dark:text-slate-500 italic">No tasks currently assigned</p>
                     )}
                   </div>
                 </div>
@@ -1016,24 +1016,24 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       {isManagingMembers && (
         <div
           id="manage-project-members-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                     Manage Project Members
                   </h3>
-                  <p className="text-xs text-slate-500">{project.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{project.name}</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsManagingMembers(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1041,7 +1041,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
             <div className="p-5 max-h-80 overflow-y-auto space-y-2">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Select team members to include on this project:
                 </p>
                 {onOpenAddMember && (
@@ -1051,7 +1051,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       setIsManagingMembers(false);
                       onOpenAddMember();
                     }}
-                    className="text-2xs text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold"
+                    className="text-2xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 font-semibold"
                   >
                     <UserPlus className="w-3 h-3" />
                     + New Member
@@ -1067,8 +1067,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     onClick={() => toggleMemberInProject(member.id)}
                     className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer text-xs transition-colors ${
                       isSelected
-                        ? 'bg-blue-50 border-blue-200 text-blue-900 font-medium'
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 font-medium'
+                        : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
@@ -1087,8 +1087,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         </div>
                       )}
                       <div className="truncate">
-                        <p className="font-semibold text-slate-900 truncate">{member.name}</p>
-                        <p className="text-2xs text-slate-500 truncate">{member.role}</p>
+                        <p className="font-semibold text-slate-900 dark:text-white truncate">{member.name}</p>
+                        <p className="text-2xs text-slate-500 dark:text-slate-400 truncate">{member.role}</p>
                       </div>
                     </div>
                     {isSelected ? (
@@ -1096,18 +1096,18 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         <Check className="w-3.5 h-3.5 stroke-[3]" />
                       </div>
                     ) : (
-                      <div className="w-5 h-5 rounded-md border border-slate-300 shrink-0" />
+                      <div className="w-5 h-5 rounded-md border border-slate-300 dark:border-slate-600 shrink-0" />
                     )}
                   </div>
                 );
               })}
             </div>
 
-            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsManagingMembers(false)}
-                className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 rounded-lg"
+                className="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg"
               >
                 Cancel
               </button>

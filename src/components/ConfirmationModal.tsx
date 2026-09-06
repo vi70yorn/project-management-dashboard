@@ -29,32 +29,34 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div
       id="confirmation-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
     >
       <div
         id="confirmation-modal-container"
-        className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden"
+        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
       >
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div
               className={`p-3 rounded-full shrink-0 ${
-                isDestructive ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-700'
+                isDestructive
+                  ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
+                  : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
               }`}
             >
               {isDestructive ? <Trash2 className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
             </div>
             <div className="flex-1">
-              <h3 id="confirmation-modal-title" className="text-lg font-semibold text-slate-900">
+              <h3 id="confirmation-modal-title" className="text-lg font-semibold text-slate-900 dark:text-white">
                 {title}
               </h3>
-              <p className="mt-2 text-sm text-slate-600 leading-relaxed">{message}</p>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{message}</p>
 
               {details && details.length > 0 && (
-                <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700 space-y-1">
+                <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 space-y-1">
                   {details.map((item, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500"></span>
                       <span>{item}</span>
                     </div>
                   ))}
@@ -64,18 +66,18 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <button
               id="close-confirmation-modal-btn"
               onClick={onCancel}
-              className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
             <button
               id="confirmation-cancel-btn"
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               {cancelLabel}
             </button>
@@ -83,7 +85,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               id="confirmation-action-btn"
               type="button"
               onClick={onConfirm}
-              className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-2 shadow-xs ${
+              className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-2 shadow-xs cursor-pointer ${
                 isDestructive
                   ? 'bg-rose-600 hover:bg-rose-700 focus:ring-2 focus:ring-rose-400'
                   : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-400'

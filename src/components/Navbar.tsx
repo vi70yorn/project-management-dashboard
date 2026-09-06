@@ -11,6 +11,8 @@ import {
   Database,
   KeyRound,
   User,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Project, AuthUser } from '../types';
 
@@ -30,6 +32,8 @@ interface NavbarProps {
   onOpenEditProfile?: () => void;
   dbHealth?: { connected: boolean; database?: string } | null;
   onOpenDbModal?: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -48,13 +52,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenEditProfile,
   dbHealth,
   onOpenDbModal,
+  theme = 'light',
+  onToggleTheme,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
 
   return (
     <header
       id="main-navbar"
-      className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs"
+      className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-2xs transition-colors"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Left: Brand & Main Navigation */}
@@ -64,28 +70,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onGoToDashboard}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors">
+           {/*  <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors">
               <Layers className="w-5 h-5" />
-            </div>
+            </div> */}
             <div>
-              <h1 className="text-sm font-bold text-slate-900 tracking-tight leading-none">
+              <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-none">
                 UX/UI
               </h1>
-              <span className="text-2xs text-slate-500 font-medium leading-none">
+              <span className="text-2xs text-slate-500 dark:text-slate-400 font-medium leading-none">
                 Management
               </span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 pl-4 border-l border-slate-200">
+          <div className="hidden md:flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-slate-800">
             {/* Dashboard summary tab */}
             <button
               id="nav-dashboard-summary-btn"
               onClick={onGoToDashboard}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 currentView === 'dashboard'
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
@@ -96,15 +102,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="nav-team-management-btn"
               onClick={onGoToTeam}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 currentView === 'team'
-                  ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
               Team Directory
-              <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-slate-200/80 text-slate-700">
+              <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                 {teamCount}
               </span>
             </button>
@@ -117,8 +123,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex md:hidden items-center gap-1">
             <button
               onClick={onGoToDashboard}
-              className={`p-1.5 rounded-lg text-xs ${
-                currentView === 'dashboard' ? 'bg-blue-100 text-blue-700' : 'text-slate-600'
+              className={`p-1.5 rounded-lg text-xs transition-colors ${
+                currentView === 'dashboard'
+                  ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
               title="Dashboard"
             >
@@ -126,8 +134,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               onClick={onGoToTeam}
-              className={`p-1.5 rounded-lg text-xs ${
-                currentView === 'team' ? 'bg-blue-100 text-blue-700' : 'text-slate-600'
+              className={`p-1.5 rounded-lg text-xs transition-colors ${
+                currentView === 'team'
+                  ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
               title="Team"
             >
@@ -160,13 +170,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           )} */}
 
           {/* Database Connection Status Button */}
-          <button
+       {/*    <button
             id="nav-db-status-btn"
             onClick={onOpenDbModal}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-2xs font-semibold border transition-all cursor-pointer ${
               dbHealth?.connected
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 shadow-2xs'
-                : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 shadow-2xs'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/80 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 shadow-2xs'
+                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/80 hover:bg-amber-100 dark:hover:bg-amber-900/50 shadow-2xs'
             }`}
             title="PostgreSQL & DBeaver Status"
           >
@@ -179,37 +189,54 @@ export const Navbar: React.FC<NavbarProps> = ({
                 dbHealth?.connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
               }`}
             />
-          </button>
+          </button> */}
+
+          {/* Light / Dark Mode Toggle Button */}
+          {onToggleTheme && (
+            <button
+              id="navbar-theme-toggle-btn"
+              onClick={onToggleTheme}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+              aria-label="Toggle theme mode"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-slate-600" />
+              )}
+            </button>
+          )}
 
           {/* Current Logged In User Pill */}
           {currentUser && (
             <div
               id="navbar-user-profile"
-              className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200"
+              className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200 dark:border-slate-800"
             >
               <div className="flex items-center gap-2">
                 {currentUser.avatar ? (
                   <img
                     src={currentUser.avatar}
                     alt={currentUser.name}
-                    className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-2xs shrink-0"
+                    className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-slate-700 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0">
                     {currentUser.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
                 <div className="hidden lg:block text-left min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[120px]">
                       {currentUser.name}
                     </span>
-                    <span
+                   {/*  <span
                       id="navbar-user-role-badge"
                       className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-3xs font-bold uppercase tracking-wider ${
                         isAdmin
-                          ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                          : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
+                          : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                       }`}
                     >
                       {isAdmin ? (
@@ -218,9 +245,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <UserCheck className="w-2.5 h-2.5" />
                       )}
                       {currentUser.role}
-                    </span>
+                    </span> */}
                   </div>
-                  <p className="text-3xs text-slate-500 truncate max-w-[130px]">
+                  <p className="text-3xs text-slate-500 dark:text-slate-400 truncate max-w-[130px]">
                     {currentUser.username ? `@${currentUser.username}` : currentUser.email}
                   </p>
                 </div>
@@ -231,7 +258,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   id="navbar-edit-profile-btn"
                   onClick={onOpenEditProfile}
                   title="Update your user profile & info"
-                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                 >
                   <User className="w-4 h-4" />
                 </button>
@@ -242,7 +269,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   id="navbar-change-password-btn"
                   onClick={onOpenResetPassword}
                   title="Reset your password"
-                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                 >
                   <KeyRound className="w-4 h-4" />
                 </button>
@@ -253,7 +280,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   id="navbar-logout-btn"
                   onClick={onLogout}
                   title={`Sign out (${currentUser.name})`}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>

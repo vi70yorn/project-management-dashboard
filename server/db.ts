@@ -24,7 +24,11 @@ let pool: Pool | null = null;
 export function getPool(): Pool {
   if (!pool) {
     if (process.env.DATABASE_URL) {
-      pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      const isLocal = process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
+      pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: isLocal ? false : { rejectUnauthorized: false },
+      });
     } else {
       pool = new Pool({
         host: PGHOST,
@@ -47,7 +51,7 @@ export function getPool(): Pool {
  */
 export async function ensureDatabaseExists(): Promise<void> {
   // If a full connection string with external host is used, skip local auto-create
-  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost')) {
+  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost') && !process.env.DATABASE_URL.includes('127.0.0.1')) {
     return;
   }
 

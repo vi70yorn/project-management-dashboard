@@ -52,6 +52,35 @@ export default function App() {
   // Authentication State
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(loadAuthUser);
 
+  // Theme State (Light / Dark Mode)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      }
+    } catch (e) {
+      console.error('Error saving theme to localStorage:', e);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   // Navigation & Core Data States
   const [currentView, setCurrentView] = useState<'dashboard' | 'project' | 'team'>('dashboard');
   const [activeProjectId, setActiveProjectId] = useState<string>('');
@@ -746,13 +775,20 @@ export default function App() {
 
   // If not logged in, render the login screen before project management
   if (!currentUser) {
-    return <LoginScreen teamMembers={teamMembers} onLogin={handleLogin} />;
+    return (
+      <LoginScreen
+        teamMembers={teamMembers}
+        onLogin={handleLogin}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+    );
   }
 
   const activeProject = (projects || []).find((p) => p.id === activeProjectId);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-blue-100 dark:selection:bg-blue-900/50 selection:text-blue-900 dark:selection:text-blue-200 transition-colors duration-200">
       {/* Top Navigation Bar */}
       <Navbar
         currentView={currentView}
@@ -770,6 +806,8 @@ export default function App() {
         onOpenEditProfile={handleOpenEditOwnProfile}
         dbHealth={dbHealth}
         onOpenDbModal={() => setIsDbModalOpen(true)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Content Area */}
@@ -818,7 +856,7 @@ export default function App() {
             onDeleteProject={handleDeleteProjectRequest}
           />
         ) : (
-          <div className="py-20 text-center text-slate-500">
+          <div className="py-20 text-center text-slate-500 dark:text-slate-400">
             <p>Project not found.</p>
             <button
               onClick={handleGoToDashboard}
@@ -910,7 +948,7 @@ export default function App() {
       {toast && (
         <div
           id="app-toast-notification"
-          className="fixed bottom-5 right-5 z-50 max-w-md bg-slate-900 text-white p-3.5 rounded-xl shadow-2xl border border-slate-800 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-5"
+          className="fixed bottom-5 right-5 z-50 max-w-md bg-slate-900 dark:bg-slate-800 text-white p-3.5 rounded-xl shadow-2xl border border-slate-800 dark:border-slate-700 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-5"
         >
           <div className="flex items-center gap-2.5">
             {toast.type === 'success' ? (
@@ -924,7 +962,7 @@ export default function App() {
           </div>
           <button
             onClick={() => setToast(null)}
-            className="text-slate-400 hover:text-white p-1 rounded-md"
+            className="text-slate-400 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

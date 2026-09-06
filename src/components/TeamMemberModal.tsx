@@ -174,27 +174,27 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
   return (
     <div
       id="team-member-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
     >
       <div
         id="team-member-modal-card"
-        className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="team-member-modal-title" className="text-base font-semibold text-slate-900">
+              <h2 id="team-member-modal-title" className="text-base font-semibold text-slate-900 dark:text-white">
                 {initialMember
                   ? initialMember.id === currentUser?.memberId
                     ? 'Update Your Profile'
                     : 'Edit Team Member'
                   : 'Add Team Member'}
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {initialMember?.id === currentUser?.memberId
                   ? 'Update your personal name, role title, department, email, and avatar'
                   : 'Configure profile details, role, and department'}
@@ -204,7 +204,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
           <button
             id="close-team-member-modal-btn"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -213,24 +213,24 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Live Preview Card */}
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3.5">
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3.5">
             <div className="relative">
               {avatarType === 'photo' && avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={name || 'Avatar'}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs"
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-slate-800 shadow-xs"
                 />
               ) : (
                 <div
                   style={{ backgroundColor: color }}
-                  className="w-12 h-12 rounded-full text-white font-semibold flex items-center justify-center text-sm shadow-xs border-2 border-white"
+                  className="w-12 h-12 rounded-full text-white font-semibold flex items-center justify-center text-sm shadow-xs border-2 border-white dark:border-slate-800"
                 >
                   {getInitials(name)}
                 </div>
               )}
               <span
-                className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-800 ${
                   status === 'active'
                     ? 'bg-emerald-500'
                     : status === 'busy'
@@ -240,13 +240,13 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
               />
             </div>
             <div className="min-w-0 flex-1">
-              <h4 className="text-sm font-semibold text-slate-900 truncate">
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                 {name || 'Member Name'}
               </h4>
-              <p className="text-xs text-slate-500 truncate">
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                 {role || 'Job Role'} &bull; {department}
               </p>
-              <p className="text-2xs text-slate-400 truncate mt-0.5">
+              <p className="text-2xs text-slate-400 dark:text-slate-500 truncate mt-0.5">
                 {email || 'email@team.org'}
               </p>
             </div>
@@ -254,8 +254,8 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
               <span
                 className={`px-2 py-0.5 rounded-full text-2xs font-semibold uppercase tracking-wider ${
                   systemRole === 'admin'
-                    ? 'bg-indigo-100 text-indigo-800 border border-indigo-200'
-                    : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    ? 'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
+                    : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                 }`}
               >
                 {systemRole} Role
@@ -263,10 +263,10 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
               <span
                 className={`px-2 py-0.5 rounded-full text-2xs font-medium capitalize ${
                   status === 'active'
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
                     : status === 'busy'
-                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                    : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {status}
@@ -276,7 +276,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
 
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Full Name <span className="text-rose-500">*</span>
             </label>
             <input
@@ -292,7 +292,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
 
           {/* System Access Role (Admin vs Staff) */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Access Permission Level (System Role) {isAdmin && <span className="text-rose-500">*</span>}
             </label>
             {isAdmin ? (
@@ -303,27 +303,27 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                   onClick={() => setSystemRole('admin')}
                   className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                     systemRole === 'admin'
-                      ? 'bg-indigo-50/70 border-indigo-400 ring-2 ring-indigo-500/20 shadow-2xs'
-                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                      ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-600 ring-2 ring-indigo-500/20 shadow-2xs'
+                      : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                       systemRole === 'admin'
                         ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 text-slate-500'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     }`}
                   >
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-900">Admin</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Admin</span>
                       {systemRole === 'admin' && (
                         <span className="w-2 h-2 rounded-full bg-indigo-600" />
                       )}
                     </div>
-                    <p className="text-2xs text-slate-500 leading-tight mt-0.5">
+                    <p className="text-2xs text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
                       Can create, edit & delete projects, tasks, and team roster
                     </p>
                   </div>
@@ -335,34 +335,34 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                   onClick={() => setSystemRole('staff')}
                   className={`p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                     systemRole === 'staff'
-                      ? 'bg-emerald-50/70 border-emerald-400 ring-2 ring-emerald-500/20 shadow-2xs'
-                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                      ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-500/20 shadow-2xs'
+                      : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                       systemRole === 'staff'
                         ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 text-slate-500'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     }`}
                   >
                     <UserCheck className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-900">Staff</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Staff</span>
                       {systemRole === 'staff' && (
                         <span className="w-2 h-2 rounded-full bg-emerald-600" />
                       )}
                     </div>
-                    <p className="text-2xs text-slate-500 leading-tight mt-0.5">
+                    <p className="text-2xs text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
                       Can only create, edit & delete their own tasks in assigned projects
                     </p>
                   </div>
                 </button>
               </div>
             ) : (
-              <div className="p-3 bg-slate-100/90 rounded-xl border border-slate-200 flex items-center justify-between">
+              <div className="p-3 bg-slate-100/90 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
@@ -372,11 +372,11 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                     {systemRole === 'admin' ? <ShieldCheck className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-slate-900 capitalize">{systemRole} Account</span>
-                    <p className="text-3xs text-slate-500">Access permission level managed by Administrator.</p>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white capitalize">{systemRole} Account</span>
+                    <p className="text-3xs text-slate-500 dark:text-slate-400">Access permission level managed by Administrator.</p>
                   </div>
                 </div>
-                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                   Fixed
                 </span>
               </div>
@@ -385,25 +385,25 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
 
           {/* Form Error Alert */}
           {formError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-medium flex items-center gap-2">
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-xl text-xs font-medium flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
               <span>{formError}</span>
             </div>
           )}
 
           {/* Login Credentials Section */}
-          <div className="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-3.5">
+          <div className="p-4 bg-slate-50/90 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   <KeyRound className="w-3.5 h-3.5" />
                 </div>
-                <h4 className="text-xs font-bold text-slate-900">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
                   Login Credentials {initialMember ? '(User Account)' : '(Required for Login)'}
                 </h4>
               </div>
               {isAdmin && (
-                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
                   Admin Visible & Editable
                 </span>
               )}
@@ -412,7 +412,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {/* Username field */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Username <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
@@ -432,10 +432,10 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
               {/* Password field with show/hide icon */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-700">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                     {initialMember ? 'Password' : 'Password *'}
                   </label>
-                  <span className="text-3xs text-slate-400">
+                  <span className="text-3xs text-slate-400 dark:text-slate-500">
                     {showPassword ? 'Visible' : 'Hidden'}
                   </span>
                 </div>
@@ -454,7 +454,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                     type="button"
                     id="toggle-member-password-visibility-btn"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md transition-colors cursor-pointer"
                     title={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -463,7 +463,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
               </div>
             </div>
 
-            <p className="text-3xs text-slate-500 leading-normal">
+            <p className="text-3xs text-slate-500 dark:text-slate-400 leading-normal">
               {initialMember
                 ? (isAdmin
                     ? 'As an Admin, click the eye icon to view the password or type a new password to modify it.'
@@ -475,7 +475,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
           {/* Role & Department */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Role / Title <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
@@ -493,7 +493,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Department
               </label>
               <div className="relative">
@@ -513,7 +513,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
           {/* Email & Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Email Address
               </label>
               <div className="relative">
@@ -530,7 +530,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Work Status
               </label>
               <div className="relative">
@@ -550,19 +550,19 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
           </div>
 
           {/* Avatar Options */}
-          <div className="pt-2 border-t border-slate-100 space-y-3">
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-700">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Avatar Display Style
               </label>
-              <div className="flex rounded-md bg-slate-100 p-0.5 text-xs">
+              <div className="flex rounded-md bg-slate-100 dark:bg-slate-800 p-0.5 text-xs">
                 <button
                   type="button"
                   onClick={() => setAvatarType('initials')}
-                  className={`px-2.5 py-1 rounded-sm font-medium transition-colors ${
+                  className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer ${
                     avatarType === 'initials'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Initials Badge
@@ -570,10 +570,10 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setAvatarType('photo')}
-                  className={`px-2.5 py-1 rounded-sm font-medium transition-colors ${
+                  className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer ${
                     avatarType === 'photo'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Photo Avatar
@@ -583,7 +583,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
 
             {avatarType === 'initials' ? (
               <div>
-                <span className="block text-2xs text-slate-500 mb-1.5">
+                <span className="block text-2xs text-slate-500 dark:text-slate-400 mb-1.5">
                   Select background color theme for initials:
                 </span>
                 <div className="flex items-center gap-2">
@@ -593,8 +593,8 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                       type="button"
                       onClick={() => setColor(theme.hex)}
                       style={{ backgroundColor: theme.hex }}
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-white transition-transform ${
-                        color === theme.hex ? 'scale-110 ring-2 ring-offset-2 ring-slate-400' : 'opacity-80 hover:opacity-100'
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-white transition-transform cursor-pointer ${
+                        color === theme.hex ? 'scale-110 ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-900' : 'opacity-80 hover:opacity-100'
                       }`}
                       title={theme.name}
                     >
@@ -614,7 +614,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                   className={FORM_STYLES.input}
                 />
                 <div>
-                  <span className="block text-2xs text-slate-500 mb-1">
+                  <span className="block text-2xs text-slate-500 dark:text-slate-400 mb-1">
                     Or select a preset avatar:
                   </span>
                   <div className="flex items-center gap-2 overflow-x-auto py-1">
@@ -623,9 +623,9 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                         key={idx}
                         type="button"
                         onClick={() => setAvatarUrl(url)}
-                        className={`shrink-0 rounded-full transition-all ${
+                        className={`shrink-0 rounded-full transition-all cursor-pointer ${
                           avatarUrl === url
-                            ? 'ring-2 ring-blue-600 ring-offset-1 scale-105'
+                            ? 'ring-2 ring-blue-600 ring-offset-1 dark:ring-offset-slate-900 scale-105'
                             : 'opacity-70 hover:opacity-100'
                         }`}
                       >
@@ -644,12 +644,12 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
 
           {/* Project Assignments */}
           {safeProjects.length > 0 && (
-            <div className="pt-2 border-t border-slate-100 space-y-2">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-700">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Assign to Projects
                 </label>
-                <span className="text-2xs text-slate-400">
+                <span className="text-2xs text-slate-400 dark:text-slate-500">
                   {selectedProjectIds.length} selected
                 </span>
               </div>
@@ -661,20 +661,20 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                       key={p.id}
                       type="button"
                       onClick={() => toggleProjectSelection(p.id)}
-                      className={`flex items-center gap-2 p-2 rounded-lg border text-left text-xs transition-colors ${
+                      className={`flex items-center gap-2 p-2 rounded-lg border text-left text-xs transition-colors cursor-pointer ${
                         isChecked
-                          ? 'border-blue-300 bg-blue-50/70 text-blue-900 font-medium'
-                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          ? 'border-blue-300 dark:border-blue-700 bg-blue-50/70 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 font-medium'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                       }`}
                     >
                       <div
                         className={`w-4 h-4 rounded-sm flex items-center justify-center shrink-0 border ${
                           isChecked
                             ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'border-slate-300 bg-white'
+                            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
                         }`}
                       >
-                        {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                        {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                       </div>
                       <span className="truncate">{p.name}</span>
                     </button>
@@ -685,19 +685,19 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
           )}
 
           {/* Footer */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
             <button
               id="cancel-team-member-btn"
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+              className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
             >
               Cancel
             </button>
             <button
               id="save-team-member-btn"
               type="submit"
-              className="px-5 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-xs flex items-center gap-1.5"
+              className="px-5 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               {initialMember ? 'Save Changes' : 'Add Member'}

@@ -140,30 +140,30 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const getStatusBadge = (status: StatusType) => {
     switch (status) {
       case 'In Progress':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
       case 'Pending':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
       case 'Blocked':
-        return 'bg-rose-50 text-rose-700 border-rose-200 font-semibold';
+        return 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 font-semibold';
       case 'Completed':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200';
+        return 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
     }
   };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'Urgent':
-        return 'bg-rose-100 text-rose-800 border-rose-200';
+        return 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800';
       case 'High':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800';
       case 'Medium':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800';
       case 'Low':
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
       default:
-        return 'bg-slate-100 text-slate-600';
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400';
     }
   };
 
@@ -179,37 +179,37 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 id="portfolio-title" className="text-2xl font-bold text-slate-900 tracking-tight">
+          <h2 id="portfolio-title" className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             Dashboard Summary
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Overview of active projects, deliverables, team workload, and upcoming deadlines.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          {onNavigateToTeam && (
+         {/*  {onNavigateToTeam && (
             <button
               id="dash-team-btn"
               onClick={onNavigateToTeam}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-2xs transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
             >
-              <Users className="w-4 h-4 text-slate-500" />
+              <Users className="w-4 h-4 text-slate-500 dark:text-slate-400" />
               Manage Team ({teamMembers.length})
             </button>
-          )}
+          )} */}
 
-          {isAdmin && onOpenAddMember && (
+         {/*  {isAdmin && onOpenAddMember && (
             <button
               id="dash-add-member-btn"
               onClick={onOpenAddMember}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-2xs transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
             >
-              <UserPlus className="w-4 h-4 text-blue-600" />
+              <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               + Add Member
             </button>
           )}
-
+ */}
           {isAdmin && (
             <button
               id="dash-create-project-btn"
@@ -226,33 +226,33 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
         {/* Active Projects */}
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Active Projects
             </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <FolderKanban className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-900 mt-2">{metrics.activeProjects}</p>
-          <p className="text-2xs text-slate-500 mt-1">
+          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{metrics.activeProjects}</p>
+          <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
             {metrics.completedProjects} completed • {metrics.totalProjects} total
           </p>
         </div>
 
         {/* In Progress Tasks */}
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               In Progress Tasks
             </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-900 mt-2">{metrics.inProgressTasks}</p>
-          <p className="text-2xs text-slate-500 mt-1">
+          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{metrics.inProgressTasks}</p>
+          <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
             {metrics.pendingTasks} pending review
           </p>
         </div>
@@ -261,14 +261,14 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         <div
           className={`p-4 rounded-xl border shadow-2xs ${
             metrics.blockedTasks > 0
-              ? 'bg-rose-50/50 border-rose-200'
-              : 'bg-white border-slate-200'
+              ? 'bg-rose-50/50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
           }`}
         >
           <div className="flex items-center justify-between">
             <span
               className={`text-2xs font-semibold uppercase tracking-wider ${
-                metrics.blockedTasks > 0 ? 'text-rose-700' : 'text-slate-500'
+                metrics.blockedTasks > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               Blocked Tasks
@@ -276,8 +276,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             <div
               className={`w-7 h-7 rounded-lg flex items-center justify-center ${
                 metrics.blockedTasks > 0
-                  ? 'bg-rose-100 text-rose-700'
-                  : 'bg-slate-100 text-slate-500'
+                  ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
               }`}
             >
               <AlertOctagon className="w-4 h-4" />
@@ -285,14 +285,14 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           </div>
           <p
             className={`text-2xl font-bold mt-2 ${
-              metrics.blockedTasks > 0 ? 'text-rose-700' : 'text-slate-900'
+              metrics.blockedTasks > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-900 dark:text-white'
             }`}
           >
             {metrics.blockedTasks}
           </p>
           <p
             className={`text-2xs mt-1 ${
-              metrics.blockedTasks > 0 ? 'text-rose-600 font-medium' : 'text-slate-500'
+              metrics.blockedTasks > 0 ? 'text-rose-600 dark:text-rose-300 font-medium' : 'text-slate-500 dark:text-slate-400'
             }`}
           >
             {metrics.blockedProjects} project(s) affected
@@ -300,71 +300,71 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         </div>
 
         {/* Completed Deliverables */}
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Completed Tasks
             </span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-900 mt-2">{metrics.completedTasks}</p>
-          <p className="text-2xs text-slate-500 mt-1">
+          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{metrics.completedTasks}</p>
+          <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
             Out of {metrics.totalTasks} total tasks
           </p>
         </div>
 
         {/* Team & Velocity */}
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs col-span-2 lg:col-span-1">
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Team Members
             </span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-900 mt-2">{teamMembers.length}</p>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{teamMembers.length}</p>
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
             <div
-              className="bg-blue-600 h-full rounded-full transition-all"
+              className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all"
               style={{ width: `${metrics.overallCompletionRate}%` }}
             />
           </div>
-          <p className="text-3xs text-slate-400 mt-1">
+          <p className="text-3xs text-slate-400 dark:text-slate-500 mt-1">
             Overall {metrics.overallCompletionRate}% complete
           </p>
         </div>
       </div>
 
       {/* Upcoming Deadlines Section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-2xs">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Calendar className="w-4 h-4" />
             </div>
             <div>
-              <h3 id="deadlines-heading" className="text-base font-semibold text-slate-900">
+              <h3 id="deadlines-heading" className="text-base font-semibold text-slate-900 dark:text-white">
                 Upcoming Deadlines & Milestones
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Sorted by nearest target due date across all projects
               </p>
             </div>
           </div>
-          <span className="text-xs text-slate-500 font-medium">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             {upcomingDeadlines.length} items queued
           </span>
         </div>
 
         {upcomingDeadlines.length === 0 ? (
-          <p className="text-sm text-slate-500 py-6 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">
             No pending task deadlines. All current tasks completed!
           </p>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {upcomingDeadlines.map((item) => {
               const isOverdue = item.diffDays < 0;
               const isToday = item.diffDays === 0;
@@ -373,7 +373,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 <div
                   key={item.id}
                   onClick={() => onSelectProject(item.projectId)}
-                  className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50 -mx-3 px-3 rounded-lg cursor-pointer transition-colors"
+                  className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 -mx-3 px-3 rounded-lg cursor-pointer transition-colors"
                 >
                   <div className="flex items-start gap-3 min-w-0">
                     <div
@@ -383,7 +383,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                     />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-slate-900 hover:text-blue-600 transition-colors">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                           {item.title}
                         </span>
                         <span
@@ -402,8 +402,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
-                        <span className="font-medium text-slate-700">{item.projectName}</span>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{item.projectName}</span>
                         {item.assignee && (
                           <>
                             <span>&bull;</span>
@@ -435,20 +435,20 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                     <div
                       className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 ${
                         isToday
-                          ? 'bg-rose-50 text-rose-700 border-rose-300 font-bold ring-1 ring-rose-400/80 shadow-2xs'
+                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-bold ring-1 ring-rose-400/80 shadow-2xs'
                           : isOverdue
-                          ? 'bg-rose-100 text-rose-800 border-rose-300 font-semibold'
+                          ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-semibold'
                           : item.diffDays <= 3
-                          ? 'bg-amber-50/70 text-amber-700 border-amber-200'
-                          : 'bg-slate-50 text-slate-700 border-slate-200'
+                          ? 'bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                       }`}
                     >
                       {isToday ? (
-                        <AlertCircle className="w-3.5 h-3.5 text-rose-600 animate-pulse shrink-0" />
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse shrink-0" />
                       ) : isOverdue ? (
-                        <AlertOctagon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                        <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
                       ) : (
-                        <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                       )}
                       <span>
                         {isToday
@@ -459,7 +459,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                       </span>
                     </div>
 
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                   </div>
                 </div>
               );
@@ -472,15 +472,15 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-700 mr-1">Filter by Status:</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mr-1">Filter by Status:</span>
             {['all', 'In Progress', 'Pending', 'Blocked', 'Completed'].map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1 text-xs font-medium rounded-lg border transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
                   statusFilter === st
                     ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 {st === 'all' ? 'All Projects' : st}
@@ -489,7 +489,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
             <input
               id="search-projects-input"
               type="text"
@@ -502,7 +502,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
@@ -531,7 +531,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               <div
                 key={project.id}
                 id={`project-card-${project.id}`}
-                className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between"
+                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
@@ -540,11 +540,11 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                         className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: project.color }}
                       />
-                      <span className="text-2xs font-semibold uppercase tracking-wider text-slate-400">
+                      <span className="text-2xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                         {project.client}
                       </span>
                       {isCurrentUserAssigned && (
-                        <span className="inline-flex items-center gap-1 text-3xs font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="inline-flex items-center gap-1 text-3xs font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                           <UserCheck className="w-2.5 h-2.5" />
                           Assigned to You
                         </span>
@@ -554,7 +554,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                     <div className="flex items-center gap-1.5">
                       {/* Admin Project Actions: Edit & Delete */}
                       {isAdmin && (
-                        <div className="flex items-center gap-0.5 bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+                        <div className="flex items-center gap-0.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5">
                           {onEditProject && (
                             <button
                               id={`dash-edit-project-btn-${project.id}`}
@@ -563,7 +563,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                                 onEditProject(project);
                               }}
                               title="Edit Project Details"
-                              className="p-1 text-slate-400 hover:text-blue-600 hover:bg-white rounded-md transition-colors cursor-pointer"
+                              className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-colors cursor-pointer"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
@@ -576,7 +576,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                                 onDeleteProject(project);
                               }}
                               title="Delete Project"
-                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-white rounded-md transition-colors cursor-pointer"
+                              className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-white dark:hover:bg-slate-700 rounded-md transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -594,7 +594,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                             onChange={(e) =>
                               onUpdateProjectStatus(project.id, e.target.value as StatusType)
                             }
-                            className={`appearance-none text-2xs font-semibold pl-2.5 pr-6 py-1 rounded-lg border bg-white cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
+                            className={`appearance-none text-2xs font-semibold pl-2.5 pr-6 py-1 rounded-lg border cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
                               project.status
                             )}`}
                           >
@@ -603,7 +603,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                             <option value="Blocked">Blocked</option>
                             <option value="Completed">Completed</option>
                           </select>
-                          <ChevronDown className="w-3 h-3 text-slate-500 absolute right-1.5 pointer-events-none" />
+                          <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400 absolute right-1.5 pointer-events-none" />
                         </div>
                       ) : (
                         <span
@@ -620,12 +620,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                   <h3
                     id={`project-title-${project.id}`}
                     onClick={() => onSelectProject(project.id)}
-                    className="text-base font-bold text-slate-900 mt-2 hover:text-blue-600 cursor-pointer transition-colors"
+                    className="text-base font-bold text-slate-900 dark:text-white mt-2 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
                   >
                     {project.name}
                   </h3>
 
-                  <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2 leading-relaxed">
                     {project.description}
                   </p>
 
@@ -634,12 +634,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                     {project.tags.map((tag, i) => (
                       <span
                         key={i}
-                        className="text-2xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium"
+                        className="text-2xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium"
                       >
                         {tag}
                       </span>
                     ))}
-                    <span className="text-2xs px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-medium flex items-center gap-1">
+                    <span className="text-2xs px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1">
                       <Users className="w-3 h-3" />
                       {projectTeam.length} members
                     </span>
@@ -647,29 +647,29 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 </div>
 
                 {/* Progress & Bottom Bar */}
-                <div className="mt-5 pt-4 border-t border-slate-100">
+                <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-slate-500 font-medium">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">
                       {completedCount} of {projectTasks.length} deliverables completed
                     </span>
-                    <span className="font-bold text-slate-800">{completionPercent}%</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{completionPercent}%</span>
                   </div>
 
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
                         project.status === 'Blocked'
                           ? 'bg-rose-500'
                           : project.status === 'Completed'
                           ? 'bg-emerald-500'
-                          : 'bg-blue-600'
+                          : 'bg-blue-600 dark:bg-blue-500'
                       }`}
                       style={{ width: `${completionPercent}%` }}
                     />
                   </div>
 
                   {blockedCount > 0 && (
-                    <div className="mt-2 text-2xs text-rose-700 bg-rose-50 px-2 py-1 rounded-md flex items-center gap-1.5 font-medium">
+                    <div className="mt-2 text-2xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 px-2 py-1 rounded-md flex items-center gap-1.5 font-medium">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                       {blockedCount} deliverable currently blocked!
                     </div>
@@ -684,12 +684,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                             <img
                               src={mem.avatar}
                               alt={mem.name}
-                              className="w-6 h-6 rounded-full ring-2 ring-white object-cover"
+                              className="w-6 h-6 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover"
                             />
                           ) : (
                             <div
                               style={{ backgroundColor: mem.color || '#2563eb' }}
-                              className="w-6 h-6 rounded-full ring-2 ring-white text-white text-3xs font-semibold flex items-center justify-center shadow-2xs"
+                              className="w-6 h-6 rounded-full ring-2 ring-white dark:ring-slate-900 text-white text-3xs font-semibold flex items-center justify-center shadow-2xs"
                             >
                               {getInitials(mem.name)}
                             </div>
@@ -703,23 +703,23 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                         const projDue = getDueDateStatus(project.targetDeadline);
                         if (projDue.isToday) {
                           return (
-                            <span className="text-2xs font-bold text-rose-700 bg-rose-50 border border-rose-300 px-2 py-0.5 rounded-md flex items-center gap-1 ring-1 ring-rose-400/80 shadow-2xs animate-pulse">
-                              <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" />
+                            <span className="text-2xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 px-2 py-0.5 rounded-md flex items-center gap-1 ring-1 ring-rose-400/80 shadow-2xs animate-pulse">
+                              <AlertCircle className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
                               Due Today!
                             </span>
                           );
                         }
                         if (projDue.isOverdue) {
                           return (
-                            <span className="text-2xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                              <AlertOctagon className="w-3 h-3 text-rose-600 shrink-0" />
+                            <span className="text-2xs font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                              <AlertOctagon className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
                               Overdue ({project.targetDeadline})
                             </span>
                           );
                         }
                         return (
-                          <span className="text-2xs text-slate-500 font-medium flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span className="text-2xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
                             Due: {project.targetDeadline}
                           </span>
                         );
@@ -727,7 +727,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                       <button
                         id={`open-project-btn-${project.id}`}
                         onClick={() => onSelectProject(project.id)}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline ml-auto cursor-pointer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline ml-auto cursor-pointer"
                       >
                         {isAdmin ? 'Open Workspace' : 'View Details'}
                         <ArrowUpRight className="w-3.5 h-3.5" />
