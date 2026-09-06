@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import {
   Calendar,
   ChevronLeft,
@@ -8,7 +9,6 @@ import {
   AlertOctagon,
   Copy,
   Check,
-  Printer,
   FileSpreadsheet,
   ArrowRight,
   Sparkles,
@@ -185,6 +185,147 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
     }
   };
 
+  const handleExportExcel = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+
+      // -------------------------------------------------------------
+      // SHEET 1: Executive Project Summary (PM Overview)
+      // -------------------------------------------------------------
+      const summaryData: (string | number)[][] = [
+        ['PROJECT MANAGEMENT DASHBOARD - WEEKLY SUMMARY REPORT'],
+        [`Working Week Period: ${weekRange.label} (Monday – Friday)`],
+        [`Generated On: ${new Date().toLocaleString()}`],
+        [], // spacing
+        ['EXECUTIVE KPI METRICS'],
+        ['Metric', 'Value', 'Details'],
+        ['Overall Completion Rate', `${overallMetrics.overallRate}%`, `${overallMetrics.totalCompleted} of ${overallMetrics.totalTasks} deliverables done`],
+        ['Total Projects', overallMetrics.totalProjects, `${overallMetrics.completedProjects} Completed, ${overallMetrics.inProgressProjects} In Progress, ${overallMetrics.blockedProjects} Blocked`],
+        ['Total Tasks Deliverables', overallMetrics.totalTasks, `${overallMetrics.totalCompleted} Finished, ${overallMetrics.totalBlocked} Blocked`],
+        ['Roadblocks / Blocked Tasks', overallMetrics.totalBlocked, overallMetrics.totalBlocked > 0 ? 'Requires immediate PM escalation' : 'No blockers identified'],
+        [], // spacing
+        ['PROJECT STATUS & PROGRESS BREAKDOWN'],
+        [
+          'No.',
+          'Project Name',
+          'Client / Category',
+          'Status',
+          'Completion (%)',
+          'Completed Tasks',
+          'Ongoing Tasks',
+          'Blocked Tasks',
+          'Total Tasks',
+          'Target Deadline',
+          'Assigned Team Members',
+        ],
+      ];
+
+      projectSummaries.forEach((ps, idx) => {
+        const p = ps.project;
+        summaryData.push([
+          idx + 1,
+          p.name,
+          p.client || 'Internal',
+          p.status,
+          `${ps.percent}%`,
+          ps.completedCount,
+          ps.inProgressCount + ps.pendingCount,
+          ps.blockedCount,
+          ps.totalTasks,
+          p.targetDeadline || 'N/A',
+          ps.assignedMembers.map((m) => m.name).join(', ') || 'Unassigned',
+        ]);
+      });
+
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+
+      // Explicit, generous column widths for perfect readability
+      wsSummary['!cols'] = [
+        { wch: 6 },  // No.
+        { wch: 28 }, // Project Name
+        { wch: 20 }, // Client
+        { wch: 15 }, // Status
+        { wch: 16 }, // Completion (%)
+        { wch: 16 }, // Completed Tasks
+        { wch: 15 }, // Ongoing Tasks
+        { wch: 15 }, // Blocked Tasks
+        { wch: 14 }, // Total Tasks
+        { wch: 18 }, // Target Deadline
+        { wch: 36 }, // Assigned Team Members
+      ];
+
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Project Summary');
+
+      // -------------------------------------------------------------
+      // SHEET 2: Deliverables & Tasks Breakdown (Detailed)
+      // -------------------------------------------------------------
+      const taskData: (string | number)[][] = [
+        ['DELIVERABLES & TASKS BREAKDOWN'],
+        [`Working Week Period: ${weekRange.label}`],
+        [],
+        [
+          'No.',
+          'Project Name',
+          'Task / Deliverable Title',
+          'Status',
+          'Priority',
+          'Assignee',
+          'Start Date',
+          'Due Date',
+          'Description',
+        ],
+      ];
+
+      let taskIndex = 1;
+      projects.forEach((proj) => {
+        const projTasks = tasks.filter((t) => t.projectId === proj.id);
+        projTasks.forEach((t) => {
+          const assignee = teamMembers.find((m) => m.id === t.assigneeId)?.name || 'Unassigned';
+          taskData.push([
+            taskIndex++,
+            proj.name,
+            t.title,
+            t.status,
+            t.priority,
+            assignee,
+            t.startDate || '-',
+            t.dueDate || '-',
+            t.description || '',
+          ]);
+        });
+      });
+
+      const wsTasks = XLSX.utils.aoa_to_sheet(taskData);
+
+      wsTasks['!cols'] = [
+        { wch: 6 },  // No.
+        { wch: 26 }, // Project Name
+        { wch: 32 }, // Task Title
+        { wch: 15 }, // Status
+        { wch: 12 }, // Priority
+        { wch: 22 }, // Assignee
+        { wch: 14 }, // Start Date
+        { wch: 14 }, // Due Date
+        { wch: 45 }, // Description
+      ];
+
+      XLSX.utils.book_append_sheet(wb, wsTasks, 'All Deliverables');
+
+      // File download
+      const fileName = `Weekly_Project_Summary_${weekRange.mondayStr}_to_${weekRange.fridayStr}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      if (onShowToast) {
+        onShowToast('success', `Excel report "${fileName}" downloaded successfully!`);
+      }
+    } catch (err: any) {
+      console.error('Export Excel failed:', err);
+      if (onShowToast) {
+        onShowToast('error', 'Failed to export Excel report.');
+      }
+    }
+  };
+
   const getStatusBadge = (status: StatusType) => {
     switch (status) {
       case 'Completed':
@@ -266,20 +407,20 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
             </button>
           </div>
 
-          {/* Print Button */}
+          {/* Export Excel Button */}
           <button
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer shadow-2xs"
-            title="Print or Save PDF"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer shadow-2xs"
+            title="Export Weekly Report to Excel (.xlsx)"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Print / PDF</span>
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Export Excel</span>
           </button>
 
           {/* Telegram Auto-Report Button */}
           <button
             onClick={() => setIsTelegramModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-colors cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-colors cursor-pointer shadow-2xs"
             title="Configure Telegram Weekly Auto-Report"
           >
             <Send className="w-3.5 h-3.5" />
@@ -303,7 +444,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
             ) : (
               <>
                 <Copy className="w-4 h-4" />
-                Copy Report to PM
+                Copy Report
               </>
             )}
           </button>
@@ -585,6 +726,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           ))
         )}
       </div>
+
       {/* Telegram Automation Settings Modal */}
       <TelegramSettingsModal
         isOpen={isTelegramModalOpen}
@@ -594,3 +736,4 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
     </div>
   );
 };
+
