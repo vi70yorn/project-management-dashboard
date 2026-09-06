@@ -370,17 +370,72 @@ export default function App() {
     setIsTaskModalOpen(true);
   };
 
-  const handleSaveTask = (taskData: Partial<Task>) => {
-    const targetProjectId = taskData.projectId || activeProjectId || projects[0]?.id || '';
+  // Synchronize project status whenever tasks within a project change
+  const syncProjectStatusForTasks = (
+    targetProjectId: string,
+    allTasks: Task[],
+    projectList: Project[]
+  ) => {
+    if (!targetProjectId) return;
+    const projectTasks = allTasks.filter((t) => t.projectId === targetProjectId);
+    const currentProject = projectList.find((p) => p.id === targetProjectId);
+    if (!currentProject || projectTasks.length === 0) return;
 
-    // Staff RBAC validation: Staff can create tasks inside the project, and edit only their own tasks
+    const allCompleted = projectTasks.every((t) => t.status === 'Completed');
+    const remainingBlocked = projectTasks.filter((t) => t.status === 'Blocked');
+
+    if (allCompleted && currentProject.status !== 'Completed') {
+      setProjects((prevProj) =>
+        prevProj.map((p) =>
+          p.id === targetProjectId ? { ...p, status: 'Completed' } : p
+        )
+      );
+      updateProjectStatusApi(targetProjectId, 'Completed').catch(() => {});
+      showToast(
+        'success',
+        `All tasks completed! Project "${currentProject.name}" status auto-updated to Completed.`
+      );
+    } else if (currentProject.status === 'Completed' && !allCompleted) {
+      const nextStatus: StatusType = remainingBlocked.length > 0 ? 'Blocked' : 'In Progress';
+      setProjects((prevProj) =>
+        prevProj.map((p) =>
+          p.id === targetProjectId ? { ...p, status: nextStatus } : p
+        )
+      );
+      updateProjectStatusApi(targetProjectId, nextStatus).catch(() => {});
+      showToast(
+        'info',
+        `Task moved out of Completed. Project "${currentProject.name}" status changed to ${nextStatus}.`
+      );
+    } else if (currentProject.status === 'Blocked' && remainingBlocked.length === 0) {
+      setProjects((prevProj) =>
+        prevProj.map((p) =>
+          p.id === targetProjectId ? { ...p, status: 'In Progress' } : p
+        )
+      );
+      updateProjectStatusApi(targetProjectId, 'In Progress').catch(() => {});
+      showToast(
+        'success',
+        `All blocked tasks resolved! Project "${currentProject.name}" status auto-updated to In Progress.`
+      );
+    }
+  };
+
+  const handleSaveTask = (taskData: Partial<Task>) => {
+    const targetProjectId = taskData.projectId || activeProjectId || projects[0]?.id;
+
+    if (!targetProjectId) {
+      showToast('error', 'Please select a valid project first.');
+      return;
+    }
+
     if (currentUser?.role === 'staff') {
       if (editingTask) {
         const isOwn =
           (editingTask.createdBy && editingTask.createdBy === currentUser.memberId) ||
           editingTask.assigneeId === currentUser.memberId;
         if (!isOwn) {
-          showToast('error', 'Staff members can only edit their own tasks.');
+          showToast('error', 'Staff can only edit their own tasks.');
           return;
         }
       }
@@ -397,7 +452,10 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       } as Task;
 
-      setTasks((prev) => prev.map((t) => (t.id === editingTask.id ? updatedTask : t)));
+      const nextTasks = tasks.map((t) => (t.id === editingTask.id ? updatedTask : t));
+      setTasks(nextTasks);
+      syncProjectStatusForTasks(updatedTask.projectId, nextTasks, projects);
+
       updateTaskApi(editingTask.id, updatedTask).catch((err) =>
         console.warn('[PostgreSQL Sync] Update task error:', err)
       );
@@ -421,7 +479,10 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
 
-      setTasks((prev) => [newTask, ...prev]);
+      const nextTasks = [newTask, ...tasks];
+      setTasks(nextTasks);
+      syncProjectStatusForTasks(targetProjectId, nextTasks, projects);
+
       createTaskApi(newTask).catch((err) =>
         console.warn('[PostgreSQL Sync] Create task error:', err)
       );
@@ -444,39 +505,20 @@ export default function App() {
     let movedTaskTitle = '';
     let targetProjectId = '';
 
-    setTasks((prev) => {
-      const updated = prev.map((t) => {
-        if (t.id === taskId) {
-          movedTaskTitle = t.title;
-          targetProjectId = t.projectId;
-          return { ...t, status: newStatus, updatedAt: new Date().toISOString() };
-        }
-        return t;
-      });
-
-      // Smart Project Status Synchronization
-      if (targetProjectId) {
-        const remainingBlocked = updated.filter(
-          (t) => t.projectId === targetProjectId && t.status === 'Blocked'
-        );
-        const currentProject = projects.find((p) => p.id === targetProjectId);
-
-        if (currentProject && currentProject.status === 'Blocked' && remainingBlocked.length === 0) {
-          setProjects((prevProj) =>
-            prevProj.map((p) =>
-              p.id === targetProjectId ? { ...p, status: 'In Progress' } : p
-            )
-          );
-          updateProjectStatusApi(targetProjectId, 'In Progress').catch(() => {});
-          showToast(
-            'success',
-            `All blocked tasks resolved! Project "${currentProject.name}" status auto-updated to In Progress.`
-          );
-        }
+    const nextTasks = tasks.map((t) => {
+      if (t.id === taskId) {
+        movedTaskTitle = t.title;
+        targetProjectId = t.projectId;
+        return { ...t, status: newStatus, updatedAt: new Date().toISOString() };
       }
-
-      return updated;
+      return t;
     });
+
+    setTasks(nextTasks);
+
+    if (targetProjectId) {
+      syncProjectStatusForTasks(targetProjectId, nextTasks, projects);
+    }
 
     updateTaskStatusApi(taskId, newStatus).catch((err) =>
       console.warn('[PostgreSQL Sync] Update task status error:', err)
@@ -527,7 +569,11 @@ export default function App() {
       isDestructive: true,
       onConfirm: () => {
         setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
-        setTasks((prev) => prev.filter((t) => t.id !== task.id));
+        const nextTasks = tasks.filter((t) => t.id !== task.id);
+        setTasks(nextTasks);
+        if (task.projectId) {
+          syncProjectStatusForTasks(task.projectId, nextTasks, projects);
+        }
         deleteTaskApi(task.id).catch((err) =>
           console.warn('[PostgreSQL Sync] Delete task error:', err)
         );

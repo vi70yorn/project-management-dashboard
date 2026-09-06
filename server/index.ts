@@ -346,6 +346,51 @@ app.get('/api/tasks', async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * Automatically synchronizes a project's status based on its task completion states:
+ * - If all tasks are 'Completed' (and task count > 0) -> update project status to 'Completed'.
+ * - If project is 'Completed' but has non-completed tasks -> revert project to 'In Progress' or 'Blocked'.
+ * - If project is 'Blocked' and has 0 blocked tasks remaining -> unblock to 'In Progress'.
+ */
+async function syncProjectStatus(pool: any, projectId: string) {
+  if (!projectId) return;
+  try {
+    const res = await pool.query(
+      `SELECT 
+         COUNT(*) AS total,
+         COUNT(*) FILTER (WHERE status = 'Completed') AS completed,
+         COUNT(*) FILTER (WHERE status = 'Blocked') AS blocked
+       FROM tasks 
+       WHERE project_id = $1`,
+      [projectId]
+    );
+    if (res.rowCount === 0) return;
+    const total = parseInt(res.rows[0].total, 10);
+    const completed = parseInt(res.rows[0].completed, 10);
+    const blocked = parseInt(res.rows[0].blocked, 10);
+
+    if (total > 0 && completed === total) {
+      await pool.query(
+        `UPDATE projects SET status = 'Completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status != 'Completed'`,
+        [projectId]
+      );
+    } else if (total > 0 && completed < total) {
+      const nextStatus = blocked > 0 ? 'Blocked' : 'In Progress';
+      await pool.query(
+        `UPDATE projects SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND status = 'Completed'`,
+        [nextStatus, projectId]
+      );
+    } else if (blocked === 0) {
+      await pool.query(
+        `UPDATE projects SET status = 'In Progress', updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status = 'Blocked'`,
+        [projectId]
+      );
+    }
+  } catch (err: any) {
+    console.error(`[syncProjectStatus error for ${projectId}]:`, err.message);
+  }
+}
+
 // POST create task
 app.post('/api/tasks', async (req: Request, res: Response) => {
   const {
@@ -393,7 +438,11 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
       startDate || null,
       dueDate,
     ]);
-    res.status(201).json(result.rows[0]);
+    const createdTask = result.rows[0];
+    if (createdTask?.projectId) {
+      await syncProjectStatus(pool, createdTask.projectId);
+    }
+    res.status(201).json(createdTask);
   } catch (err: any) {
     console.error('Error creating task:', err);
     res.status(500).json({ error: err.message });
@@ -458,7 +507,11 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
       id,
     ]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found' });
-    res.json(result.rows[0]);
+    const updatedTask = result.rows[0];
+    if (updatedTask?.projectId) {
+      await syncProjectStatus(pool, updatedTask.projectId);
+    }
+    res.json(updatedTask);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -476,7 +529,11 @@ app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
       [status, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found' });
-    res.json(result.rows[0]);
+    const updatedTask = result.rows[0];
+    if (updatedTask?.projectId) {
+      await syncProjectStatus(pool, updatedTask.projectId);
+    }
+    res.json(updatedTask);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -487,8 +544,12 @@ app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const pool = getPool();
-    const result = await pool.query(`DELETE FROM tasks WHERE id = $1 RETURNING id`, [id]);
+    const result = await pool.query(`DELETE FROM tasks WHERE id = $1 RETURNING id, project_id AS "projectId"`, [id]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found' });
+    const deletedTask = result.rows[0];
+    if (deletedTask?.projectId) {
+      await syncProjectStatus(pool, deletedTask.projectId);
+    }
     res.json({ message: 'Task deleted', id });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
