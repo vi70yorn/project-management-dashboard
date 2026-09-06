@@ -4,6 +4,8 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   Clock,
   AlertOctagon,
@@ -14,6 +16,10 @@ import {
   Sparkles,
   Send,
   Share2,
+  Table as TableIcon,
+  LayoutGrid,
+  Search,
+  X,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType } from '../types';
 import { TelegramSettingsModal } from './TelegramSettingsModal';
@@ -33,10 +39,13 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
   onSelectProject,
   onShowToast,
 }) => {
-  // -1 = Last Week (Mon-Fri), 0 = This Week (Mon-Fri)
   const [weekOffset, setWeekOffset] = useState<number>(-1);
   const [copied, setCopied] = useState<boolean>(false);
   const [isTelegramModalOpen, setIsTelegramModalOpen] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [expandedProjectIds, setExpandedProjectIds] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
 
   // Calculate Monday to Friday working week bounds
   const weekRange = useMemo(() => {
@@ -110,6 +119,42 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       };
     });
   }, [projects, tasks, teamMembers]);
+
+  // Filtered summaries according to search & status filter
+  const filteredProjectSummaries = useMemo(() => {
+    return projectSummaries.filter((ps) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        ps.project.name.toLowerCase().includes(q) ||
+        (ps.project.client && ps.project.client.toLowerCase().includes(q)) ||
+        ps.assignedMembers.some((m) => m.name.toLowerCase().includes(q));
+
+      const matchesStatus = statusFilter === 'All' || ps.project.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [projectSummaries, searchQuery, statusFilter]);
+
+  const toggleProjectExpanded = (projectId: string) => {
+    setExpandedProjectIds((prev) => ({
+      ...prev,
+      [projectId]: !prev[projectId],
+    }));
+  };
+
+  const toggleExpandAll = () => {
+    const allExpanded = filteredProjectSummaries.every((ps) => expandedProjectIds[ps.project.id]);
+    if (allExpanded) {
+      setExpandedProjectIds({});
+    } else {
+      const next: Record<string, boolean> = {};
+      filteredProjectSummaries.forEach((ps) => {
+        next[ps.project.id] = true;
+      });
+      setExpandedProjectIds(next);
+    }
+  };
 
   // Overall KPI metrics
   const overallMetrics = useMemo(() => {
@@ -577,175 +622,591 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
         </div>
       </div>
 
-      {/* Simple Project Reports Section */}
+      {/* Projects Overview Section */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-            Projects Overview ({projectSummaries.length})
-          </h3>
-          <span className="text-2xs text-slate-500 dark:text-slate-400">
-            Working Week: {weekRange.label} (Mon - Fri)
-          </span>
+        {/* Header & Controls Toolbar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                Projects Overview ({filteredProjectSummaries.length})
+              </h3>
+              {filteredProjectSummaries.length !== projectSummaries.length && (
+                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                  Filtered from {projectSummaries.length}
+                </span>
+              )}
+            </div>
+            <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Working Week: {weekRange.label} (Monday – Friday)
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            {/* Search Input */}
+            <div className="relative min-w-[170px] sm:min-w-[210px]">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search projects, client, team..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-7 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Status Filters */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+              {(['All', 'In Progress', 'Completed', 'Blocked'] as const).map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                    statusFilter === st
+                      ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+
+            {/* Expand / Collapse All (in Table view) */}
+            {viewMode === 'table' && (
+              <button
+                onClick={toggleExpandAll}
+                className="px-2.5 py-1.5 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer shadow-2xs"
+                title="Expand or collapse deliverable details"
+              >
+                {filteredProjectSummaries.length > 0 &&
+                filteredProjectSummaries.every((ps) => expandedProjectIds[ps.project.id])
+                  ? 'Collapse All'
+                  : 'Expand All'}
+              </button>
+            )}
+
+            {/* View Mode Toggle: Table (default) vs Cards */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Table View (Compact Overview)"
+              >
+                <TableIcon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Table</span>
+              </button>
+              <button
+                onClick={() => setViewMode('card')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  viewMode === 'card'
+                    ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Card View"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Cards</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        {projectSummaries.length === 0 ? (
-          <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 text-xs">
-            No projects found in the system.
+        {/* Content Section */}
+        {filteredProjectSummaries.length === 0 ? (
+          <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 text-xs shadow-2xs">
+            <p className="font-semibold text-sm text-slate-700 dark:text-slate-300">
+              No matching projects found
+            </p>
+            <p className="text-slate-400 text-xs mt-1">
+              Try adjusting your search query or status filter.
+            </p>
+          </div>
+        ) : viewMode === 'table' ? (
+          /* Table View */
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 text-2xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="py-3 px-3 text-center w-12">#</th>
+                    <th className="py-3 px-4 min-w-[210px]">Project</th>
+                    <th className="py-3 px-4 min-w-[120px]">Status</th>
+                    <th className="py-3 px-4 min-w-[140px]">Progress</th>
+                    <th className="py-3 px-4 min-w-[240px]">Deliverables</th>
+                    <th className="py-3 px-4 min-w-[120px]">Deadline</th>
+                    <th className="py-3 px-4 min-w-[150px]">Team</th>
+                    <th className="py-3 px-4 text-right min-w-[95px]">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                  {filteredProjectSummaries.map(
+                    (
+                      {
+                        project,
+                        totalTasks,
+                        completedCount,
+                        inProgressCount,
+                        blockedCount,
+                        pendingCount,
+                        percent,
+                        completedList,
+                        ongoingList,
+                        assignedMembers,
+                      },
+                      idx
+                    ) => {
+                      const isExpanded = !!expandedProjectIds[project.id];
+                      return (
+                        <React.Fragment key={project.id}>
+                          <tr
+                            onClick={() => toggleProjectExpanded(project.id)}
+                            className={`group cursor-pointer transition-colors ${
+                              isExpanded
+                                ? 'bg-blue-50/40 dark:bg-blue-950/20'
+                                : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
+                            }`}
+                          >
+                            {/* # and Expand icon */}
+                            <td className="py-3.5 px-3 text-center">
+                              <div className="flex items-center justify-center gap-1 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                <span className="text-3xs font-bold text-slate-500 dark:text-slate-400">
+                                  {idx + 1}
+                                </span>
+                                {isExpanded ? (
+                                  <ChevronUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                ) : (
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Project Name & Client */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <span
+                                  className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs ring-2 ring-white dark:ring-slate-900"
+                                  style={{ backgroundColor: project.color || '#2563eb' }}
+                                />
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                      {project.name}
+                                    </span>
+                                    {project.client && (
+                                      <span className="px-1.5 py-0.2 rounded text-3xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                        {project.client}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3.5 px-4">
+                              <span
+                                className={`inline-block px-2.5 py-0.5 rounded-full text-3xs font-bold border ${getStatusBadge(
+                                  project.status
+                                )}`}
+                              >
+                                {project.status}
+                              </span>
+                            </td>
+
+                            {/* Progress */}
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between text-2xs">
+                                  <span className="font-black text-slate-800 dark:text-slate-200">
+                                    {percent}%
+                                  </span>
+                                  <span className="text-3xs text-slate-400 dark:text-slate-500 font-medium">
+                                    {completedCount}/{totalTasks}
+                                  </span>
+                                </div>
+                                <div className="w-24 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-300 ${
+                                      percent === 100
+                                        ? 'bg-emerald-500'
+                                        : percent >= 50
+                                        ? 'bg-blue-600'
+                                        : 'bg-amber-500'
+                                    }`}
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Deliverables Overview */}
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {completedCount > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-3xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800">
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                      {completedCount} Done
+                                    </span>
+                                  )}
+                                  {inProgressCount + pendingCount > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-3xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800">
+                                      <Clock className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                      {inProgressCount + pendingCount} Ongoing
+                                    </span>
+                                  )}
+                                  {blockedCount > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-3xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800">
+                                      <AlertOctagon className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                      {blockedCount} Blocked
+                                    </span>
+                                  )}
+                                  {totalTasks === 0 && (
+                                    <span className="text-3xs text-slate-400 italic">No tasks</span>
+                                  )}
+                                </div>
+
+                                <div className="text-3xs text-slate-500 dark:text-slate-400 truncate max-w-xs">
+                                  {completedList.length > 0 && (
+                                    <span className="text-emerald-700 dark:text-emerald-400">
+                                      ✓ {completedList[0].title}
+                                    </span>
+                                  )}
+                                  {completedList.length > 0 && ongoingList.length > 0 && (
+                                    <span> • </span>
+                                  )}
+                                  {ongoingList.length > 0 && (
+                                    <span>⏳ {ongoingList[0].title}</span>
+                                  )}
+                                  {completedList.length + ongoingList.length > 2 && (
+                                    <span className="text-slate-400 font-medium">
+                                      {' '}
+                                      +{completedList.length + ongoingList.length - 2} more
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Deadline */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span>{project.targetDeadline || 'No deadline'}</span>
+                              </div>
+                            </td>
+
+                            {/* Team */}
+                            <td className="py-3.5 px-4">
+                              {assignedMembers.length > 0 ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center -space-x-1.5 shrink-0">
+                                    {assignedMembers.slice(0, 3).map((m) => (
+                                      <div
+                                        key={m.id}
+                                        title={`${m.name} (${m.role})`}
+                                        style={{ backgroundColor: m.color || '#2563eb' }}
+                                        className="w-5 h-5 rounded-full text-white text-3xs font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs"
+                                      >
+                                        {m.name.charAt(0).toUpperCase()}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <span
+                                    className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate max-w-[130px]"
+                                    title={assignedMembers.map((m) => m.name).join(', ')}
+                                  >
+                                    {assignedMembers.map((m) => m.name).join(', ')}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400 italic">Unassigned</span>
+                              )}
+                            </td>
+
+                            {/* Action */}
+                            <td className="py-3.5 px-4 text-right">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSelectProject(project.id);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/50 dark:border-blue-900/40 transition-colors cursor-pointer"
+                                title={`Open ${project.name} Kanban Board`}
+                              >
+                                <span>Board</span>
+                                <ArrowRight className="w-3 h-3" />
+                              </button>
+                            </td>
+                          </tr>
+
+                          {/* Expandable Task Detail Drawer */}
+                          {isExpanded && (
+                            <tr className="bg-slate-50/80 dark:bg-slate-850/80 border-b border-slate-200/80 dark:border-slate-800">
+                              <td colSpan={8} className="py-4 px-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {/* Completed Deliverables List */}
+                                  <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
+                                    <div className="flex items-center justify-between text-2xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                        <span>Completed Tasks ({completedList.length})</span>
+                                      </div>
+                                    </div>
+                                    {completedList.length === 0 ? (
+                                      <p className="text-3xs text-slate-400 italic">
+                                        No tasks completed yet.
+                                      </p>
+                                    ) : (
+                                      <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                        {completedList.map((t) => (
+                                          <li
+                                            key={t.id}
+                                            className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/30 gap-2"
+                                          >
+                                            <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
+                                              ✓ {t.title}
+                                            </span>
+                                            <span className="text-3xs text-slate-500 dark:text-slate-400 shrink-0 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                              {t.assigneeName}
+                                            </span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+
+                                  {/* Ongoing & Blocked Deliverables List */}
+                                  <div className="p-3.5 bg-slate-100/60 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <div className="flex items-center justify-between text-2xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                                      <div className="flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                        <span>Ongoing & Blocked Tasks ({ongoingList.length})</span>
+                                      </div>
+                                    </div>
+                                    {ongoingList.length === 0 ? (
+                                      <p className="text-3xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                        All tasks in this project are completed! 🎉
+                                      </p>
+                                    ) : (
+                                      <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                        {ongoingList.map((t) => (
+                                          <li
+                                            key={t.id}
+                                            className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 gap-2"
+                                          >
+                                            <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
+                                              {t.title}
+                                            </span>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                              <span
+                                                className={`px-1.5 py-0.2 rounded text-3xs font-semibold ${
+                                                  t.status === 'Blocked'
+                                                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                                                    : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                                                }`}
+                                              >
+                                                {t.status}
+                                              </span>
+                                              <span className="text-3xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                                {t.assigneeName}
+                                              </span>
+                                            </div>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    }
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
-          projectSummaries.map(({ project, totalTasks, completedCount, percent, completedList, ongoingList, assignedMembers }) => (
-            <div
-              key={project.id}
-              className="p-5 sm:p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-all"
-            >
-              {/* Project Title, Client, Status & Completion Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-4 h-4 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-xs shrink-0"
-                    style={{ backgroundColor: project.color || '#2563eb' }}
-                  />
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-                        {project.name}
-                      </h4>
-                      {project.client && (
-                        <span className="px-2 py-0.5 rounded-md text-2xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                          {project.client}
-                        </span>
-                      )}
+          /* Card View */
+          filteredProjectSummaries.map(
+            ({
+              project,
+              totalTasks,
+              completedCount,
+              percent,
+              completedList,
+              ongoingList,
+              assignedMembers,
+            }) => (
+              <div
+                key={project.id}
+                className="p-5 sm:p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-all"
+              >
+                {/* Project Title, Client, Status & Completion Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-4 h-4 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-xs shrink-0"
+                      style={{ backgroundColor: project.color || '#2563eb' }}
+                    />
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+                          {project.name}
+                        </h4>
+                        {project.client && (
+                          <span className="px-2 py-0.5 rounded-md text-2xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            {project.client}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Deadline: {project.targetDeadline || 'No deadline'} • Team:{' '}
+                        {assignedMembers.length > 0
+                          ? assignedMembers.map((m) => m.name).join(', ')
+                          : 'Unassigned'}
+                      </p>
                     </div>
-                    <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Deadline: {project.targetDeadline || 'No deadline'} • Team:{' '}
-                      {assignedMembers.length > 0
-                        ? assignedMembers.map((m) => m.name).join(', ')
-                        : 'Unassigned'}
-                    </p>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3 self-start sm:self-center">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadge(
-                      project.status
-                    )}`}
-                  >
-                    {project.status}
-                  </span>
-                  <div className="text-right">
-                    <span className="text-base font-black text-slate-900 dark:text-white">
-                      {percent}%
+                  <div className="flex items-center gap-3 self-start sm:self-center">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadge(
+                        project.status
+                      )}`}
+                    >
+                      {project.status}
                     </span>
-                    <p className="text-3xs text-slate-400 dark:text-slate-500">
-                      {completedCount}/{totalTasks} Tasks
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      percent === 100
-                        ? 'bg-emerald-500'
-                        : percent >= 50
-                        ? 'bg-blue-600'
-                        : 'bg-amber-500'
-                    }`}
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Simple 2-Column Task Breakdown: Completed vs Ongoing */}
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                {/* Completed Tasks */}
-                <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
-                  <div className="flex items-center justify-between text-2xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span>Completed Tasks ({completedList.length})</span>
+                    <div className="text-right">
+                      <span className="text-base font-black text-slate-900 dark:text-white">
+                        {percent}%
+                      </span>
+                      <p className="text-3xs text-slate-400 dark:text-slate-500">
+                        {completedCount}/{totalTasks} Tasks
+                      </p>
                     </div>
                   </div>
-                  {completedList.length === 0 ? (
-                    <p className="text-3xs text-slate-400 italic">No tasks completed yet.</p>
-                  ) : (
-                    <ul className="space-y-1.5">
-                      {completedList.map((t) => (
-                        <li
-                          key={t.id}
-                          className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-emerald-100/60 dark:border-emerald-900/30 gap-2"
-                        >
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                            ✓ {t.title}
-                          </span>
-                          <span className="text-2xs text-slate-500 dark:text-slate-400 shrink-0 font-medium">
-                            {t.assigneeName}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </div>
 
-                {/* Ongoing Tasks */}
-                <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800">
-                  <div className="flex items-center justify-between text-2xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      <span>Ongoing Tasks ({ongoingList.length})</span>
-                    </div>
+                {/* Progress Bar */}
+                <div className="mt-4">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        percent === 100
+                          ? 'bg-emerald-500'
+                          : percent >= 50
+                          ? 'bg-blue-600'
+                          : 'bg-amber-500'
+                      }`}
+                      style={{ width: `${percent}%` }}
+                    />
                   </div>
-                  {ongoingList.length === 0 ? (
-                    <p className="text-3xs text-emerald-600 dark:text-emerald-400 font-medium">
-                      All tasks in this project are completed! 🎉
-                    </p>
-                  ) : (
-                    <ul className="space-y-1.5">
-                      {ongoingList.map((t) => (
-                        <li
-                          key={t.id}
-                          className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700 gap-2"
-                        >
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                            {t.title}
-                          </span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span
-                              className={`px-1.5 py-0.2 rounded text-3xs font-semibold ${
-                                t.status === 'Blocked'
-                                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                                  : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                              }`}
-                            >
-                              {t.status}
+                </div>
+
+                {/* Simple 2-Column Task Breakdown: Completed vs Ongoing */}
+                <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {/* Completed Tasks */}
+                  <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
+                    <div className="flex items-center justify-between text-2xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>Completed Tasks ({completedList.length})</span>
+                      </div>
+                    </div>
+                    {completedList.length === 0 ? (
+                      <p className="text-3xs text-slate-400 italic">No tasks completed yet.</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {completedList.map((t) => (
+                          <li
+                            key={t.id}
+                            className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-emerald-100/60 dark:border-emerald-900/30 gap-2"
+                          >
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                              ✓ {t.title}
                             </span>
-                            <span className="text-3xs text-slate-500 dark:text-slate-400">
+                            <span className="text-2xs text-slate-500 dark:text-slate-400 shrink-0 font-medium">
                               {t.assigneeName}
                             </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Ongoing Tasks */}
+                  <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                    <div className="flex items-center justify-between text-2xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span>Ongoing Tasks ({ongoingList.length})</span>
+                      </div>
+                    </div>
+                    {ongoingList.length === 0 ? (
+                      <p className="text-3xs text-emerald-600 dark:text-emerald-400 font-medium">
+                        All tasks in this project are completed! 🎉
+                      </p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {ongoingList.map((t) => (
+                          <li
+                            key={t.id}
+                            className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700 gap-2"
+                          >
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                              {t.title}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span
+                                className={`px-1.5 py-0.2 rounded text-3xs font-semibold ${
+                                  t.status === 'Blocked'
+                                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                                    : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                                }`}
+                              >
+                                {t.status}
+                              </span>
+                              <span className="text-3xs text-slate-500 dark:text-slate-400">
+                                {t.assigneeName}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom Quick Jump Link */}
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
+                  <button
+                    onClick={() => onSelectProject(project.id)}
+                    className="inline-flex items-center gap-1 text-2xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    <span>Open Kanban Board</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
-
-              {/* Bottom Quick Jump Link */}
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
-                <button
-                  onClick={() => onSelectProject(project.id)}
-                  className="inline-flex items-center gap-1 text-2xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                >
-                  <span>Open Kanban Board</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))
+            )
+          )
         )}
       </div>
 
