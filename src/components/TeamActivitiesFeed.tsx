@@ -287,21 +287,21 @@ export const TeamActivitiesFeed: React.FC<TeamActivitiesFeedProps> = ({
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 pt-3 pb-2 text-2xs font-semibold">
+      <div className="flex items-center gap-2 pt-3.5 pb-2 flex-wrap">
         {(['all', 'task', 'project'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer capitalize ${
+            className={`px-3 py-1 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
               filter === f
-                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs font-semibold'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
             }`}
           >
-            {f === 'all' ? 'All Activity' : `${f}s`}
+            {f === 'all' ? 'All Activity' : f === 'task' ? 'Tasks' : 'Projects'}
           </button>
         ))}
-        <span className="ml-auto text-3xs font-medium text-slate-400">
+        <span className="ml-auto text-xs font-medium text-slate-400">
           {filteredActivities.length} logs
         </span>
       </div>
@@ -401,3 +401,4 @@ export const TeamActivitiesFeed: React.FC<TeamActivitiesFeedProps> = ({
     </div>
   );
 };
+
