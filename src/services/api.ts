@@ -285,3 +285,60 @@ export async function deleteMemberApi(id: string, userRole: string = 'admin'): P
     throw new Error(data.error || `Failed to delete member (${res.status})`);
   }
 }
+
+// -------------------------------------------------------------
+// Telegram Automated Weekly Report API
+// -------------------------------------------------------------
+
+export interface TelegramSettings {
+  enabled: boolean;
+  hasToken: boolean;
+  botTokenMasked: string;
+  chatId: string;
+  sendDay: string;
+  sendTime: string;
+  lastSentAt: string | null;
+}
+
+export async function fetchTelegramSettingsApi(): Promise<TelegramSettings> {
+  const res = await fetch(`${API_BASE}/telegram/settings`);
+  if (!res.ok) throw new Error('Failed to fetch Telegram settings');
+  return res.json();
+}
+
+export async function updateTelegramSettingsApi(settings: {
+  botToken?: string;
+  chatId?: string;
+  enabled?: boolean;
+  sendTime?: string;
+}): Promise<TelegramSettings> {
+  const res = await fetch(`${API_BASE}/telegram/settings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to update Telegram settings');
+  return data;
+}
+
+export async function testTelegramApi(botToken?: string, chatId?: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/telegram/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ botToken, chatId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to send test message');
+  return data;
+}
+
+export async function sendTelegramWeeklyReportApi(): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/telegram/send-report`, {
+    method: 'POST',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to send weekly report to Telegram');
+  return data;
+}
+

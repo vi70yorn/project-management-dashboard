@@ -876,6 +876,294 @@ app.delete('/api/members/:id', async (req: Request, res: Response) => {
 });
 
 // ==========================================
+// Telegram Automated Weekly Report Endpoints
+// ==========================================
+
+async function sendTelegramMessage(botToken: string, chatId: string, text: string): Promise<{ ok: boolean; message?: string }> {
+  if (!botToken || !chatId) {
+    return { ok: false, message: 'Telegram Bot Token and Chat ID are required.' };
+  }
+  const cleanToken = botToken.trim();
+  const cleanChatId = chatId.trim();
+  const url = `https://api.telegram.org/bot${cleanToken}/sendMessage`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: cleanChatId,
+        text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+      }),
+    });
+    const data: any = await res.json();
+    if (!data.ok) {
+      return { ok: false, message: data.description || 'Telegram API rejected message' };
+    }
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, message: err.message || 'Network error reaching Telegram API' };
+  }
+}
+
+async function generateTelegramWeeklyReport(pool: any): Promise<string> {
+  const [projectsRes, tasksRes, membersRes] = await Promise.all([
+    pool.query('SELECT * FROM projects ORDER BY created_at ASC'),
+    pool.query('SELECT * FROM tasks ORDER BY created_at ASC'),
+    pool.query('SELECT * FROM team_members ORDER BY name ASC'),
+  ]);
+
+  const projects = projectsRes.rows;
+  const tasks = tasksRes.rows;
+  const members = membersRes.rows;
+
+  const now = new Date();
+  const day = now.getDay();
+  const isoDay = day === 0 ? 7 : day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (isoDay - 1) - 7);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const periodLabel = `${fmt(monday)} – ${fmt(friday)}`;
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t: any) => t.status === 'Completed').length;
+  const blockedTasks = tasks.filter((t: any) => t.status === 'Blocked').length;
+  const overallRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  let text = `📊 <b>WEEKLY PROJECT STATUS REPORT</b>\n`;
+  text += `📅 <b>Working Week:</b> ${periodLabel} (Mon – Fri)\n`;
+  text += `📈 <b>Overall Completion:</b> ${overallRate}% (${completedTasks}/${totalTasks} Tasks)\n`;
+  if (blockedTasks > 0) {
+    text += `⚠️ <b>Blocked Items:</b> ${blockedTasks} (Attention Needed)\n`;
+  }
+  text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  projects.forEach((p: any, idx: number) => {
+    const pTasks = tasks.filter((t: any) => t.project_id === p.id);
+    const pCompleted = pTasks.filter((t: any) => t.status === 'Completed');
+    const pOngoing = pTasks.filter((t: any) => t.status !== 'Completed');
+    const pPercent = pTasks.length > 0 ? Math.round((pCompleted.length / pTasks.length) * 100) : 0;
+
+    const statusEmoji = p.status === 'Completed' ? '✅' : p.status === 'Blocked' ? '🛑' : '🚀';
+
+    text += `${idx + 1}. ${statusEmoji} <b>${p.name.toUpperCase()}</b>\n`;
+    text += `   • <b>Status:</b> ${p.status} | <b>Progress:</b> ${pPercent}%\n`;
+    if (p.client) {
+      text += `   • <b>Client:</b> ${p.client}\n`;
+    }
+
+    if (pCompleted.length > 0) {
+      text += `   • <b>Done:</b>\n`;
+      pCompleted.forEach((t: any) => {
+        const assignee = members.find((m: any) => m.id === t.assignee_id)?.name || 'Unassigned';
+        text += `     ✓ ${t.title} (${assignee})\n`;
+      });
+    }
+
+    if (pOngoing.length > 0) {
+      text += `   • <b>In Progress:</b>\n`;
+      pOngoing.slice(0, 4).forEach((t: any) => {
+        const assignee = members.find((m: any) => m.id === t.assignee_id)?.name || 'Unassigned';
+        const icon = t.status === 'Blocked' ? '⚠️' : '⏳';
+        text += `     ${icon} ${t.title} [${t.status}] (${assignee})\n`;
+      });
+    }
+
+    text += `\n`;
+  });
+
+  text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+  text += `<i>Sent automatically by Project Management Dashboard</i>`;
+  return text;
+}
+
+// GET Telegram Settings
+app.get('/api/telegram/settings', async (_req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const result = await pool.query('SELECT * FROM telegram_settings WHERE id = $1', ['default']);
+    if (result.rowCount === 0) {
+      return res.json({
+        enabled: false,
+        hasToken: false,
+        botTokenMasked: '',
+        chatId: '',
+        sendDay: 'Monday',
+        sendTime: '08:00',
+        lastSentAt: null,
+      });
+    }
+    const row = result.rows[0];
+    const hasToken = !!(row.bot_token && row.bot_token.trim().length > 0);
+    const botTokenMasked = hasToken
+      ? `${row.bot_token.slice(0, 6)}••••••••${row.bot_token.slice(-4)}`
+      : '';
+
+    res.json({
+      enabled: !!row.enabled,
+      hasToken,
+      botTokenMasked,
+      chatId: row.chat_id || '',
+      sendDay: row.send_day || 'Monday',
+      sendTime: row.send_time || '08:00',
+      lastSentAt: row.last_sent_at || null,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST update Telegram Settings
+app.post('/api/telegram/settings', async (req: Request, res: Response) => {
+  const { botToken, chatId, enabled, sendTime } = req.body;
+  try {
+    const pool = getPool();
+    let query: string;
+    let params: any[];
+
+    if (botToken !== undefined && botToken.trim().length > 0) {
+      query = `
+        INSERT INTO telegram_settings (id, bot_token, chat_id, enabled, send_time, updated_at)
+        VALUES ('default', $1, $2, $3, $4, CURRENT_TIMESTAMP)
+        ON CONFLICT (id) DO UPDATE SET
+          bot_token = EXCLUDED.bot_token,
+          chat_id = EXCLUDED.chat_id,
+          enabled = EXCLUDED.enabled,
+          send_time = EXCLUDED.send_time,
+          updated_at = CURRENT_TIMESTAMP
+        RETURNING id, chat_id AS "chatId", enabled, send_time AS "sendTime", last_sent_at AS "lastSentAt"
+      `;
+      params = [botToken.trim(), (chatId || '').trim(), !!enabled, sendTime || '08:00'];
+    } else {
+      query = `
+        UPDATE telegram_settings
+        SET 
+          chat_id = COALESCE($1, chat_id),
+          enabled = COALESCE($2, enabled),
+          send_time = COALESCE($3, send_time),
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = 'default'
+        RETURNING id, chat_id AS "chatId", enabled, send_time AS "sendTime", last_sent_at AS "lastSentAt"
+      `;
+      params = [(chatId || '').trim(), !!enabled, sendTime || '08:00'];
+    }
+
+    const result = await pool.query(query, params);
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST test Telegram connection
+app.post('/api/telegram/test', async (req: Request, res: Response) => {
+  const { botToken, chatId } = req.body;
+  try {
+    const pool = getPool();
+    let token = botToken?.trim();
+    let chat = chatId?.trim();
+
+    if (!token || !chat) {
+      const dbSettings = await pool.query('SELECT bot_token, chat_id FROM telegram_settings WHERE id = $1', ['default']);
+      if (dbSettings.rowCount > 0) {
+        if (!token) token = dbSettings.rows[0].bot_token;
+        if (!chat) chat = dbSettings.rows[0].chat_id;
+      }
+    }
+
+    if (!token || !chat) {
+      return res.status(400).json({ error: 'Both Telegram Bot Token and Chat ID are required to send a test message.' });
+    }
+
+    const testMsg = `🚀 <b>Telegram Connection Verified!</b>\n\nYour Project Management Dashboard is now connected to Telegram.\n\n📅 <b>Schedule:</b> Automated Weekly Reports will be sent every Monday at the configured time.`;
+    const sendResult = await sendTelegramMessage(token, chat, testMsg);
+
+    if (!sendResult.ok) {
+      return res.status(400).json({ error: sendResult.message });
+    }
+
+    res.json({ success: true, message: 'Test message sent successfully to Telegram!' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST trigger instant weekly report delivery
+app.post('/api/telegram/send-report', async (_req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const result = await pool.query('SELECT bot_token, chat_id FROM telegram_settings WHERE id = $1', ['default']);
+    if (result.rowCount === 0 || !result.rows[0].bot_token || !result.rows[0].chat_id) {
+      return res.status(400).json({ error: 'Telegram is not configured yet. Please configure your Bot Token and Chat ID first.' });
+    }
+
+    const { bot_token, chat_id } = result.rows[0];
+    const reportText = await generateTelegramWeeklyReport(pool);
+    const sendResult = await sendTelegramMessage(bot_token, chat_id, reportText);
+
+    if (!sendResult.ok) {
+      return res.status(400).json({ error: sendResult.message });
+    }
+
+    await pool.query('UPDATE telegram_settings SET last_sent_at = CURRENT_TIMESTAMP WHERE id = $1', ['default']);
+    res.json({ success: true, message: 'Weekly Project Summary sent to Telegram successfully!' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Background Automated Monday Scheduler
+function startTelegramWeeklyScheduler() {
+  console.log('[Telegram Scheduler] Automated Monday weekly report scheduler initialized.');
+
+  setInterval(async () => {
+    try {
+      const pool = getPool();
+      const res = await pool.query('SELECT * FROM telegram_settings WHERE id = $1', ['default']);
+      if (res.rowCount === 0) return;
+
+      const settings = res.rows[0];
+      if (!settings.enabled || !settings.bot_token || !settings.chat_id) return;
+
+      const now = new Date();
+      // Monday is day 1
+      if (now.getDay() !== 1) return;
+
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hours}:${minutes}`;
+
+      const targetTime = settings.send_time || '08:00';
+      if (currentTime !== targetTime) return;
+
+      // Avoid duplicate sending if already sent in last 18 hours
+      if (settings.last_sent_at) {
+        const lastSent = new Date(settings.last_sent_at);
+        const diffHours = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60);
+        if (diffHours < 18) return;
+      }
+
+      console.log(`[Telegram Scheduler] Monday ${currentTime} reached! Dispatching automated report...`);
+      const reportText = await generateTelegramWeeklyReport(pool);
+      const sendRes = await sendTelegramMessage(settings.bot_token, settings.chat_id, reportText);
+
+      if (sendRes.ok) {
+        console.log('[Telegram Scheduler] Monday weekly report sent successfully to Telegram.');
+        await pool.query('UPDATE telegram_settings SET last_sent_at = CURRENT_TIMESTAMP WHERE id = $1', ['default']);
+      } else {
+        console.error('[Telegram Scheduler] Failed to send report:', sendRes.message);
+      }
+    } catch (err: any) {
+      console.error('[Telegram Scheduler Exception]:', err.message);
+    }
+  }, 30000);
+}
+
+// ==========================================
 // Serve Static Frontend (Single-Service Deployment)
 // ==========================================
 
@@ -900,6 +1188,9 @@ async function startServer() {
     await ensureDatabaseExists();
     await runMigrationsAndSeed();
     console.log('[Server] Database initialization completed successfully.');
+
+    // Start background Telegram automated weekly scheduler
+    startTelegramWeeklyScheduler();
   } catch (err: any) {
     console.error('[Server] Warning: Failed to auto-initialize database on startup:', err.message);
     console.error('[Server] If PostgreSQL credentials are needed, please verify your .env file.');

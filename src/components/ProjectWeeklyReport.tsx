@@ -12,8 +12,10 @@ import {
   FileSpreadsheet,
   ArrowRight,
   Sparkles,
+  Send,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType } from '../types';
+import { TelegramSettingsModal } from './TelegramSettingsModal';
 
 interface ProjectWeeklyReportProps {
   projects: Project[];
@@ -33,6 +35,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
   // -1 = Last Week (Mon-Fri), 0 = This Week (Mon-Fri)
   const [weekOffset, setWeekOffset] = useState<number>(-1);
   const [copied, setCopied] = useState<boolean>(false);
+  const [isTelegramModalOpen, setIsTelegramModalOpen] = useState<boolean>(false);
 
   // Calculate Monday to Friday working week bounds
   const weekRange = useMemo(() => {
@@ -271,6 +274,16 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           >
             <Printer className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Print / PDF</span>
+          </button>
+
+          {/* Telegram Auto-Report Button */}
+          <button
+            onClick={() => setIsTelegramModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-colors cursor-pointer shadow-2xs"
+            title="Configure Telegram Weekly Auto-Report"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Telegram Auto-Report</span>
           </button>
 
           {/* Copy Report to PM Button */}
@@ -572,6 +585,12 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           ))
         )}
       </div>
+      {/* Telegram Automation Settings Modal */}
+      <TelegramSettingsModal
+        isOpen={isTelegramModalOpen}
+        onClose={() => setIsTelegramModalOpen(false)}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };

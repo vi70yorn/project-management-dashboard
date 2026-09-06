@@ -131,6 +131,23 @@ export async function runMigrationsAndSeed(): Promise<void> {
       UPDATE team_members
       SET password = '123456'
       WHERE password IS NULL OR password = '';
+
+      -- 6. Telegram Automated Weekly Report Settings Table
+      CREATE TABLE IF NOT EXISTS telegram_settings (
+          id VARCHAR(32) PRIMARY KEY DEFAULT 'default',
+          bot_token TEXT,
+          chat_id TEXT,
+          enabled BOOLEAN DEFAULT false,
+          send_day VARCHAR(16) DEFAULT 'Monday',
+          send_time VARCHAR(8) DEFAULT '08:00',
+          last_sent_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+
+      INSERT INTO telegram_settings (id, enabled, send_day, send_time)
+      VALUES ('default', false, 'Monday', '08:00')
+      ON CONFLICT (id) DO NOTHING;
     `);
 
     console.log('[PostgreSQL] Database schema, credentials & initial seeds verified successfully.');

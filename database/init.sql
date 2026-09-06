@@ -112,3 +112,20 @@ VALUES
     ('task-1788624838718', 'proj-1788624651745', 'Report Screen', 'Create a complete UI screen of the function', 'Completed', 'Medium', 'mem-1788624800573', 'mem-1788624319284', '2026-09-05', '2026-09-12', '2026-09-05T16:13:59.069Z', '2026-09-05T16:55:13.264Z'),
     ('task-1788624689153', 'proj-1788624651745', 'Home', 'Create a complete home screen', 'In Progress', 'Medium', 'mem-1788624380119', 'mem-1788624319284', '2026-09-05', '2026-09-06', '2026-09-05T16:11:29.188Z', '2026-09-06T05:42:02.918Z')
 ON CONFLICT (id) DO NOTHING;
+
+-- 6. Telegram Automated Weekly Report Settings Table
+CREATE TABLE IF NOT EXISTS telegram_settings (
+    id VARCHAR(32) PRIMARY KEY DEFAULT 'default',
+    bot_token TEXT,
+    chat_id TEXT,
+    enabled BOOLEAN DEFAULT false,
+    send_day VARCHAR(16) DEFAULT 'Monday',
+    send_time VARCHAR(8) DEFAULT '08:00',
+    last_sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO telegram_settings (id, enabled, send_day, send_time)
+VALUES ('default', false, 'Monday', '08:00')
+ON CONFLICT (id) DO NOTHING;
