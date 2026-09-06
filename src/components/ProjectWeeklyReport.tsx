@@ -939,7 +939,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
 
                           {/* Expandable Task Detail Drawer */}
                           {isExpanded && (
-                            <tr className="bg-slate-50/80 dark:bg-slate-850/80 border-b border-slate-200/80 dark:border-slate-800">
+                            <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800">
                               <td colSpan={8} className="py-4 px-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   {/* Completed Deliverables List */}

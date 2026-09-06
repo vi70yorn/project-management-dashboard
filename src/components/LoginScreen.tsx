@@ -91,7 +91,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <div className="mx-auto w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg ring-4 ring-blue-500/20 mb-3">
             <FolderKanban className="w-6 h-6 stroke-[2.2]" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-white">ProjectFlow</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white">EASY MANAGE</h1>
           <p className="text-xs text-slate-300 dark:text-slate-400 mt-1">
             Sign in to access your projects and task deliverables
           </p>
@@ -127,7 +127,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   autoFocus
                   autoCapitalize="none"
                   autoCorrect="off"
-                  placeholder="Enter username (e.g. vichet or david)"
+                  placeholder="Enter username (e.g. vichet or vetji)"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className={FORM_STYLES.inputWithIcon}
