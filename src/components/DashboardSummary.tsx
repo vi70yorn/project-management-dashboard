@@ -222,7 +222,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              In Progress Tasks
+              InProgress Tasks
             </span>
             <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <Clock className="w-4 h-4" />
@@ -442,19 +442,21 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mr-1">Filter by Status:</span>
-            {['all', 'In Progress', 'Pending', 'Blocked', 'Completed'].map((st) => (
-              <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
-                  statusFilter === st
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
-              >
-                {st === 'all' ? 'All Projects' : st}
-              </button>
-            ))}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+              {['all', 'In Progress', 'Pending', 'Blocked', 'Completed'].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                    statusFilter === st
+                      ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {st === 'all' ? 'All Projects' : st}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="relative w-full sm:w-64">

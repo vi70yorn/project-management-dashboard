@@ -634,7 +634,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             {/* Search Input */}
-            <div className="relative min-w-[170px] sm:min-w-[210px]">
+           {/*  <div className="relative min-w-[170px] sm:min-w-[210px]">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
@@ -651,7 +651,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                   <X className="w-3 h-3" />
                 </button>
               )}
-            </div>
+            </div> */}
 
             {/* Status Filters */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">

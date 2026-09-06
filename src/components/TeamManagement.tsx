@@ -185,15 +185,15 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs w-full sm:w-auto overflow-x-auto">
           {(['All', 'active', 'busy', 'away'] as const).map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all cursor-pointer ${
                 statusFilter === status
-                  ? 'bg-slate-900 dark:bg-blue-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-700/70'
+                  ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               {status === 'All' ? 'All Members' : status}
