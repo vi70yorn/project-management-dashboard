@@ -108,7 +108,9 @@ export default function App() {
     message: string;
     details?: string[];
     confirmLabel?: string;
+    cancelLabel?: string;
     isDestructive?: boolean;
+    iconType?: 'alert' | 'trash' | 'logout';
     onConfirm: () => void;
   }>({
     isOpen: false,
@@ -217,9 +219,20 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    setCurrentUser(null);
-    clearAuthUser();
-    showToast('info', 'You have been logged out.');
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Confirm Sign Out',
+      message: `Are you sure you want to log out${currentUser ? ` as ${currentUser.name}` : ''}? You will need to sign in again to access the dashboard.`,
+      confirmLabel: 'Log Out',
+      cancelLabel: 'Cancel',
+      iconType: 'logout',
+      onConfirm: () => {
+        setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
+        setCurrentUser(null);
+        clearAuthUser();
+        showToast('info', 'You have been logged out.');
+      },
+    });
   };
 
   // Navigation handlers
@@ -995,7 +1008,9 @@ export default function App() {
         message={confirmationModal.message}
         details={confirmationModal.details}
         confirmLabel={confirmationModal.confirmLabel}
+        cancelLabel={confirmationModal.cancelLabel}
         isDestructive={confirmationModal.isDestructive}
+        iconType={confirmationModal.iconType}
         onConfirm={confirmationModal.onConfirm}
         onCancel={() => setConfirmationModal((prev) => ({ ...prev, isOpen: false }))}
       />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Trash2, CheckCircle2, X } from 'lucide-react';
+import { AlertTriangle, Trash2, CheckCircle2, X, LogOut } from 'lucide-react';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface ConfirmationModalProps {
   confirmLabel?: string;
   cancelLabel?: string;
   isDestructive?: boolean;
+  iconType?: 'alert' | 'trash' | 'logout';
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -21,10 +22,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   isDestructive = false,
+  iconType,
   onConfirm,
   onCancel,
 }) => {
   if (!isOpen) return null;
+
+  const isDanger = isDestructive || iconType === 'logout' || iconType === 'trash';
 
   return (
     <div
@@ -39,12 +43,18 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <div className="flex items-start gap-4">
             <div
               className={`p-3 rounded-full shrink-0 ${
-                isDestructive
+                isDanger
                   ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'
                   : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
               }`}
             >
-              {isDestructive ? <Trash2 className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
+              {iconType === 'logout' ? (
+                <LogOut className="w-6 h-6" />
+              ) : isDestructive || iconType === 'trash' ? (
+                <Trash2 className="w-6 h-6" />
+              ) : (
+                <AlertTriangle className="w-6 h-6" />
+              )}
             </div>
             <div className="flex-1">
               <h3 id="confirmation-modal-title" className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -86,12 +96,18 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               type="button"
               onClick={onConfirm}
               className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-2 shadow-xs cursor-pointer ${
-                isDestructive
+                isDanger
                   ? 'bg-rose-600 hover:bg-rose-700 focus:ring-2 focus:ring-rose-400'
                   : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-400'
               }`}
             >
-              {isDestructive ? <Trash2 className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+              {iconType === 'logout' ? (
+                <LogOut className="w-4 h-4" />
+              ) : isDestructive || iconType === 'trash' ? (
+                <Trash2 className="w-4 h-4" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
               {confirmLabel}
             </button>
           </div>
