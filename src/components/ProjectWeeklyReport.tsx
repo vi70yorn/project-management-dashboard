@@ -359,7 +359,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           </div>
         </div>
 
-        {/* Action Controls */}
+        {/* Week Selector & Stepper Controls */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Week selector toggles */}
           <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -406,7 +406,22 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
+        </div>
+      </div>
 
+      {/* Dedicated Actions & Export Bar */}
+      <div className="bg-white dark:bg-slate-900 px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0"></span>
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            Report Actions & Distribution
+          </span>
+          <span className="text-3xs text-slate-400 dark:text-slate-500 hidden md:inline">
+            • Download spreadsheet, configure automated Telegram, or copy quick PM summary
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Export Excel Button */}
           <button
             onClick={handleExportExcel}
