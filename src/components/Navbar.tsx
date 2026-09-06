@@ -13,6 +13,7 @@ import {
   User,
   Sun,
   Moon,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { Project, AuthUser } from '../types';
 
@@ -20,6 +21,7 @@ interface NavbarProps {
   currentView: 'dashboard' | 'project' | 'team';
   onGoToDashboard: () => void;
   onGoToTeam: () => void;
+  onOpenProjectSummary?: () => void;
   projects: Project[];
   activeProject?: Project;
   onSelectProject: (projectId: string) => void;
@@ -40,6 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onGoToDashboard,
   onGoToTeam,
+  onOpenProjectSummary,
   projects,
   activeProject,
   onSelectProject,
@@ -114,6 +117,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {teamCount}
               </span>
             </button>
+
+            {/* Project Weekly Summary tab */}
+            <button
+              id="nav-project-summary-btn"
+              onClick={onOpenProjectSummary}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Project Weekly Summary (Mon - Fri) for Project Manager"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              Project Summary
+            </button>
           </div>
         </div>
 
@@ -142,6 +156,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Team"
             >
               <Users className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onOpenProjectSummary}
+              className="p-1.5 rounded-lg text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Project Weekly Summary"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </button>
           </div>
 

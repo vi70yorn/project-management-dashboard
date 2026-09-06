@@ -27,6 +27,7 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { LoginScreen } from './components/LoginScreen';
 import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { DatabaseStatusModal } from './components/DatabaseStatusModal';
+import { ProjectWeeklySummaryModal } from './components/ProjectWeeklySummaryModal';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import {
   checkDatabaseHealth,
@@ -99,6 +100,7 @@ export default function App() {
   const [isTeamMemberModalOpen, setIsTeamMemberModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [isProjectSummaryOpen, setIsProjectSummaryOpen] = useState(false);
 
   // Confirmation Dialog State
   const [confirmationModal, setConfirmationModal] = useState<{
@@ -840,6 +842,7 @@ export default function App() {
         currentView={currentView}
         onGoToDashboard={handleGoToDashboard}
         onGoToTeam={handleGoToTeam}
+        onOpenProjectSummary={() => setIsProjectSummaryOpen(true)}
         projects={projects}
         activeProject={activeProject}
         onSelectProject={handleSelectProject}
@@ -988,6 +991,16 @@ export default function App() {
         health={dbHealth}
         onRefresh={() => refreshDatabase(false)}
         isRefreshing={isCheckingDb}
+      />
+
+      {/* Project Weekly Summary Modal */}
+      <ProjectWeeklySummaryModal
+        isOpen={isProjectSummaryOpen}
+        onClose={() => setIsProjectSummaryOpen(false)}
+        projects={projects}
+        tasks={tasks}
+        teamMembers={teamMembers}
+        onShowToast={showToast}
       />
 
       {/* Toast Notification */}
