@@ -19,6 +19,7 @@ import {
 import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
+import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -34,35 +35,8 @@ interface TaskModalProps {
   currentUser?: AuthUser | null;
 }
 
-const getStatusBadge = (status: StatusType) => {
-  switch (status) {
-    case 'In Progress':
-      return 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
-    case 'Pending':
-      return 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
-    case 'Blocked':
-      return 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
-    case 'Completed':
-      return 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
-    default:
-      return 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-  }
-};
-
-const getPriorityBadge = (priority: PriorityType) => {
-  switch (priority) {
-    case 'Urgent':
-      return 'bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800';
-    case 'High':
-      return 'bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800';
-    case 'Medium':
-      return 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
-    case 'Low':
-      return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-    default:
-      return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-  }
-};
+const getStatusBadge = (status: StatusType) => getStatusBadgeClass(status, 'sm');
+const getPriorityBadge = (priority: PriorityType) => getPriorityBadgeClass(priority, 'sm');
 
 export const TaskModal: React.FC<TaskModalProps> = ({
   isOpen,
@@ -219,20 +193,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             {/* Title & Status Badges */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <span
-                  className={`text-xs px-2.5 py-0.5 rounded-md border font-semibold ${getStatusBadge(
-                    initialTask.status
-                  )}`}
-                >
-                  Status: {initialTask.status}
-                </span>
-                <span
-                  className={`text-xs px-2.5 py-0.5 rounded-md border font-semibold ${getPriorityBadge(
-                    initialTask.priority
-                  )}`}
-                >
-                  Priority: {initialTask.priority}
-                </span>
+                <StatusBadge status={initialTask.status} size="sm" prefix="Status:" />
+                <PriorityBadge priority={initialTask.priority} size="sm" prefix="Priority:" />
                 {currentProject && (
                   <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
                     <span

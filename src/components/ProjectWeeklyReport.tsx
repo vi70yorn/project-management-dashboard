@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType } from '../types';
 import { TelegramSettingsModal } from './TelegramSettingsModal';
+import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 
 interface ProjectWeeklyReportProps {
   projects: Project[];
@@ -372,18 +373,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
     }
   };
 
-  const getStatusBadge = (status: StatusType) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
-      case 'In Progress':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border-blue-300 dark:border-blue-800';
-      case 'Blocked':
-        return 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border-rose-300 dark:border-rose-800';
-      default:
-        return 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 dark:border-amber-800';
-    }
-  };
+  const getStatusBadge = (status: StatusType) => getStatusBadgeClass(status, 'sm');
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
@@ -817,13 +807,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
 
                             {/* Status */}
                             <td className="py-3.5 px-4">
-                              <span
-                                className={`inline-block px-2.5 py-0.5 rounded-full text-3xs font-bold border ${getStatusBadge(
-                                  project.status
-                                )}`}
-                              >
-                                {project.status}
-                              </span>
+                              <StatusBadge status={project.status} size="sm" />
                             </td>
 
                             {/* Progress */}
@@ -1012,15 +996,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                               {t.title}
                                             </span>
                                             <div className="flex items-center gap-1.5 shrink-0">
-                                              <span
-                                                className={`px-1.5 py-0.2 rounded text-3xs font-semibold ${
-                                                  t.status === 'Blocked'
-                                                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                                                    : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                                                }`}
-                                              >
-                                                {t.status}
-                                              </span>
+                                              <StatusBadge status={t.status} size="xs" />
                                               <span className="text-3xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                                                 {t.assigneeName}
                                               </span>
@@ -1086,13 +1062,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                   </div>
 
                   <div className="flex items-center gap-3 self-start sm:self-center">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadge(
-                        project.status
-                      )}`}
-                    >
-                      {project.status}
-                    </span>
+                    <StatusBadge status={project.status} size="sm" />
                     <div className="text-right">
                       <span className="text-base font-black text-slate-900 dark:text-white">
                         {percent}%
@@ -1174,15 +1144,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                               {t.title}
                             </span>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <span
-                                className={`px-1.5 py-0.2 rounded text-3xs font-semibold ${
-                                  t.status === 'Blocked'
-                                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                                    : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                                }`}
-                              >
-                                {t.status}
-                              </span>
+                              <StatusBadge status={t.status} size="xs" />
                               <span className="text-3xs text-slate-500 dark:text-slate-400">
                                 {t.assigneeName}
                               </span>

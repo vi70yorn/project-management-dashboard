@@ -27,6 +27,7 @@ import {
 import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
+import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 
 interface ProjectDetailProps {
   project: Project;
@@ -189,33 +190,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const blockedTasks = projectTasks.filter((t) => t.status === 'Blocked').length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const getStatusBadge = (status: StatusType) => {
-    switch (status) {
-      case 'In Progress':
-        return 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
-      case 'Pending':
-        return 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
-      case 'Blocked':
-        return 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 font-semibold';
-      case 'Completed':
-        return 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
-      default:
-        return 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-    }
-  };
-
-  const getPriorityBadge = (priority: PriorityType) => {
-    switch (priority) {
-      case 'Urgent':
-        return 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800';
-      case 'High':
-        return 'bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800';
-      case 'Medium':
-        return 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800';
-      case 'Low':
-        return 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-    }
-  };
+  const getStatusBadge = (status: StatusType) => getStatusBadgeClass(status, 'sm');
+  const getPriorityBadge = (priority: PriorityType) => getPriorityBadgeClass(priority, 'sm');
 
   const toggleMemberInProject = (memberId: string) => {
     if (selectedMemberIds.includes(memberId)) {
@@ -337,7 +313,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     onChange={(e) =>
                       onUpdateProjectStatus(project.id, e.target.value as StatusType)
                     }
-                    className={`appearance-none text-xs font-semibold pl-2.5 pr-6 py-1 rounded-lg border cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
+                    className={`appearance-none text-3xs font-semibold pl-2 pr-5 py-0.5 rounded-md border cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
                       project.status
                     )}`}
                   >
@@ -346,17 +322,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     <option value="Blocked">Blocked</option>
                     <option value="Completed">Completed</option>
                   </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute right-1.5 pointer-events-none" />
+                  <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400 absolute right-1 pointer-events-none" />
                 </div>
               ) : (
-                <span
-                  id="project-detail-status-badge"
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg border shadow-2xs ${getStatusBadge(
-                    project.status
-                  )}`}
-                >
-                  {project.status}
-                </span>
+                <StatusBadge status={project.status} size="sm" />
               )}
             </div>
 
@@ -636,13 +605,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 {/* Column Header */}
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`text-2xs font-bold px-2 py-0.5 rounded-md border ${getStatusBadge(
-                        status
-                      )}`}
-                    >
-                      {status}
-                    </span>
+                    <StatusBadge status={status} size="sm" />
                     <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">
                       {columnTasks.length}
                     </span>
@@ -694,13 +657,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                             ) : (
                               <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" title="Staff: View detail mode" />
                             )}
-                            <span
-                              className={`text-2xs px-2 py-0.5 rounded-md border font-semibold ${getPriorityBadge(
-                                task.priority
-                              )}`}
-                            >
-                              {task.priority}
-                            </span>
+                            <PriorityBadge priority={task.priority} size="xs" />
                             {isStaff && isOwnTask && (
                               <span className="text-3xs font-semibold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                                 My Task
@@ -990,13 +947,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                                 Today
                               </span>
                             )}
-                            <span
-                              className={`px-1.5 py-0.2 rounded-sm text-3xs font-semibold ${getStatusBadge(
-                                t.status
-                              )}`}
-                            >
-                              {t.status}
-                            </span>
+                            <StatusBadge status={t.status} size="xs" />
                           </div>
                         </div>
                       );
