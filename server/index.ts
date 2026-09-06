@@ -83,15 +83,43 @@ interface ActivityPayload {
 async function recordActivity(pool: any, data: ActivityPayload, req?: Request): Promise<void> {
   try {
     const id = `act-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    let userId = data.userId || (req?.headers['x-user-member-id'] as string) || null;
-    let userName = data.userName || (req?.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : '');
-    let userAvatar = data.userAvatar || (req?.headers['x-user-avatar'] ? decodeURIComponent(req.headers['x-user-avatar'] as string) : null);
+    
+    // Check if this is an automated system event (e.g. auto_complete_project)
+    const isSystemAction = data.userName === 'System Automation';
 
-    if (userId && (!userName || !userAvatar)) {
+    // The user who took action: ALWAYS prioritize the authenticated actor from request headers!
+    const headerMemberId = (req?.headers['x-user-member-id'] as string) || null;
+    const headerName = req?.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : '';
+    const headerAvatar = req?.headers['x-user-avatar'] ? decodeURIComponent(req.headers['x-user-avatar'] as string) : null;
+
+    let userId: string | null = null;
+    let userName: string = '';
+    let userAvatar: string | null = null;
+
+    if (isSystemAction) {
+      userName = 'System Automation';
+      userAvatar = null;
+      userId = null;
+    } else if (headerMemberId) {
+      // Prioritize the user who performed this action via HTTP request
+      userId = headerMemberId;
+      userName = headerName;
+      userAvatar = headerAvatar;
+    } else if (data.userId) {
+      userId = data.userId;
+      userName = data.userName || '';
+      userAvatar = data.userAvatar || null;
+    } else {
+      userName = data.userName || headerName || '';
+      userAvatar = data.userAvatar || headerAvatar || null;
+    }
+
+    // Lookup latest profile from team_members if we have a userId
+    if (userId) {
       const uRes = await pool.query('SELECT name, avatar FROM team_members WHERE id = $1', [userId]);
       if (uRes.rowCount > 0) {
-        if (!userName) userName = uRes.rows[0].name;
-        if (!userAvatar) userAvatar = uRes.rows[0].avatar;
+        userName = uRes.rows[0].name || userName;
+        userAvatar = uRes.rows[0].avatar !== undefined && uRes.rows[0].avatar !== null ? uRes.rows[0].avatar : userAvatar;
       }
     }
 
@@ -268,14 +296,13 @@ app.post('/api/projects', async (req: Request, res: Response) => {
     await dbClient.query('COMMIT');
 
     recordActivity(pool, {
-      userId: managerId || null,
       actionType: 'create_project',
       entityType: 'project',
       entityId: projectId,
       entityName: name,
       projectId: projectId,
       projectName: name,
-      details: { status, client },
+      details: { status, client, managerId },
     }, req);
 
     res.status(201).json({
@@ -373,14 +400,13 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
     const updatedProj = result.rows[0];
 
     recordActivity(pool, {
-      userId: managerId || null,
       actionType: 'update_project',
       entityType: 'project',
       entityId: id,
       entityName: updatedProj?.name || name,
       projectId: id,
       projectName: updatedProj?.name || name,
-      details: { status: updatedProj?.status },
+      details: { status: updatedProj?.status, managerId },
     }, req);
 
     res.json({ ...updatedProj, memberIds });
@@ -618,13 +644,12 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
     }
 
     recordActivity(pool, {
-      userId: assigneeId || createdBy || null,
       actionType: 'create_task',
       entityType: 'task',
       entityId: createdTask.id,
       entityName: createdTask.title,
       projectId: createdTask.projectId,
-      details: { status: createdTask.status, priority: createdTask.priority },
+      details: { status: createdTask.status, priority: createdTask.priority, assigneeId: createdTask.assigneeId },
     }, req);
 
     res.status(201).json(createdTask);
@@ -698,13 +723,12 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
     }
 
     recordActivity(pool, {
-      userId: assigneeId || createdBy || null,
       actionType: 'update_task',
       entityType: 'task',
       entityId: updatedTask.id,
       entityName: updatedTask.title,
       projectId: updatedTask.projectId,
-      details: { status: updatedTask.status, priority: updatedTask.priority },
+      details: { status: updatedTask.status, priority: updatedTask.priority, assigneeId: updatedTask.assigneeId },
     }, req);
 
     res.json(updatedTask);

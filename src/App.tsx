@@ -379,7 +379,7 @@ export default function App() {
     setProjects((prev) =>
       prev.map((p) => (p.id === projectId ? { ...p, memberIds } : p))
     );
-    updateProjectMembersApi(projectId, memberIds).catch((err) =>
+    updateProjectMembersApi(projectId, memberIds, currentUser).catch((err) =>
       console.warn('[PostgreSQL Sync] Update members error:', err)
     );
     showToast('success', 'Project team roster updated.');
@@ -412,7 +412,7 @@ export default function App() {
           p.id === targetProjectId ? { ...p, status: 'Completed' } : p
         )
       );
-      updateProjectStatusApi(targetProjectId, 'Completed').catch(() => {});
+      updateProjectStatusApi(targetProjectId, 'Completed', currentUser).catch(() => {});
       showToast(
         'success',
         `All tasks completed! Project "${currentProject.name}" status auto-updated to Completed.`
@@ -424,7 +424,7 @@ export default function App() {
           p.id === targetProjectId ? { ...p, status: nextStatus } : p
         )
       );
-      updateProjectStatusApi(targetProjectId, nextStatus).catch(() => {});
+      updateProjectStatusApi(targetProjectId, nextStatus, currentUser).catch(() => {});
       showToast(
         'info',
         `Task moved out of Completed. Project "${currentProject.name}" status changed to ${nextStatus}.`
@@ -435,7 +435,7 @@ export default function App() {
           p.id === targetProjectId ? { ...p, status: 'In Progress' } : p
         )
       );
-      updateProjectStatusApi(targetProjectId, 'In Progress').catch(() => {});
+      updateProjectStatusApi(targetProjectId, 'In Progress', currentUser).catch(() => {});
       showToast(
         'success',
         `All blocked tasks resolved! Project "${currentProject.name}" status auto-updated to In Progress.`

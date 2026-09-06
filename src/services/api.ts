@@ -1,4 +1,5 @@
 import { Project, Task, TeamMember, StatusType } from '../types';
+import { loadAuthUser } from './storage';
 
 const API_BASE = '/api';
 
@@ -28,13 +29,20 @@ export interface DatabaseHealthResponse {
 export async function checkDatabaseHealth(): Promise<DatabaseHealthResponse> {
   try {
     const res = await fetch(`${API_BASE}/health`);
-    const data = await res.json();
-    return data;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return {
+        status: 'error',
+        connected: false,
+        message: err.message || `Server responded with status ${res.status}`,
+      };
+    }
+    return res.json();
   } catch (err: any) {
     return {
       status: 'error',
       connected: false,
-      message: err.message || 'Cannot reach API server (localhost:5000)',
+      message: err.message || 'Cannot reach local backend server',
     };
   }
 }
@@ -49,13 +57,17 @@ export async function fetchProjectsApi(): Promise<Project[]> {
   return res.json();
 }
 
-function getAuthHeaders(user?: { memberId?: string; name?: string } | null): Record<string, string> {
+function getAuthHeaders(user?: { memberId?: string; name?: string; avatar?: string } | null): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (user?.memberId) {
-    headers['x-user-member-id'] = user.memberId;
+  const authUser = user || loadAuthUser();
+  if (authUser?.memberId) {
+    headers['x-user-member-id'] = authUser.memberId;
   }
-  if (user?.name) {
-    headers['x-user-name'] = encodeURIComponent(user.name);
+  if (authUser?.name) {
+    headers['x-user-name'] = encodeURIComponent(authUser.name);
+  }
+  if (authUser?.avatar) {
+    headers['x-user-avatar'] = encodeURIComponent(authUser.avatar);
   }
   return headers;
 }
