@@ -10,9 +10,9 @@ export const getStatusBadgeClass = (
   size: 'xs' | 'sm' | 'md' | string = 'sm'
 ): string => {
   const sizeMap: Record<string, string> = {
-    xs: 'text-3xs px-1.5 py-0.5 rounded-md',
-    sm: 'text-3xs px-2 py-0.5 rounded-md',
-    md: 'text-2xs px-2.5 py-1 rounded-lg',
+    xs: 'text-xs px-1.5 py-0.5 rounded-md',
+    sm: 'text-xs px-2 py-0.5 rounded-md',
+    md: 'text-xs px-2.5 py-1 rounded-lg',
   };
 
   const sizeCls = sizeMap[size] || sizeMap.sm;
@@ -41,9 +41,9 @@ export const getPriorityBadgeClass = (
   size: 'xs' | 'sm' | 'md' | string = 'sm'
 ): string => {
   const sizeMap: Record<string, string> = {
-    xs: 'text-3xs px-1.5 py-0.5 rounded-md',
-    sm: 'text-3xs px-2 py-0.5 rounded-md',
-    md: 'text-2xs px-2.5 py-1 rounded-lg',
+    xs: 'text-xs px-1.5 py-0.5 rounded-md',
+    sm: 'text-xs px-2 py-0.5 rounded-md',
+    md: 'text-xs px-2.5 py-1 rounded-lg',
   };
 
   const sizeCls = sizeMap[size] || sizeMap.sm;

@@ -565,7 +565,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                             onChange={(e) =>
                               onUpdateProjectStatus(project.id, e.target.value as StatusType)
                             }
-                            className={`appearance-none text-3xs font-semibold pl-2 pr-5 py-0.5 rounded-md border cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
+                            className={`appearance-none text-xs font-semibold pl-2 pr-5 py-0.5 rounded-md border cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
                               project.status
                             )}`}
                           >
