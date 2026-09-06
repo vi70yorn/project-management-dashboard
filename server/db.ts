@@ -111,15 +111,15 @@ export async function runMigrationsAndSeed(): Promise<void> {
     // Ensure known existing members have clean usernames and passwords
     await client.query(`
       UPDATE team_members
-      SET username = 'vichet', password = COALESCE(password, 'admin123')
+      SET username = 'vichet', password = COALESCE(password, '123456')
       WHERE (LOWER(name) LIKE '%vichet%' OR LOWER(email) LIKE '%vichet%') AND (username IS NULL OR username = '');
 
       UPDATE team_members
-      SET username = 'david', password = COALESCE(password, 'staff123')
+      SET username = 'david', password = COALESCE(password, '123456')
       WHERE (LOWER(name) LIKE '%david%' OR LOWER(email) LIKE '%david%') AND (username IS NULL OR username = '');
 
       UPDATE team_members
-      SET username = 'likka', password = COALESCE(password, 'staff123')
+      SET username = 'likka', password = COALESCE(password, '1234')
       WHERE (LOWER(name) LIKE '%likka%' OR LOWER(email) LIKE '%likka%') AND (username IS NULL OR username = '');
 
       -- Fallback for any other members with empty username

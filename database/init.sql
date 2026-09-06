@@ -80,5 +80,37 @@ CREATE INDEX IF NOT EXISTS idx_projects_manager_id ON projects(manager_id);
 CREATE INDEX IF NOT EXISTS idx_project_members_member_id ON project_members(member_id);
 
 -- ==========================================================
--- Schema Initialization Complete (Clean slate, zero sample data)
+-- Initial Production Seed Data (Preserving existing team & projects)
 -- ==========================================================
+
+INSERT INTO team_members (id, name, username, password, email, role, system_role, color, status)
+VALUES
+    ('mem-1788624319284', 'Y.VICHET', 'vichet', '123456', 'y.vichet@team.org', 'UX/UI Lead', 'admin', '#2563eb', 'active'),
+    ('mem-1788624380119', 'David', 'david', '123456', 'david@team.org', 'UX/UI Designer', 'staff', '#2563eb', 'active'),
+    ('mem-1788624800573', 'Likka', 'likka', '1234', 'likka@team.org', 'UX/UI Designer', 'staff', '#2563eb', 'active')
+ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    password = EXCLUDED.password;
+
+INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, created_at, updated_at)
+VALUES
+    ('proj-1788624651745', 'Merchant 5.0', '- Home
+- View QR
+- Transaction
+- Report
+- Staff Management
+- Business Management', 'UX/UI', 'In Progress', '2026-09-05', '2026-10-05', 'mem-1788624319284', ARRAY['Mobile', 'Merchant'], '#7c3aed', '2026-09-05T16:10:52.120Z', '2026-09-05T16:54:45.761Z')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO project_members (project_id, member_id, assigned_at)
+VALUES
+    ('proj-1788624651745', 'mem-1788624319284', '2026-09-05T16:54:45.761Z'),
+    ('proj-1788624651745', 'mem-1788624380119', '2026-09-05T16:54:45.761Z'),
+    ('proj-1788624651745', 'mem-1788624800573', '2026-09-05T16:54:45.761Z')
+ON CONFLICT (project_id, member_id) DO NOTHING;
+
+INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, created_by, start_date, due_date, created_at, updated_at)
+VALUES
+    ('task-1788624838718', 'proj-1788624651745', 'Report Screen', 'Create a complete UI screen of the function', 'Completed', 'Medium', 'mem-1788624800573', 'mem-1788624319284', '2026-09-05', '2026-09-12', '2026-09-05T16:13:59.069Z', '2026-09-05T16:55:13.264Z'),
+    ('task-1788624689153', 'proj-1788624651745', 'Home', 'Create a complete home screen', 'In Progress', 'Medium', 'mem-1788624380119', 'mem-1788624319284', '2026-09-05', '2026-09-06', '2026-09-05T16:11:29.188Z', '2026-09-06T05:42:02.918Z')
+ON CONFLICT (id) DO NOTHING;
