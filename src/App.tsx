@@ -27,7 +27,7 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { LoginScreen } from './components/LoginScreen';
 import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { DatabaseStatusModal } from './components/DatabaseStatusModal';
-import { ProjectWeeklySummaryModal } from './components/ProjectWeeklySummaryModal';
+import { ProjectWeeklyReport } from './components/ProjectWeeklyReport';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import {
   checkDatabaseHealth,
@@ -83,7 +83,7 @@ export default function App() {
   };
 
   // Navigation & Core Data States
-  const [currentView, setCurrentView] = useState<'dashboard' | 'project' | 'team'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'project' | 'team' | 'summary'>('dashboard');
   const [activeProjectId, setActiveProjectId] = useState<string>('');
   const [projects, setProjects] = useState<Project[]>(loadProjects);
   const [tasks, setTasks] = useState<Task[]>(loadTasks);
@@ -100,7 +100,6 @@ export default function App() {
   const [isTeamMemberModalOpen, setIsTeamMemberModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
-  const [isProjectSummaryOpen, setIsProjectSummaryOpen] = useState(false);
 
   // Confirmation Dialog State
   const [confirmationModal, setConfirmationModal] = useState<{
@@ -231,6 +230,10 @@ export default function App() {
 
   const handleGoToTeam = () => {
     setCurrentView('team');
+  };
+
+  const handleGoToSummary = () => {
+    setCurrentView('summary');
   };
 
   // Project management handlers
@@ -842,7 +845,7 @@ export default function App() {
         currentView={currentView}
         onGoToDashboard={handleGoToDashboard}
         onGoToTeam={handleGoToTeam}
-        onOpenProjectSummary={() => setIsProjectSummaryOpen(true)}
+        onGoToSummary={handleGoToSummary}
         projects={projects}
         activeProject={activeProject}
         onSelectProject={handleSelectProject}
@@ -886,6 +889,14 @@ export default function App() {
             onUpdateMemberProjects={handleUpdateMemberProjects}
             onSelectProject={handleSelectProject}
             currentUser={currentUser}
+          />
+        ) : currentView === 'summary' ? (
+          <ProjectWeeklyReport
+            projects={projects}
+            tasks={tasks}
+            teamMembers={teamMembers}
+            onSelectProject={handleSelectProject}
+            onShowToast={showToast}
           />
         ) : activeProject ? (
           <ProjectDetail
@@ -991,16 +1002,6 @@ export default function App() {
         health={dbHealth}
         onRefresh={() => refreshDatabase(false)}
         isRefreshing={isCheckingDb}
-      />
-
-      {/* Project Weekly Summary Modal */}
-      <ProjectWeeklySummaryModal
-        isOpen={isProjectSummaryOpen}
-        onClose={() => setIsProjectSummaryOpen(false)}
-        projects={projects}
-        tasks={tasks}
-        teamMembers={teamMembers}
-        onShowToast={showToast}
       />
 
       {/* Toast Notification */}

@@ -18,10 +18,10 @@ import {
 import { Project, AuthUser } from '../types';
 
 interface NavbarProps {
-  currentView: 'dashboard' | 'project' | 'team';
+  currentView: 'dashboard' | 'project' | 'team' | 'summary';
   onGoToDashboard: () => void;
   onGoToTeam: () => void;
-  onOpenProjectSummary?: () => void;
+  onGoToSummary: () => void;
   projects: Project[];
   activeProject?: Project;
   onSelectProject: (projectId: string) => void;
@@ -42,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onGoToDashboard,
   onGoToTeam,
-  onOpenProjectSummary,
+  onGoToSummary,
   projects,
   activeProject,
   onSelectProject,
@@ -121,11 +121,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Project Weekly Summary tab */}
             <button
               id="nav-project-summary-btn"
-              onClick={onOpenProjectSummary}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={onGoToSummary}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                currentView === 'summary'
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
               title="Project Weekly Summary (Mon - Fri) for Project Manager"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <FileSpreadsheet className="w-3.5 h-3.5" />
               Project Summary
             </button>
           </div>
@@ -158,11 +162,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Users className="w-4 h-4" />
             </button>
             <button
-              onClick={onOpenProjectSummary}
-              className="p-1.5 rounded-lg text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={onGoToSummary}
+              className={`p-1.5 rounded-lg text-xs transition-colors ${
+                currentView === 'summary'
+                  ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
               title="Project Weekly Summary"
             >
-              <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <FileSpreadsheet className="w-4 h-4" />
             </button>
           </div>
 
