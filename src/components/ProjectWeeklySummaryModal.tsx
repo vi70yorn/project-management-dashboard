@@ -638,3 +638,4 @@ export const ProjectWeeklySummaryModal: React.FC<ProjectWeeklySummaryModalProps>
     </div>
   );
 };
+
