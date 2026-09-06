@@ -24,6 +24,7 @@ import {
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
+import { TeamActivitiesFeed } from './TeamActivitiesFeed';
 
 interface DashboardSummaryProps {
   projects: Project[];
@@ -37,6 +38,7 @@ interface DashboardSummaryProps {
   currentUser?: AuthUser | null;
   onEditProject?: (project: Project) => void;
   onDeleteProject?: (project: Project) => void;
+  refreshTrigger?: number;
 }
 
 export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
@@ -51,6 +53,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   currentUser,
   onEditProject,
   onDeleteProject,
+  refreshTrigger,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -338,8 +341,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         </div>
       </div>
 
-      {/* Upcoming Deadlines Section */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
+      {/* 2-Column Dashboard Body: Left = Deadlines & Projects, Right = Live Team Activities */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
+        {/* Left Column (8 cols on xl): Deadlines & Projects Directory */}
+        <div className="xl:col-span-8 space-y-8 min-w-0">
+          {/* Upcoming Deadlines Section */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -741,5 +748,15 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         </div>
       </div>
     </div>
-  );
+
+    {/* Right Column: Live Team Activities Feed */}
+    <div className="xl:col-span-4 xl:sticky xl:top-24 space-y-6">
+      <TeamActivitiesFeed
+        onSelectProject={onSelectProject}
+        refreshTrigger={refreshTrigger}
+      />
+    </div>
+  </div>
+</div>
+);
 };

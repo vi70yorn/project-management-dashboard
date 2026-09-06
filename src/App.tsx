@@ -123,6 +123,10 @@ export default function App() {
     message: string;
   } | null>(null);
 
+  // Team Activity refresh trigger
+  const [activityTrigger, setActivityTrigger] = useState<number>(0);
+  const triggerActivityRefresh = () => setActivityTrigger((prev) => prev + 1);
+
   // Database Connection State (PostgreSQL + DBeaver)
   const [dbHealth, setDbHealth] = useState<DatabaseHealthResponse | null>(null);
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
@@ -279,9 +283,9 @@ export default function App() {
             : p
         )
       );
-      updateProjectApi(targetId, projectData).catch((err) =>
-        console.warn('[PostgreSQL Sync] Update project error:', err)
-      );
+      updateProjectApi(targetId, projectData, currentUser)
+        .then(() => triggerActivityRefresh())
+        .catch((err) => console.warn('[PostgreSQL Sync] Update project error:', err));
       showToast('success', `Project "${projectData.name}" updated successfully.`);
       setEditingProject(null);
     } else {
@@ -293,9 +297,9 @@ export default function App() {
       };
 
       setProjects((prev) => [newProject, ...prev]);
-      createProjectApi(newProject).catch((err) =>
-        console.warn('[PostgreSQL Sync] Create project error:', err)
-      );
+      createProjectApi(newProject, currentUser)
+        .then(() => triggerActivityRefresh())
+        .catch((err) => console.warn('[PostgreSQL Sync] Create project error:', err));
       showToast('success', `Project "${newProject.name}" created!`);
 
       // Switch directly to the new project workspace
@@ -330,9 +334,9 @@ export default function App() {
         setProjects((prev) => prev.filter((p) => p.id !== project.id));
         setTasks((prev) => prev.filter((t) => t.projectId !== project.id));
 
-        deleteProjectApi(project.id).catch((err) =>
-          console.warn('[PostgreSQL Sync] Delete project error:', err)
-        );
+        deleteProjectApi(project.id, currentUser)
+          .then(() => triggerActivityRefresh())
+          .catch((err) => console.warn('[PostgreSQL Sync] Delete project error:', err));
 
         if (activeProjectId === project.id) {
           setActiveProjectId('');
@@ -348,9 +352,9 @@ export default function App() {
     setProjects((prev) =>
       prev.map((p) => (p.id === projectId ? { ...p, status: newStatus } : p))
     );
-    updateProjectStatusApi(projectId, newStatus).catch((err) =>
-      console.warn('[PostgreSQL Sync] Update status error:', err)
-    );
+    updateProjectStatusApi(projectId, newStatus, currentUser)
+      .then(() => triggerActivityRefresh())
+      .catch((err) => console.warn('[PostgreSQL Sync] Update status error:', err));
     showToast('info', `Project status changed to "${newStatus}"`);
   };
 
@@ -461,9 +465,9 @@ export default function App() {
       setTasks(nextTasks);
       syncProjectStatusForTasks(updatedTask.projectId, nextTasks, projects);
 
-      updateTaskApi(editingTask.id, updatedTask).catch((err) =>
-        console.warn('[PostgreSQL Sync] Update task error:', err)
-      );
+      updateTaskApi(editingTask.id, updatedTask, currentUser)
+        .then(() => triggerActivityRefresh())
+        .catch((err) => console.warn('[PostgreSQL Sync] Update task error:', err));
       showToast('success', `Task "${updatedTask.title}" updated.`);
     } else {
       const newTask: Task = {
@@ -488,9 +492,9 @@ export default function App() {
       setTasks(nextTasks);
       syncProjectStatusForTasks(targetProjectId, nextTasks, projects);
 
-      createTaskApi(newTask).catch((err) =>
-        console.warn('[PostgreSQL Sync] Create task error:', err)
-      );
+      createTaskApi(newTask, currentUser)
+        .then(() => triggerActivityRefresh())
+        .catch((err) => console.warn('[PostgreSQL Sync] Create task error:', err));
       showToast('success', `Task "${newTask.title}" added to project.`);
     }
   };
@@ -525,9 +529,9 @@ export default function App() {
       syncProjectStatusForTasks(targetProjectId, nextTasks, projects);
     }
 
-    updateTaskStatusApi(taskId, newStatus).catch((err) =>
-      console.warn('[PostgreSQL Sync] Update task status error:', err)
-    );
+    updateTaskStatusApi(taskId, newStatus, currentUser)
+      .then(() => triggerActivityRefresh())
+      .catch((err) => console.warn('[PostgreSQL Sync] Update task status error:', err));
 
     if (movedTaskTitle) {
       showToast('info', `"${movedTaskTitle}" moved to ${newStatus}`);
@@ -547,9 +551,9 @@ export default function App() {
           : t
       )
     );
-    updateTaskApi(taskId, { assigneeId }).catch((err) =>
-      console.warn('[PostgreSQL Sync] Reassign task error:', err)
-    );
+    updateTaskApi(taskId, { assigneeId }, currentUser)
+      .then(() => triggerActivityRefresh())
+      .catch((err) => console.warn('[PostgreSQL Sync] Reassign task error:', err));
     const member = teamMembers.find((m) => m.id === assigneeId);
     showToast('info', `Task reassigned to ${member ? member.name : 'member'}`);
   };
@@ -579,9 +583,9 @@ export default function App() {
         if (task.projectId) {
           syncProjectStatusForTasks(task.projectId, nextTasks, projects);
         }
-        deleteTaskApi(task.id).catch((err) =>
-          console.warn('[PostgreSQL Sync] Delete task error:', err)
-        );
+        deleteTaskApi(task.id, currentUser)
+          .then(() => triggerActivityRefresh())
+          .catch((err) => console.warn('[PostgreSQL Sync] Delete task error:', err));
         showToast('info', `Task "${task.title}" deleted.`);
       },
     });
@@ -877,6 +881,7 @@ export default function App() {
             currentUser={currentUser}
             onEditProject={handleOpenEditProject}
             onDeleteProject={handleDeleteProjectRequest}
+            refreshTrigger={activityTrigger}
           />
         ) : currentView === 'team' ? (
           <TeamManagement

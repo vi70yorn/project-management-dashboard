@@ -64,6 +64,120 @@ app.get('/api/health', async (_req: Request, res: Response) => {
 });
 
 // ==========================================
+// Team Activity Logs Helper & Endpoints
+// ==========================================
+
+interface ActivityPayload {
+  userId?: string | null;
+  userName?: string;
+  userAvatar?: string | null;
+  actionType: string;
+  entityType: 'task' | 'project';
+  entityId: string;
+  entityName: string;
+  projectId?: string | null;
+  projectName?: string | null;
+  details?: Record<string, any>;
+}
+
+async function recordActivity(pool: any, data: ActivityPayload, req?: Request): Promise<void> {
+  try {
+    const id = `act-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    let userId = data.userId || (req?.headers['x-user-member-id'] as string) || null;
+    let userName = data.userName || (req?.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : '');
+    let userAvatar = data.userAvatar || (req?.headers['x-user-avatar'] ? decodeURIComponent(req.headers['x-user-avatar'] as string) : null);
+
+    if (userId && (!userName || !userAvatar)) {
+      const uRes = await pool.query('SELECT name, avatar FROM team_members WHERE id = $1', [userId]);
+      if (uRes.rowCount > 0) {
+        if (!userName) userName = uRes.rows[0].name;
+        if (!userAvatar) userAvatar = uRes.rows[0].avatar;
+      }
+    }
+
+    if (!userName) {
+      userName = 'Team Member';
+    }
+
+    let projectId = data.projectId;
+    let projectName = data.projectName;
+
+    if (data.entityType === 'task' && projectId && !projectName) {
+      const pRes = await pool.query('SELECT name FROM projects WHERE id = $1', [projectId]);
+      if (pRes.rowCount > 0) {
+        projectName = pRes.rows[0].name;
+      }
+    }
+
+    await pool.query(
+      `INSERT INTO activity_logs (id, user_id, user_name, user_avatar, action_type, entity_type, entity_id, entity_name, project_id, project_name, details, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)`,
+      [
+        id,
+        userId,
+        userName,
+        userAvatar,
+        data.actionType,
+        data.entityType,
+        data.entityId,
+        data.entityName,
+        projectId || null,
+        projectName || null,
+        JSON.stringify(data.details || {}),
+      ]
+    );
+  } catch (err: any) {
+    console.error('[recordActivity exception]:', err.message);
+  }
+}
+
+// GET recent team activities
+app.get('/api/activities', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string, 10) || 50;
+    const pool = getPool();
+    const query = `
+      SELECT 
+        a.id,
+        a.user_id AS "userId",
+        COALESCE(tm.name, a.user_name) AS "userName",
+        COALESCE(tm.avatar, a.user_avatar) AS "userAvatar",
+        tm.color AS "userColor",
+        tm.role AS "userRole",
+        a.action_type AS "actionType",
+        a.entity_type AS "entityType",
+        a.entity_id AS "entityId",
+        a.entity_name AS "entityName",
+        a.project_id AS "projectId",
+        COALESCE(p.name, a.project_name) AS "projectName",
+        a.details,
+        a.created_at AS "createdAt"
+      FROM activity_logs a
+      LEFT JOIN team_members tm ON a.user_id = tm.id
+      LEFT JOIN projects p ON a.project_id = p.id
+      ORDER BY a.created_at DESC
+      LIMIT $1;
+    `;
+    const result = await pool.query(query, [limit]);
+    res.json(result.rows);
+  } catch (err: any) {
+    console.error('Error fetching activities:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST create custom activity
+app.post('/api/activities', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    await recordActivity(pool, req.body, req);
+    res.status(201).json({ success: true, message: 'Activity recorded' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
 // Projects Endpoints
 // ==========================================
 
@@ -152,6 +266,17 @@ app.post('/api/projects', async (req: Request, res: Response) => {
     }
 
     await dbClient.query('COMMIT');
+
+    recordActivity(pool, {
+      userId: managerId || null,
+      actionType: 'create_project',
+      entityType: 'project',
+      entityId: projectId,
+      entityName: name,
+      projectId: projectId,
+      projectName: name,
+      details: { status, client },
+    }, req);
 
     res.status(201).json({
       id: projectId,
@@ -245,7 +370,20 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
     }
 
     await dbClient.query('COMMIT');
-    res.json({ ...result.rows[0], memberIds });
+    const updatedProj = result.rows[0];
+
+    recordActivity(pool, {
+      userId: managerId || null,
+      actionType: 'update_project',
+      entityType: 'project',
+      entityId: id,
+      entityName: updatedProj?.name || name,
+      projectId: id,
+      projectName: updatedProj?.name || name,
+      details: { status: updatedProj?.status },
+    }, req);
+
+    res.json({ ...updatedProj, memberIds });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
     console.error('Error updating project:', err);
@@ -266,7 +404,19 @@ app.patch('/api/projects/:id/status', async (req: Request, res: Response) => {
       [status, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: 'Project not found' });
-    res.json(result.rows[0]);
+    const updated = result.rows[0];
+
+    recordActivity(pool, {
+      actionType: 'update_project_status',
+      entityType: 'project',
+      entityId: id,
+      entityName: updated.name,
+      projectId: id,
+      projectName: updated.name,
+      details: { newStatus: status },
+    }, req);
+
+    res.json(updated);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -305,8 +455,19 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const pool = getPool();
-    const result = await pool.query(`DELETE FROM projects WHERE id = $1 RETURNING id`, [id]);
+    const result = await pool.query(`DELETE FROM projects WHERE id = $1 RETURNING id, name`, [id]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Project not found' });
+    const deletedProj = result.rows[0];
+
+    recordActivity(pool, {
+      actionType: 'delete_project',
+      entityType: 'project',
+      entityId: id,
+      entityName: deletedProj.name,
+      projectId: id,
+      projectName: deletedProj.name,
+    }, req);
+
     res.json({ message: 'Project deleted successfully', id });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -370,10 +531,23 @@ async function syncProjectStatus(pool: any, projectId: string) {
     const blocked = parseInt(res.rows[0].blocked, 10);
 
     if (total > 0 && completed === total) {
-      await pool.query(
-        `UPDATE projects SET status = 'Completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status != 'Completed'`,
+      const upd = await pool.query(
+        `UPDATE projects SET status = 'Completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status != 'Completed' RETURNING name`,
         [projectId]
       );
+      if (upd.rowCount > 0) {
+        const pName = upd.rows[0].name;
+        recordActivity(pool, {
+          actionType: 'auto_complete_project',
+          entityType: 'project',
+          entityId: projectId,
+          entityName: pName,
+          projectId,
+          projectName: pName,
+          userName: 'System Automation',
+          details: { reason: 'All deliverables completed' },
+        });
+      }
     } else if (total > 0 && completed < total) {
       const nextStatus = blocked > 0 ? 'Blocked' : 'In Progress';
       await pool.query(
@@ -442,6 +616,17 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
     if (createdTask?.projectId) {
       await syncProjectStatus(pool, createdTask.projectId);
     }
+
+    recordActivity(pool, {
+      userId: assigneeId || createdBy || null,
+      actionType: 'create_task',
+      entityType: 'task',
+      entityId: createdTask.id,
+      entityName: createdTask.title,
+      projectId: createdTask.projectId,
+      details: { status: createdTask.status, priority: createdTask.priority },
+    }, req);
+
     res.status(201).json(createdTask);
   } catch (err: any) {
     console.error('Error creating task:', err);
@@ -511,6 +696,17 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
     if (updatedTask?.projectId) {
       await syncProjectStatus(pool, updatedTask.projectId);
     }
+
+    recordActivity(pool, {
+      userId: assigneeId || createdBy || null,
+      actionType: 'update_task',
+      entityType: 'task',
+      entityId: updatedTask.id,
+      entityName: updatedTask.title,
+      projectId: updatedTask.projectId,
+      details: { status: updatedTask.status, priority: updatedTask.priority },
+    }, req);
+
     res.json(updatedTask);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -525,7 +721,7 @@ app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
     const pool = getPool();
     const result = await pool.query(
       `UPDATE tasks SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 
-       RETURNING id, project_id AS "projectId", status, updated_at AS "updatedAt"`,
+       RETURNING id, project_id AS "projectId", title, status, updated_at AS "updatedAt"`,
       [status, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found' });
@@ -533,6 +729,16 @@ app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
     if (updatedTask?.projectId) {
       await syncProjectStatus(pool, updatedTask.projectId);
     }
+
+    recordActivity(pool, {
+      actionType: 'update_task_status',
+      entityType: 'task',
+      entityId: updatedTask.id,
+      entityName: updatedTask.title,
+      projectId: updatedTask.projectId,
+      details: { newStatus: status },
+    }, req);
+
     res.json(updatedTask);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -544,12 +750,21 @@ app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const pool = getPool();
-    const result = await pool.query(`DELETE FROM tasks WHERE id = $1 RETURNING id, project_id AS "projectId"`, [id]);
+    const result = await pool.query(`DELETE FROM tasks WHERE id = $1 RETURNING id, title, project_id AS "projectId"`, [id]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found' });
     const deletedTask = result.rows[0];
     if (deletedTask?.projectId) {
       await syncProjectStatus(pool, deletedTask.projectId);
     }
+
+    recordActivity(pool, {
+      actionType: 'delete_task',
+      entityType: 'task',
+      entityId: id,
+      entityName: deletedTask.title,
+      projectId: deletedTask.projectId,
+    }, req);
+
     res.json({ message: 'Task deleted', id });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

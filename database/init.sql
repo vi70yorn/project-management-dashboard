@@ -129,3 +129,30 @@ CREATE TABLE IF NOT EXISTS telegram_settings (
 INSERT INTO telegram_settings (id, enabled, send_day, send_time)
 VALUES ('default', false, 'Monday', '08:00')
 ON CONFLICT (id) DO NOTHING;
+
+-- 7. Team Activity Logs Table
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
+    user_name VARCHAR(255) NOT NULL,
+    user_avatar TEXT,
+    action_type VARCHAR(64) NOT NULL, -- 'create_task', 'update_task_status', 'update_task', 'delete_task', 'create_project', 'update_project_status', 'update_project', 'delete_project', 'auto_complete_project'
+    entity_type VARCHAR(32) NOT NULL, -- 'task' or 'project'
+    entity_id VARCHAR(64) NOT NULL,
+    entity_name VARCHAR(255) NOT NULL,
+    project_id VARCHAR(64),
+    project_name VARCHAR(255),
+    details JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_project_id ON activity_logs(project_id);
+
+INSERT INTO activity_logs (id, user_id, user_name, action_type, entity_type, entity_id, entity_name, project_id, project_name, details, created_at)
+VALUES
+    ('act-1', 'mem-1788624800573', 'Likka', 'update_task_status', 'task', 'task-1788624838718', 'Report Screen', 'proj-1788624651745', 'Merchant 5.0', '{"fromStatus": "In Progress", "toStatus": "Completed"}', '2026-09-05T16:55:13.264Z'),
+    ('act-2', 'mem-1788624380119', 'David', 'update_task_status', 'task', 'task-1788624689153', 'Home', 'proj-1788624651745', 'Merchant 5.0', '{"fromStatus": "Pending", "toStatus": "In Progress"}', '2026-09-06T05:42:02.918Z'),
+    ('act-3', 'mem-1788624319284', 'Y.VICHET', 'create_project', 'project', 'proj-1788624651745', 'Merchant 5.0', 'proj-1788624651745', 'Merchant 5.0', '{"status": "In Progress"}', '2026-09-05T16:10:52.120Z')
+ON CONFLICT (id) DO NOTHING;
+

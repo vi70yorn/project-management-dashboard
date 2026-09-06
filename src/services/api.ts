@@ -49,12 +49,24 @@ export async function fetchProjectsApi(): Promise<Project[]> {
   return res.json();
 }
 
+function getAuthHeaders(user?: { memberId?: string; name?: string } | null): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (user?.memberId) {
+    headers['x-user-member-id'] = user.memberId;
+  }
+  if (user?.name) {
+    headers['x-user-name'] = encodeURIComponent(user.name);
+  }
+  return headers;
+}
+
 export async function createProjectApi(
-  projectData: Omit<Project, 'id' | 'createdAt'> & { id?: string }
+  projectData: Omit<Project, 'id' | 'createdAt'> & { id?: string },
+  currentUser?: { memberId?: string; name?: string } | null
 ): Promise<Project> {
   const res = await fetch(`${API_BASE}/projects`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(currentUser),
     body: JSON.stringify(projectData),
   });
   if (!res.ok) throw new Error(`Failed to create project (${res.status})`);
@@ -63,11 +75,12 @@ export async function createProjectApi(
 
 export async function updateProjectApi(
   id: string,
-  projectData: Partial<Project>
+  projectData: Partial<Project>,
+  currentUser?: { memberId?: string; name?: string } | null
 ): Promise<Project> {
   const res = await fetch(`${API_BASE}/projects/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(currentUser),
     body: JSON.stringify(projectData),
   });
   if (!res.ok) throw new Error(`Failed to update project (${res.status})`);
@@ -76,11 +89,12 @@ export async function updateProjectApi(
 
 export async function updateProjectStatusApi(
   id: string,
-  status: StatusType
+  status: StatusType,
+  currentUser?: { memberId?: string; name?: string } | null
 ): Promise<Project> {
   const res = await fetch(`${API_BASE}/projects/${id}/status`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(currentUser),
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error(`Failed to update project status (${res.status})`);
@@ -89,20 +103,27 @@ export async function updateProjectStatusApi(
 
 export async function updateProjectMembersApi(
   id: string,
-  memberIds: string[]
+  memberIds: string[],
+  currentUser?: { memberId?: string; name?: string } | null
 ): Promise<{ projectId: string; memberIds: string[] }> {
   const res = await fetch(`${API_BASE}/projects/${id}/members`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(currentUser),
     body: JSON.stringify({ memberIds }),
   });
   if (!res.ok) throw new Error(`Failed to update project members (${res.status})`);
   return res.json();
 }
 
-export async function deleteProjectApi(id: string): Promise<void> {
+export async function deleteProjectApi(
+  id: string,
+  currentUser?: { memberId?: string; name?: string } | null
+): Promise<void> {
+  const headers = getAuthHeaders(currentUser);
+  delete headers['Content-Type'];
   const res = await fetch(`${API_BASE}/projects/${id}`, {
     method: 'DELETE',
+    headers,
   });
   if (!res.ok) throw new Error(`Failed to delete project (${res.status})`);
 }
@@ -117,20 +138,27 @@ export async function fetchTasksApi(): Promise<Task[]> {
   return res.json();
 }
 
-export async function createTaskApi(taskData: Partial<Task>): Promise<Task> {
+export async function createTaskApi(
+  taskData: Partial<Task>,
+  currentUser?: { memberId?: string; name?: string } | null
+): Promise<Task> {
   const res = await fetch(`${API_BASE}/tasks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(currentUser),
     body: JSON.stringify(taskData),
   });
   if (!res.ok) throw new Error(`Failed to create task (${res.status})`);
   return res.json();
 }
 
-export async function updateTaskApi(id: string, taskData: Partial<Task>): Promise<Task> {
+export async function updateTaskApi(
+  id: string,
+  taskData: Partial<Task>,
+  currentUser?: { memberId?: string; name?: string } | null
+): Promise<Task> {
   const res = await fetch(`${API_BASE}/tasks/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(currentUser),
     body: JSON.stringify(taskData),
   });
   if (!res.ok) throw new Error(`Failed to update task (${res.status})`);
@@ -139,20 +167,27 @@ export async function updateTaskApi(id: string, taskData: Partial<Task>): Promis
 
 export async function updateTaskStatusApi(
   id: string,
-  status: StatusType
+  status: StatusType,
+  currentUser?: { memberId?: string; name?: string } | null
 ): Promise<{ id: string; projectId: string; status: StatusType; updatedAt: string }> {
   const res = await fetch(`${API_BASE}/tasks/${id}/status`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(currentUser),
     body: JSON.stringify({ status }),
   });
   if (!res.ok) throw new Error(`Failed to update task status (${res.status})`);
   return res.json();
 }
 
-export async function deleteTaskApi(id: string): Promise<void> {
+export async function deleteTaskApi(
+  id: string,
+  currentUser?: { memberId?: string; name?: string } | null
+): Promise<void> {
+  const headers = getAuthHeaders(currentUser);
+  delete headers['Content-Type'];
   const res = await fetch(`${API_BASE}/tasks/${id}`, {
     method: 'DELETE',
+    headers,
   });
   if (!res.ok) throw new Error(`Failed to delete task (${res.status})`);
 }
@@ -341,4 +376,32 @@ export async function sendTelegramWeeklyReportApi(): Promise<{ success: boolean;
   if (!res.ok) throw new Error(data.error || 'Failed to send weekly report to Telegram');
   return data;
 }
+
+// -------------------------------------------------------------
+// Team Activity Logs API
+// -------------------------------------------------------------
+
+export interface ActivityLog {
+  id: string;
+  userId?: string | null;
+  userName: string;
+  userAvatar?: string | null;
+  userColor?: string | null;
+  userRole?: string | null;
+  actionType: string;
+  entityType: 'task' | 'project';
+  entityId: string;
+  entityName: string;
+  projectId?: string | null;
+  projectName?: string | null;
+  details?: Record<string, any>;
+  createdAt: string;
+}
+
+export async function fetchActivitiesApi(limit: number = 50): Promise<ActivityLog[]> {
+  const res = await fetch(`${API_BASE}/activities?limit=${limit}`);
+  if (!res.ok) throw new Error(`Failed to fetch activities (${res.status})`);
+  return res.json();
+}
+
 
