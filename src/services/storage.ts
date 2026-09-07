@@ -1,4 +1,4 @@
-import { Project, Task, TeamMember, AuthUser } from '../types';
+import { Project, Task, TeamMember, AuthUser, RecycleBinData } from '../types';
 
 export const INITIAL_MEMBERS: TeamMember[] = [];
 
@@ -11,6 +11,8 @@ const STORAGE_KEYS = {
   TASKS: 'pm_clean_tasks_v2',
   MEMBERS: 'pm_clean_members_v2',
   AUTH_USER: 'pm_auth_user_v2',
+  RECYCLE_BIN_PROJECTS: 'pm_clean_recycle_projects_v1',
+  RECYCLE_BIN_TASKS: 'pm_clean_recycle_tasks_v1',
 };
 
 export const DEFAULT_ADMIN_USER: AuthUser = {
@@ -129,5 +131,35 @@ export const saveMembers = (members: TeamMember[]) => {
     }
   } catch (e) {
     console.error('Error saving members to localStorage:', e);
+  }
+};
+
+export const loadRecycleBinData = (): RecycleBinData => {
+  try {
+    const rawProj = localStorage.getItem(STORAGE_KEYS.RECYCLE_BIN_PROJECTS);
+    const rawTasks = localStorage.getItem(STORAGE_KEYS.RECYCLE_BIN_TASKS);
+    const projects: Project[] = rawProj ? JSON.parse(rawProj) : [];
+    const tasks: Task[] = rawTasks ? JSON.parse(rawTasks) : [];
+    const safeProjects = Array.isArray(projects) ? projects : [];
+    const safeTasks = Array.isArray(tasks) ? tasks : [];
+    return {
+      projects: safeProjects,
+      tasks: safeTasks,
+      totalCount: safeProjects.length + safeTasks.length,
+    };
+  } catch (e) {
+    console.error('Error loading recycle bin from localStorage:', e);
+    return { projects: [], tasks: [], totalCount: 0 };
+  }
+};
+
+export const saveRecycleBinData = (data: RecycleBinData) => {
+  try {
+    if (data) {
+      localStorage.setItem(STORAGE_KEYS.RECYCLE_BIN_PROJECTS, JSON.stringify(data.projects || []));
+      localStorage.setItem(STORAGE_KEYS.RECYCLE_BIN_TASKS, JSON.stringify(data.tasks || []));
+    }
+  } catch (e) {
+    console.error('Error saving recycle bin to localStorage:', e);
   }
 };

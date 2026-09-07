@@ -40,6 +40,8 @@ interface DashboardSummaryProps {
   onEditProject?: (project: Project) => void;
   onDeleteProject?: (project: Project) => void;
   refreshTrigger?: number;
+  recycleBinCount?: number;
+  onOpenRecycleBin?: () => void;
 }
 
 export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
@@ -55,6 +57,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   onEditProject,
   onDeleteProject,
   refreshTrigger,
+  recycleBinCount = 0,
+  onOpenRecycleBin,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -187,6 +191,23 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             </button>
           )}
  */}
+          {onOpenRecycleBin && (
+            <button
+              id="dash-recycle-bin-btn"
+              onClick={onOpenRecycleBin}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/40 dark:hover:border-rose-800/60 text-slate-700 hover:text-rose-600 dark:text-slate-200 dark:hover:text-rose-400 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+              title="Recycle Bin (1-week retention for deleted items)"
+            >
+              <Trash2 className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+              <span>Recycle Bin</span>
+              {recycleBinCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                  {recycleBinCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {isAdmin && (
             <button
               id="dash-create-project-btn"

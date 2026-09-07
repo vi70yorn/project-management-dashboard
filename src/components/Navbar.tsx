@@ -137,6 +137,27 @@ export const Navbar: React.FC<NavbarProps> = ({
               <FileSpreadsheet className="w-3.5 h-3.5" />
               Project Summary
             </button>
+
+            {/* Recycle Bin tab */}
+            {onOpenRecycleBin && (
+              <button
+                id="nav-recycle-bin-tab-btn"
+                onClick={onOpenRecycleBin}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/70 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                title="Recycle Bin (Kept for 1 week / 7 days)"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
+                <span>Recycle Bin</span>
+                {recycleBinCount > 0 && (
+                  <span
+                    id="nav-recycle-bin-tab-badge"
+                    className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                  >
+                    {recycleBinCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -177,6 +198,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <FileSpreadsheet className="w-4 h-4" />
             </button>
+            {onOpenRecycleBin && (
+              <button
+                id="nav-mobile-recycle-bin-btn"
+                onClick={onOpenRecycleBin}
+                className="relative p-1.5 rounded-lg text-xs text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                title={`Recycle Bin${recycleBinCount > 0 ? ` (${recycleBinCount})` : ''}`}
+              >
+                <Trash2 className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+                {recycleBinCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center">
+                    {recycleBinCount > 9 ? '9+' : recycleBinCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Admin-only: Add Member */}

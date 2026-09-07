@@ -15,6 +15,8 @@ import {
   loadAuthUser,
   saveAuthUser,
   clearAuthUser,
+  loadRecycleBinData,
+  saveRecycleBinData,
 } from './services/storage';
 import { Navbar } from './components/Navbar';
 import { DashboardSummary } from './components/DashboardSummary';
@@ -136,11 +138,7 @@ export default function App() {
 
   // Recycle Bin State
   const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
-  const [recycleBinData, setRecycleBinData] = useState<RecycleBinData>({
-    projects: [],
-    tasks: [],
-    totalCount: 0,
-  });
+  const [recycleBinData, setRecycleBinData] = useState<RecycleBinData>(() => loadRecycleBinData());
   const [isLoadingRecycleBin, setIsLoadingRecycleBin] = useState(false);
 
   const refreshRecycleBin = async () => {
@@ -226,6 +224,10 @@ export default function App() {
   useEffect(() => {
     saveMembers(teamMembers);
   }, [teamMembers]);
+
+  useEffect(() => {
+    saveRecycleBinData(recycleBinData);
+  }, [recycleBinData]);
 
   useEffect(() => {
     if (currentUser) {
@@ -380,6 +382,32 @@ export default function App() {
         setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
         setProjects((prev) => prev.filter((p) => p.id !== project.id));
         setTasks((prev) => prev.filter((t) => t.projectId !== project.id));
+
+        const nowIso = new Date().toISOString();
+        const expiresIso = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const deletedProjItem: Project = {
+          ...project,
+          deletedAt: nowIso,
+          expiresAt: expiresIso,
+          daysLeft: 7,
+        };
+        const deletedTaskItems: Task[] = projectTasks.map((t) => ({
+          ...t,
+          deletedAt: nowIso,
+          expiresAt: expiresIso,
+          daysLeft: 7,
+          projectName: project.name,
+        }));
+
+        setRecycleBinData((prev) => {
+          const nextProjects = [deletedProjItem, ...prev.projects.filter((p) => p.id !== project.id)];
+          const nextTasks = [...deletedTaskItems, ...prev.tasks.filter((t) => t.projectId !== project.id)];
+          return {
+            projects: nextProjects,
+            tasks: nextTasks,
+            totalCount: nextProjects.length + nextTasks.length,
+          };
+        });
 
         deleteProjectApi(project.id, currentUser)
           .then(() => {
@@ -639,6 +667,26 @@ export default function App() {
         if (task.projectId) {
           syncProjectStatusForTasks(task.projectId, nextTasks, projects);
         }
+
+        const nowIso = new Date().toISOString();
+        const expiresIso = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const projName = projects.find((p) => p.id === task.projectId)?.name || '';
+        const deletedTaskItem: Task = {
+          ...task,
+          deletedAt: nowIso,
+          expiresAt: expiresIso,
+          daysLeft: 7,
+          projectName: projName,
+        };
+        setRecycleBinData((prev) => {
+          const nextTasksInBin = [deletedTaskItem, ...prev.tasks.filter((t) => t.id !== task.id)];
+          return {
+            ...prev,
+            tasks: nextTasksInBin,
+            totalCount: prev.projects.length + nextTasksInBin.length,
+          };
+        });
+
         deleteTaskApi(task.id, currentUser)
           .then(() => {
             triggerActivityRefresh();
@@ -653,34 +701,94 @@ export default function App() {
   // Recycle Bin handlers
   const handleRestoreRecycleBinItem = async (type: 'project' | 'task', id: string) => {
     try {
+      // Optimistic state restoration
+      if (type === 'project') {
+        const projToRestore = recycleBinData.projects.find((p) => p.id === id);
+        const tasksToRestore = recycleBinData.tasks.filter((t) => t.projectId === id);
+        if (projToRestore) {
+          setProjects((prev) => (prev.some((p) => p.id === id) ? prev : [...prev, { ...projToRestore, deletedAt: undefined }]));
+        }
+        if (tasksToRestore.length > 0) {
+          setTasks((prev) => [
+            ...prev.filter((t) => t.projectId !== id),
+            ...tasksToRestore.map((t) => ({ ...t, deletedAt: undefined })),
+          ]);
+        }
+        setRecycleBinData((prev) => {
+          const nextProjects = prev.projects.filter((p) => p.id !== id);
+          const nextTasks = prev.tasks.filter((t) => t.projectId !== id);
+          return {
+            projects: nextProjects,
+            tasks: nextTasks,
+            totalCount: nextProjects.length + nextTasks.length,
+          };
+        });
+      } else {
+        const taskToRestore = recycleBinData.tasks.find((t) => t.id === id);
+        if (taskToRestore) {
+          setTasks((prev) => (prev.some((t) => t.id === id) ? prev : [...prev, { ...taskToRestore, deletedAt: undefined }]));
+          let nextProjects = recycleBinData.projects;
+          if (taskToRestore.projectId) {
+            const parentInBin = recycleBinData.projects.find((p) => p.id === taskToRestore.projectId);
+            if (parentInBin) {
+              setProjects((prev) => (prev.some((p) => p.id === parentInBin.id) ? prev : [...prev, { ...parentInBin, deletedAt: undefined }]));
+              nextProjects = nextProjects.filter((p) => p.id !== parentInBin.id);
+            }
+          }
+          setRecycleBinData((prev) => {
+            const nextTasks = prev.tasks.filter((t) => t.id !== id);
+            return {
+              projects: nextProjects,
+              tasks: nextTasks,
+              totalCount: nextProjects.length + nextTasks.length,
+            };
+          });
+        }
+      }
+
       const result = await restoreRecycleBinItemApi(type, id, currentUser);
       showToast('success', result.message || `${type === 'project' ? 'Project' : 'Task'} restored successfully.`);
       await Promise.all([refreshRecycleBin(), refreshDatabase(true)]);
       triggerActivityRefresh();
     } catch (err: any) {
       showToast('error', err.message || 'Failed to restore item.');
+      await refreshRecycleBin();
     }
   };
 
   const handlePermanentDeleteRecycleBinItem = async (type: 'project' | 'task', id: string) => {
     try {
+      setRecycleBinData((prev) => {
+        const nextProjects = type === 'project' ? prev.projects.filter((p) => p.id !== id) : prev.projects;
+        const nextTasks = type === 'task' ? prev.tasks.filter((t) => t.id !== id) : prev.tasks;
+        const finalTasks = type === 'project' ? nextTasks.filter((t) => t.projectId !== id) : nextTasks;
+        return {
+          projects: nextProjects,
+          tasks: finalTasks,
+          totalCount: nextProjects.length + finalTasks.length,
+        };
+      });
+
       const result = await permanentlyDeleteItemApi(type, id);
       showToast('success', result.message || 'Item permanently deleted.');
       await refreshRecycleBin();
       triggerActivityRefresh();
     } catch (err: any) {
       showToast('error', err.message || 'Failed to permanently delete item.');
+      await refreshRecycleBin();
     }
   };
 
   const handleEmptyRecycleBin = async () => {
     try {
+      setRecycleBinData({ projects: [], tasks: [], totalCount: 0 });
       const result = await emptyRecycleBinApi();
       showToast('success', result.message || 'Recycle Bin emptied successfully.');
       await refreshRecycleBin();
       triggerActivityRefresh();
     } catch (err: any) {
       showToast('error', err.message || 'Failed to empty Recycle Bin.');
+      await refreshRecycleBin();
     }
   };
 
@@ -980,6 +1088,11 @@ export default function App() {
             onEditProject={handleOpenEditProject}
             onDeleteProject={handleDeleteProjectRequest}
             refreshTrigger={activityTrigger}
+            recycleBinCount={recycleBinData.totalCount}
+            onOpenRecycleBin={() => {
+              refreshRecycleBin();
+              setIsRecycleBinOpen(true);
+            }}
           />
         ) : currentView === 'team' ? (
           <TeamManagement
@@ -1060,6 +1173,7 @@ export default function App() {
         teamMembers={teamMembers}
         onOpenAddMember={handleOpenAddMember}
         currentUser={currentUser}
+        onDelete={handleDeleteTaskRequest}
       />
 
       {/* Team Member Modal */}

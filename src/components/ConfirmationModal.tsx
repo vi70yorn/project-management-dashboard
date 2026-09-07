@@ -33,7 +33,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div
       id="confirmation-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
     >
       <div
         id="confirmation-modal-container"

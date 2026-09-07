@@ -15,6 +15,7 @@ import {
   Mail,
   Briefcase,
   Layers,
+  Trash2,
 } from 'lucide-react';
 import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday } from '../utils/dateUtils';
@@ -25,6 +26,7 @@ interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (taskData: Partial<Task>) => void;
+  onDelete?: (task: Task) => void;
   initialTask?: Task | null;
   projectId?: string;
   projectName?: string;
@@ -42,6 +44,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  onDelete,
   initialTask,
   projectId: defaultProjectId,
   projectName,
@@ -53,6 +56,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const isStaff = currentUser?.role === 'staff';
+
+  const canDeleteTask =
+    isAdmin ||
+    (isStaff &&
+      initialTask &&
+      ((initialTask.createdBy && initialTask.createdBy === currentUser?.memberId) ||
+        initialTask.assigneeId === currentUser?.memberId));
 
   const safeProjects = Array.isArray(projects) ? projects : [];
   const safeMembers =
@@ -595,23 +605,42 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-            <button
-              id="cancel-task-modal-btn"
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              id="submit-task-btn"
-              type="submit"
-              className="px-5 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <Check className="w-4 h-4" />
-              {initialTask ? 'Save Task' : 'Create Task'}
-            </button>
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+            {initialTask && onDelete && canDeleteTask ? (
+              <button
+                id="delete-task-modal-btn"
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onDelete(initialTask);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/80 rounded-lg transition-colors cursor-pointer"
+                title="Move task to Recycle Bin (kept for 7 days)"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Task</span>
+              </button>
+            ) : (
+              <div />
+            )}
+            <div className="flex items-center gap-3">
+              <button
+                id="cancel-task-modal-btn"
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                id="submit-task-btn"
+                type="submit"
+                className="px-5 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                {initialTask ? 'Save Task' : 'Create Task'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
