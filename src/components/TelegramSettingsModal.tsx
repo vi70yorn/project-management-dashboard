@@ -20,6 +20,7 @@ import {
   sendTelegramWeeklyReportApi,
   TelegramSettings,
 } from '../services/api';
+import { CustomSelect } from './ui/CustomSelect';
 
 interface TelegramSettingsModalProps {
   isOpen: boolean;
@@ -309,20 +310,22 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Delivery Day
                   </label>
-                  <select
+                  <CustomSelect
                     value={sendDay}
-                    onChange={(e) => setSendDay(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-                  >
-                    <option value="Monday">Every Monday (Weekly Report)</option>
-                    <option value="Tuesday">Every Tuesday</option>
-                    <option value="Wednesday">Every Wednesday</option>
-                    <option value="Thursday">Every Thursday</option>
-                    <option value="Friday">Every Friday</option>
-                    <option value="Saturday">Every Saturday</option>
-                    <option value="Sunday">Every Sunday</option>
-                    <option value="Daily">Daily (Every Single Day)</option>
-                  </select>
+                    onChange={setSendDay}
+                    fullWidth
+                    size="md"
+                    options={[
+                      { value: 'Monday', label: 'Every Monday (Weekly Report)' },
+                      { value: 'Tuesday', label: 'Every Tuesday' },
+                      { value: 'Wednesday', label: 'Every Wednesday' },
+                      { value: 'Thursday', label: 'Every Thursday' },
+                      { value: 'Friday', label: 'Every Friday' },
+                      { value: 'Saturday', label: 'Every Saturday' },
+                      { value: 'Sunday', label: 'Every Sunday' },
+                      { value: 'Daily', label: 'Daily (Every Single Day)' },
+                    ]}
+                  />
                 </div>
 
                 <div>

@@ -21,6 +21,8 @@ import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser } from '.
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
+import { StatusDropdown } from './ui/StatusDropdown';
+import { CustomSelect } from './ui/CustomSelect';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -396,21 +398,19 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Project <span className="text-rose-500">*</span>
               </label>
-              <div className="relative">
-                <select
-                  id="task-project-select"
-                  value={selectedProjectId}
-                  onChange={(e) => setSelectedProjectId(e.target.value)}
-                  className={FORM_STYLES.select}
-                >
-                  {safeProjects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} {p.client ? `(${p.client})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+              <CustomSelect
+                id="task-project-select"
+                value={selectedProjectId}
+                onChange={setSelectedProjectId}
+                fullWidth
+                size="md"
+                options={safeProjects.map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                  sublabel: p.client ? `Client: ${p.client}` : undefined,
+                  color: p.color || '#2563eb',
+                }))}
+              />
             </div>
           )}
 
@@ -449,42 +449,34 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Status <span className="text-2xs text-slate-400 dark:text-slate-500">(In Progress, Ready Review, Blocked, Completed)</span>
+                Status
               </label>
-              <div className="relative">
-                <select
-                  id="task-status-select"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as StatusType)}
-                  className={FORM_STYLES.select}
-                >
-                  <option value="In Progress">In Progress</option>
-                  <option value="Ready Review">Ready Review</option>
-                  <option value="Blocked">Blocked</option>
-                  <option value="Completed">Completed</option>
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+              <StatusDropdown
+                id="task-status-select"
+                status={status}
+                onChange={setStatus}
+                size="md"
+                fullWidth
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Priority
               </label>
-              <div className="relative">
-                <select
-                  id="task-priority-select"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as PriorityType)}
-                  className={FORM_STYLES.select}
-                >
-                  <option value="Urgent">Urgent</option>
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+              <CustomSelect
+                id="task-priority-select"
+                value={priority}
+                onChange={(v) => setPriority(v as PriorityType)}
+                fullWidth
+                size="md"
+                options={[
+                  { value: 'Urgent', label: 'Urgent', color: '#f43f5e' },
+                  { value: 'High', label: 'High', color: '#f97316' },
+                  { value: 'Medium', label: 'Medium', color: '#f59e0b' },
+                  { value: 'Low', label: 'Low', color: '#64748b' },
+                ]}
+              />
             </div>
           </div>
 

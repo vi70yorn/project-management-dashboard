@@ -28,6 +28,7 @@ import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
+import { StatusDropdown } from './ui/StatusDropdown';
 
 interface DashboardSummaryProps {
   projects: Project[];
@@ -861,30 +862,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                         {/* Status */}
                         <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
                           {isAdmin ? (
-                            <div className="relative inline-block">
-                              <select
-                                id={`project-status-select-${project.id}`}
-                                value={project.status}
-                                onChange={(e) =>
-                                  onUpdateProjectStatus(project.id, e.target.value as StatusType)
-                                }
-                                className={`text-2xs font-semibold px-2 py-1 rounded-md border appearance-none pr-6 cursor-pointer ${
-                                  project.status === 'Completed'
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                                    : project.status === 'Blocked'
-                                    ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                                    : project.status === 'Ready Review' || project.status === 'Pending'
-                                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                                    : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                                }`}
-                              >
-                                <option value="In Progress">In Progress</option>
-                                <option value="Ready Review">Ready Review</option>
-                                <option value="Blocked">Blocked</option>
-                                <option value="Completed">Completed</option>
-                              </select>
-                              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            </div>
+                            <StatusDropdown
+                              id={`project-status-select-${project.id}`}
+                              status={project.status}
+                              onChange={(newStatus) => onUpdateProjectStatus(project.id, newStatus)}
+                              size="sm"
+                            />
                           ) : (
                             <StatusBadge status={project.status} size="sm" />
                           )}
@@ -1104,25 +1087,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
                       {/* Status: editable for Admin, static badge for Staff */}
                       {isAdmin ? (
-                        <div className="relative inline-flex items-center">
-                          <select
-                            id={`project-status-selector-${project.id}`}
-                            value={project.status}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              onUpdateProjectStatus(project.id, e.target.value as StatusType)
-                            }
-                            className={`appearance-none text-xs font-semibold pl-2 pr-5 py-0.5 rounded-md border cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
-                              project.status
-                            )}`}
-                          >
-                            <option value="In Progress">In Progress</option>
-                            <option value="Ready Review">Ready Review</option>
-                            <option value="Blocked">Blocked</option>
-                            <option value="Completed">Completed</option>
-                          </select>
-                          <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400 absolute right-1 pointer-events-none" />
-                        </div>
+                        <StatusDropdown
+                          id={`project-status-selector-${project.id}`}
+                          status={project.status}
+                          onChange={(newStatus) => onUpdateProjectStatus(project.id, newStatus)}
+                          size="sm"
+                        />
                       ) : (
                         <StatusBadge status={project.status} size="sm" />
                       )}

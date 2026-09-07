@@ -28,6 +28,8 @@ import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '.
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
+import { StatusDropdown } from './ui/StatusDropdown';
+import { CustomSelect } from './ui/CustomSelect';
 
 interface ProjectDetailProps {
   project: Project;
@@ -306,24 +308,12 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               <span className="text-slate-300 dark:text-slate-600">&bull;</span>
               {/* Status Display: Editable by Admin, Read-only badge for Staff */}
               {isAdmin ? (
-                <div className="relative inline-flex items-center">
-                  <select
-                    id="project-detail-status-select"
-                    value={project.status}
-                    onChange={(e) =>
-                      onUpdateProjectStatus(project.id, e.target.value as StatusType)
-                    }
-                    className={`appearance-none text-xs font-semibold pl-2 pr-5 py-0.5 rounded-md border cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-colors ${getStatusBadge(
-                      project.status
-                    )}`}
-                  >
-                    <option value="In Progress">In Progress</option>
-                    <option value="Ready Review">Ready Review</option>
-                    <option value="Blocked">Blocked</option>
-                    <option value="Completed">Completed</option>
-                  </select>
-                  <ChevronDown className="w-3 h-3 text-slate-500 dark:text-slate-400 absolute right-1 pointer-events-none" />
-                </div>
+                <StatusDropdown
+                  id="project-detail-status-select"
+                  status={project.status}
+                  onChange={(newStatus) => onUpdateProjectStatus(project.id, newStatus)}
+                  size="sm"
+                />
               ) : (
                 <StatusBadge status={project.status} size="sm" />
               )}
@@ -611,23 +601,23 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               )}
             </div>
 
-            <div className="relative inline-flex items-center">
-              <Filter className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <select
-                id="filter-by-member-select"
-                value={filterMemberId}
-                onChange={(e) => setFilterMemberId(e.target.value)}
-                className="appearance-none h-8 pl-8 pr-7 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-lg shadow-2xs text-slate-700 dark:text-slate-200 font-medium cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-              >
-                <option value="all">All Members</option>
-                {projectTeam.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name.split(' ')[0]} ({projectTasks.filter((t) => t.assigneeId === m.id).length})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <CustomSelect
+              id="filter-by-member-select"
+              value={filterMemberId}
+              onChange={setFilterMemberId}
+              icon={<Filter className="w-3.5 h-3.5" />}
+              size="sm"
+              options={[
+                { value: 'all', label: 'All Members', badge: projectTasks.length },
+                ...projectTeam.map((m) => ({
+                  value: m.id,
+                  label: m.name.split(' ')[0],
+                  sublabel: m.role,
+                  color: m.color || '#2563eb',
+                  badge: projectTasks.filter((t) => t.assigneeId === m.id).length,
+                })),
+              ]}
+            />
           </div>
         )}
       </div>
@@ -856,22 +846,13 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         {canModifyTask ? (
                           <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/60 text-2xs">
                             <span className="text-3xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Move</span>
-                            <div className="relative inline-flex items-center">
-                              <select
-                                id={`move-task-status-${task.id}`}
-                                value={task.status}
-                                onChange={(e) =>
-                                  onUpdateTaskStatus(task.id, e.target.value as StatusType)
-                                }
-                                className="appearance-none text-2xs py-0.5 pl-2 pr-5 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                              >
-                                <option value="In Progress">In Progress</option>
-                                <option value="Ready Review">Ready Review</option>
-                                <option value="Blocked">Blocked</option>
-                                <option value="Completed">Completed</option>
-                              </select>
-                              <ChevronDown className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500 absolute right-1.5 pointer-events-none" />
-                            </div>
+                            <StatusDropdown
+                              id={`move-task-status-${task.id}`}
+                              status={task.status}
+                              onChange={(newStatus) => onUpdateTaskStatus(task.id, newStatus)}
+                              size="xs"
+                              align="right"
+                            />
                           </div>
                         ) : (
                           <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/60 text-2xs">

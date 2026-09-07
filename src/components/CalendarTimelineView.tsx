@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType } from '../types';
 import { getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
+import { CustomSelect, CustomSelectOption } from './ui/CustomSelect';
 
 interface CalendarTimelineViewProps {
   projects: Project[];
@@ -588,70 +589,67 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
       <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {/* Project Filter */}
-          <div className="relative">
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              aria-label="Filter by project"
-              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden cursor-pointer"
-            >
-              <option value="all">All Projects ({projects.length})</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            value={selectedProjectId}
+            onChange={setSelectedProjectId}
+            size="sm"
+            icon={<Folder className="w-3.5 h-3.5" />}
+            options={[
+              { value: 'all', label: `All Projects (${projects.length})` },
+              ...projects.map((p) => ({
+                value: p.id,
+                label: p.name,
+                color: p.color,
+              })),
+            ]}
+          />
 
           {/* Status Filter */}
-          <div className="relative">
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              aria-label="Filter by task status"
-              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden cursor-pointer"
-            >
-              <option value="all">All Statuses</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Ready Review">Ready Review</option>
-              <option value="Blocked">Blocked</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </div>
+          <CustomSelect
+            value={selectedStatus}
+            onChange={setSelectedStatus}
+            size="sm"
+            icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+            options={[
+              { value: 'all', label: 'All Statuses' },
+              { value: 'In Progress', label: 'In Progress', color: '#3b82f6' },
+              { value: 'Ready Review', label: 'Ready Review', color: '#f59e0b' },
+              { value: 'Blocked', label: 'Blocked', color: '#f43f5e' },
+              { value: 'Completed', label: 'Completed', color: '#10b981' },
+            ]}
+          />
 
           {/* Priority Filter */}
-          <div className="relative">
-            <select
-              value={selectedPriority}
-              onChange={(e) => setSelectedPriority(e.target.value)}
-              aria-label="Filter by priority"
-              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden cursor-pointer"
-            >
-              <option value="all">All Priorities</option>
-              <option value="Urgent">Urgent</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-          </div>
+          <CustomSelect
+            value={selectedPriority}
+            onChange={setSelectedPriority}
+            size="sm"
+            icon={<Flag className="w-3.5 h-3.5" />}
+            options={[
+              { value: 'all', label: 'All Priorities' },
+              { value: 'Urgent', label: 'Urgent', color: '#f43f5e' },
+              { value: 'High', label: 'High', color: '#f97316' },
+              { value: 'Medium', label: 'Medium', color: '#f59e0b' },
+              { value: 'Low', label: 'Low', color: '#64748b' },
+            ]}
+          />
 
           {/* Assignee Filter */}
-          <div className="relative">
-            <select
-              value={selectedAssigneeId}
-              onChange={(e) => setSelectedAssigneeId(e.target.value)}
-              aria-label="Filter by assignee"
-              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden cursor-pointer"
-            >
-              <option value="all">All Assignees ({teamMembers.length})</option>
-              {teamMembers.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({m.role})
-                </option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            value={selectedAssigneeId}
+            onChange={setSelectedAssigneeId}
+            size="sm"
+            icon={<User className="w-3.5 h-3.5" />}
+            options={[
+              { value: 'all', label: `All Assignees (${teamMembers.length})` },
+              ...teamMembers.map((m) => ({
+                value: m.id,
+                label: m.name,
+                sublabel: m.role,
+                color: m.color,
+              })),
+            ]}
+          />
 
           {(selectedProjectId !== 'all' ||
             selectedStatus !== 'all' ||

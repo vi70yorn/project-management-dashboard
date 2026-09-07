@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { TeamMember, Project, UserRole, AuthUser } from '../types';
 import { FORM_STYLES } from '../utils/formStyles';
+import { CustomSelect } from './ui/CustomSelect';
 
 interface TeamMemberModalProps {
   isOpen: boolean;
@@ -533,19 +534,18 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Work Status
               </label>
-              <div className="relative">
-                <select
-                  id="member-status-select"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as 'active' | 'busy' | 'away')}
-                  className={FORM_STYLES.select}
-                >
-                  <option value="active">🟢 Active & Available</option>
-                  <option value="busy">🟡 Busy / In Meetings</option>
-                  <option value="away">⚪ Away / On Leave</option>
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+              <CustomSelect
+                id="member-status-select"
+                value={status}
+                onChange={(v) => setStatus(v as 'active' | 'busy' | 'away')}
+                fullWidth
+                size="md"
+                options={[
+                  { value: 'active', label: 'Active & Available', color: '#10b981' },
+                  { value: 'busy', label: 'Busy / In Meetings', color: '#f59e0b' },
+                  { value: 'away', label: 'Away / On Leave', color: '#94a3b8' },
+                ]}
+              />
             </div>
           </div>
 

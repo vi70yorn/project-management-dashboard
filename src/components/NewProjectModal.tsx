@@ -3,6 +3,8 @@ import { X, FolderPlus, Users, Briefcase, Check, UserPlus, ChevronDown, AlertCir
 import { Project, StatusType, TeamMember } from '../types';
 import { isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
+import { StatusDropdown } from './ui/StatusDropdown';
+import { CustomSelect } from './ui/CustomSelect';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -199,20 +201,13 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Project Status
               </label>
-              <div className="relative">
-                <select
-                  id="new-project-status-select"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as StatusType)}
-                  className={FORM_STYLES.select}
-                >
-                  <option value="In Progress">In Progress</option>
-                  <option value="Ready Review">Ready Review</option>
-                  <option value="Blocked">Blocked</option>
-                  <option value="Completed">Completed</option>
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+              <StatusDropdown
+                id="new-project-status-select"
+                status={status}
+                onChange={setStatus}
+                size="md"
+                fullWidth
+              />
             </div>
           </div>
 
@@ -262,21 +257,19 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Project Lead / Manager
             </label>
-            <div className="relative">
-              <select
-                id="new-project-manager-select"
-                value={managerId}
-                onChange={(e) => setManagerId(e.target.value)}
-                className={FORM_STYLES.select}
-              >
-                {teamMembers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} ({m.role})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <CustomSelect
+              id="new-project-manager-select"
+              value={managerId}
+              onChange={setManagerId}
+              fullWidth
+              size="md"
+              options={teamMembers.map((m) => ({
+                value: m.id,
+                label: m.name,
+                sublabel: m.role,
+                color: m.color || '#2563eb',
+              }))}
+            />
           </div>
 
           {/* Assign Team Members */}
