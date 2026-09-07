@@ -160,23 +160,84 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     );
   };
 
-  // Counts by status for quick tabs
+  // Pre-filter deadlines by selected team member
+  const memberFilteredDeadlines = useMemo(() => {
+    if (deadlineMemberFilter === 'all') return allActiveDeadlines;
+    if (deadlineMemberFilter === 'unassigned') {
+      return allActiveDeadlines.filter((d) => !d.assigneeId);
+    }
+    return allActiveDeadlines.filter((d) => d.assigneeId === deadlineMemberFilter);
+  }, [allActiveDeadlines, deadlineMemberFilter]);
+
+  // Counts by status for quick tabs (reflects active member filter)
   const deadlineCounts = useMemo(() => {
-    const readyReview = allActiveDeadlines.filter((d) => d.status === 'Ready Review' || d.status === 'Pending').length;
+    const readyReview = memberFilteredDeadlines.filter(
+      (d) => d.status === 'Ready Review' || d.status === 'Pending'
+    ).length;
     return {
-      all: allActiveDeadlines.length,
-      inProgress: allActiveDeadlines.filter((d) => d.status === 'In Progress').length,
+      all: memberFilteredDeadlines.length,
+      inProgress: memberFilteredDeadlines.filter((d) => d.status === 'In Progress').length,
       readyReview,
       pending: readyReview,
-      blocked: allActiveDeadlines.filter((d) => d.status === 'Blocked').length,
+      blocked: memberFilteredDeadlines.filter((d) => d.status === 'Blocked').length,
     };
-  }, [allActiveDeadlines]);
+  }, [memberFilteredDeadlines]);
 
-  // Filtered by selected tab
+  // Filtered by selected tab and team member
   const filteredDeadlines = useMemo(() => {
-    if (deadlineStatusFilter === 'all') return allActiveDeadlines;
-    return allActiveDeadlines.filter((d) => d.status === deadlineStatusFilter);
-  }, [allActiveDeadlines, deadlineStatusFilter]);
+    if (deadlineStatusFilter === 'all') return memberFilteredDeadlines;
+    return memberFilteredDeadlines.filter((d) => d.status === deadlineStatusFilter);
+  }, [memberFilteredDeadlines, deadlineStatusFilter]);
+
+  // Counts per member for dropdown badges (reflects active status filter)
+  const deadlineMemberCounts = useMemo(() => {
+    const baseTasks =
+      deadlineStatusFilter === 'all'
+        ? allActiveDeadlines
+        : allActiveDeadlines.filter((d) => d.status === deadlineStatusFilter);
+
+    const counts: Record<string, number> = {
+      all: baseTasks.length,
+      unassigned: baseTasks.filter((d) => !d.assigneeId).length,
+    };
+
+    safeMembers.forEach((m) => {
+      counts[m.id] = baseTasks.filter((d) => d.assigneeId === m.id).length;
+    });
+
+    return counts;
+  }, [allActiveDeadlines, deadlineStatusFilter, safeMembers]);
+
+  // Options for team member filter select
+  const deadlineMemberOptions: CustomSelectOption[] = useMemo(() => {
+    const options: CustomSelectOption[] = [
+      {
+        value: 'all',
+        label: 'All Members',
+        badge: deadlineMemberCounts.all,
+      },
+    ];
+
+    safeMembers.forEach((m) => {
+      options.push({
+        value: m.id,
+        label: m.name,
+        sublabel: m.role,
+        color: m.color || '#2563eb',
+        badge: deadlineMemberCounts[m.id] || 0,
+      });
+    });
+
+    if (deadlineMemberCounts.unassigned > 0) {
+      options.push({
+        value: 'unassigned',
+        label: 'Unassigned',
+        badge: deadlineMemberCounts.unassigned,
+      });
+    }
+
+    return options;
+  }, [safeMembers, deadlineMemberCounts]);
 
   // Pagination calculation
   const totalDeadlineItems = filteredDeadlines.length;
@@ -192,6 +253,11 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
   const handleStatusFilterChange = (status: 'all' | 'In Progress' | 'Ready Review' | 'Blocked') => {
     setDeadlineStatusFilter(status);
+    setDeadlineCurrentPage(1);
+  };
+
+  const handleMemberFilterChange = (memberId: string) => {
+    setDeadlineMemberFilter(memberId);
     setDeadlineCurrentPage(1);
   };
 
@@ -416,7 +482,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       <div className="space-y-8 min-w-0">
         {/* Upcoming Deadlines Section */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                   <Calendar className="w-4 h-4" />
@@ -431,47 +497,75 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 </div>
               </div>
 
-              {/* Status Filter Tabs */}
-              <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
-                {[
-                  { label: 'All', value: 'all', count: deadlineCounts.all },
-                  { label: 'In Progress', value: 'In Progress', count: deadlineCounts.inProgress },
-                  { label: 'Ready Review', value: 'Ready Review', count: deadlineCounts.readyReview },
-                  { label: 'Blocked', value: 'Blocked', count: deadlineCounts.blocked },
-                ].map((tab) => (
-                  <button
-                    key={tab.value}
-                    onClick={() => handleStatusFilterChange(tab.value as any)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
-                      deadlineStatusFilter === tab.value
-                        ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    <span
-                      className={`text-3xs px-1.5 py-0.5 rounded-full font-semibold ${
+              {/* Filters: Team Member Select + Status Tabs */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                {/* Team Member Filter */}
+                <div className="w-full sm:w-auto min-w-[170px]">
+                  <CustomSelect
+                    id="deadline-member-filter-select"
+                    value={deadlineMemberFilter}
+                    onChange={handleMemberFilterChange}
+                    size="sm"
+                    icon={<User className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />}
+                    options={deadlineMemberOptions}
+                    placeholder="Filter by Member"
+                  />
+                </div>
+
+                {/* Status Filter Tabs */}
+                <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
+                  {[
+                    { label: 'All', value: 'all', count: deadlineCounts.all },
+                    { label: 'In Progress', value: 'In Progress', count: deadlineCounts.inProgress },
+                    { label: 'Ready Review', value: 'Ready Review', count: deadlineCounts.readyReview },
+                    { label: 'Blocked', value: 'Blocked', count: deadlineCounts.blocked },
+                  ].map((tab) => (
+                    <button
+                      key={tab.value}
+                      onClick={() => handleStatusFilterChange(tab.value as any)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
                         deadlineStatusFilter === tab.value
-                          ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
-                          : tab.value === 'Blocked' && tab.count > 0
-                          ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
-                          : 'bg-slate-200/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-400'
+                          ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
-                      {tab.count}
-                    </span>
-                  </button>
-                ))}
+                      <span>{tab.label}</span>
+                      <span
+                        className={`text-3xs px-1.5 py-0.5 rounded-full font-semibold ${
+                          deadlineStatusFilter === tab.value
+                            ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
+                            : tab.value === 'Blocked' && tab.count > 0
+                            ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
+                            : 'bg-slate-200/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
             {displayedDeadlines.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                  {deadlineStatusFilter === 'all'
+                  {deadlineStatusFilter === 'all' && deadlineMemberFilter === 'all'
                     ? 'No pending task deadlines. All current tasks completed!'
-                    : `No tasks found with status "${deadlineStatusFilter}".`}
+                    : `No tasks found matching the selected filters.`}
                 </p>
+                {(deadlineStatusFilter !== 'all' || deadlineMemberFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setDeadlineStatusFilter('all');
+                      setDeadlineMemberFilter('all');
+                      setDeadlineCurrentPage(1);
+                    }}
+                    className="mt-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    Reset filters
+                  </button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto -mx-6">
@@ -645,7 +739,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                   {/* View mode switcher */}
                   <div className="flex items-center gap-1 text-2xs">
                     <span className="text-slate-400 mr-0.5">Show:</span>
-                    {[10, 20, 'all'].map((size) => (
+                    {[6, 12, 'all'].map((size) => (
                       <button
                         key={size}
                         onClick={() => {
