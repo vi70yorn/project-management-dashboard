@@ -1473,6 +1473,11 @@ app.get('/api/telegram/settings', async (_req: Request, res: Response) => {
   try {
     const pool = getPool();
     const result = await pool.query('SELECT * FROM telegram_settings WHERE id = $1', ['default']);
+    const now = new Date();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const serverCurrentDay = dayNames[now.getDay()];
+    const serverCurrentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
     if (result.rowCount === 0) {
       return res.json({
         enabled: false,
@@ -1482,6 +1487,9 @@ app.get('/api/telegram/settings', async (_req: Request, res: Response) => {
         sendDay: 'Monday',
         sendTime: '08:00',
         lastSentAt: null,
+        lastAutoSentDate: null,
+        serverCurrentDay,
+        serverCurrentTime,
       });
     }
     const row = result.rows[0];
@@ -1498,6 +1506,9 @@ app.get('/api/telegram/settings', async (_req: Request, res: Response) => {
       sendDay: row.send_day || 'Monday',
       sendTime: row.send_time || '08:00',
       lastSentAt: row.last_sent_at || null,
+      lastAutoSentDate: row.last_auto_sent_date || null,
+      serverCurrentDay,
+      serverCurrentTime,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -1506,7 +1517,7 @@ app.get('/api/telegram/settings', async (_req: Request, res: Response) => {
 
 // POST update Telegram Settings
 app.post('/api/telegram/settings', async (req: Request, res: Response) => {
-  const { botToken, chatId, enabled, sendTime } = req.body;
+  const { botToken, chatId, enabled, sendDay, sendTime } = req.body;
   try {
     const pool = getPool();
     let query: string;
@@ -1514,29 +1525,33 @@ app.post('/api/telegram/settings', async (req: Request, res: Response) => {
 
     if (botToken !== undefined && botToken.trim().length > 0) {
       query = `
-        INSERT INTO telegram_settings (id, bot_token, chat_id, enabled, send_time, updated_at)
-        VALUES ('default', $1, $2, $3, $4, CURRENT_TIMESTAMP)
+        INSERT INTO telegram_settings (id, bot_token, chat_id, enabled, send_day, send_time, last_auto_sent_date, updated_at)
+        VALUES ('default', $1, $2, $3, $4, $5, NULL, CURRENT_TIMESTAMP)
         ON CONFLICT (id) DO UPDATE SET
           bot_token = EXCLUDED.bot_token,
           chat_id = EXCLUDED.chat_id,
           enabled = EXCLUDED.enabled,
+          send_day = EXCLUDED.send_day,
           send_time = EXCLUDED.send_time,
+          last_auto_sent_date = NULL,
           updated_at = CURRENT_TIMESTAMP
-        RETURNING id, chat_id AS "chatId", enabled, send_time AS "sendTime", last_sent_at AS "lastSentAt"
+        RETURNING id, chat_id AS "chatId", enabled, send_day AS "sendDay", send_time AS "sendTime", last_sent_at AS "lastSentAt", last_auto_sent_date AS "lastAutoSentDate"
       `;
-      params = [botToken.trim(), (chatId || '').trim(), !!enabled, sendTime || '08:00'];
+      params = [botToken.trim(), (chatId || '').trim(), !!enabled, sendDay || 'Monday', sendTime || '08:00'];
     } else {
       query = `
         UPDATE telegram_settings
         SET 
           chat_id = COALESCE($1, chat_id),
           enabled = COALESCE($2, enabled),
-          send_time = COALESCE($3, send_time),
+          send_day = COALESCE($3, send_day),
+          send_time = COALESCE($4, send_time),
+          last_auto_sent_date = NULL,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = 'default'
-        RETURNING id, chat_id AS "chatId", enabled, send_time AS "sendTime", last_sent_at AS "lastSentAt"
+        RETURNING id, chat_id AS "chatId", enabled, send_day AS "sendDay", send_time AS "sendTime", last_sent_at AS "lastSentAt", last_auto_sent_date AS "lastAutoSentDate"
       `;
-      params = [(chatId || '').trim(), !!enabled, sendTime || '08:00'];
+      params = [(chatId || '').trim(), !!enabled, sendDay || 'Monday', sendTime || '08:00'];
     }
 
     const result = await pool.query(query, params);
@@ -1603,9 +1618,9 @@ app.post('/api/telegram/send-report', async (_req: Request, res: Response) => {
   }
 });
 
-// Background Automated Monday Scheduler
+// Background Automated Telegram Scheduler
 function startTelegramWeeklyScheduler() {
-  console.log('[Telegram Scheduler] Automated Monday weekly report scheduler initialized.');
+  console.log('[Telegram Scheduler] Automated Telegram weekly report scheduler initialized.');
 
   setInterval(async () => {
     try {
@@ -1617,37 +1632,60 @@ function startTelegramWeeklyScheduler() {
       if (!settings.enabled || !settings.bot_token || !settings.chat_id) return;
 
       const now = new Date();
-      // Monday is day 1
-      if (now.getDay() !== 1) return;
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const currentDayName = dayNames[now.getDay()]; // e.g. "Monday"
+      const targetDay = settings.send_day || 'Monday';
+
+      // Day check: matches if Daily/Everyday OR if day name matches (case-insensitive)
+      const isDaily = targetDay.toLowerCase() === 'daily' || targetDay.toLowerCase() === 'everyday';
+      const isScheduledDay = isDaily || currentDayName.toLowerCase() === targetDay.toLowerCase();
+      if (!isScheduledDay) return;
+
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const todayDateStr = `${y}-${m}-${d}`; // e.g. "2026-09-07"
+
+      // Avoid duplicate auto-send if already sent on this calendar date
+      if (settings.last_auto_sent_date === todayDateStr) {
+        return;
+      }
 
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const currentTime = `${hours}:${minutes}`;
-
       const targetTime = settings.send_time || '08:00';
-      if (currentTime !== targetTime) return;
 
-      // Avoid duplicate sending if already sent in last 18 hours
-      if (settings.last_sent_at) {
-        const lastSent = new Date(settings.last_sent_at);
-        const diffHours = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60);
-        if (diffHours < 18) return;
+      // Check if current time has reached or passed the target time
+      if (currentTime < targetTime) return;
+
+      // Calculate time difference in minutes between current and target
+      const [currH, currM] = currentTime.split(':').map(Number);
+      const [targetH, targetM] = targetTime.split(':').map(Number);
+      const diffMinutes = (currH * 60 + currM) - (targetH * 60 + targetM);
+
+      // Only catch up if within 180 minutes (3 hours) of the target time
+      if (diffMinutes > 180) {
+        return;
       }
 
-      console.log(`[Telegram Scheduler] Monday ${currentTime} reached! Dispatching automated report...`);
+      console.log(`[Telegram Scheduler] Scheduled trigger: ${currentDayName} ${currentTime} (Target: ${targetDay} ${targetTime}). Dispatching automated report...`);
       const reportText = await generateTelegramWeeklyReport(pool);
       const sendRes = await sendTelegramMessage(settings.bot_token, settings.chat_id, reportText);
 
       if (sendRes.ok) {
-        console.log('[Telegram Scheduler] Monday weekly report sent successfully to Telegram.');
-        await pool.query('UPDATE telegram_settings SET last_sent_at = CURRENT_TIMESTAMP WHERE id = $1', ['default']);
+        console.log(`[Telegram Scheduler] Auto-report sent successfully to Telegram chat ${settings.chat_id}.`);
+        await pool.query(
+          'UPDATE telegram_settings SET last_sent_at = CURRENT_TIMESTAMP, last_auto_sent_date = $1 WHERE id = $2',
+          [todayDateStr, 'default']
+        );
       } else {
-        console.error('[Telegram Scheduler] Failed to send report:', sendRes.message);
+        console.error('[Telegram Scheduler] Failed to send report to Telegram:', sendRes.message);
       }
     } catch (err: any) {
       console.error('[Telegram Scheduler Exception]:', err.message);
     }
-  }, 30000);
+  }, 15000);
 }
 
 // ==========================================

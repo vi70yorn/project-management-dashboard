@@ -36,6 +36,7 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
   const [botToken, setBotToken] = useState('');
   const [chatId, setChatId] = useState('');
   const [enabled, setEnabled] = useState(false);
+  const [sendDay, setSendDay] = useState('Monday');
   const [sendTime, setSendTime] = useState('08:00');
 
   const [isLoading, setIsLoading] = useState(false);
@@ -57,6 +58,7 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
       setSettings(data);
       setChatId(data.chatId || '');
       setEnabled(data.enabled);
+      setSendDay(data.sendDay || 'Monday');
       setSendTime(data.sendTime || '08:00');
       setBotToken(''); // Don't expose token; user leaves blank to keep existing
     } catch (err: any) {
@@ -73,6 +75,7 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
         botToken: botToken.trim() || undefined,
         chatId: chatId.trim(),
         enabled,
+        sendDay,
         sendTime,
       });
       setSettings(updated);
@@ -268,18 +271,25 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
             </div>
 
             <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Automated Schedule Settings
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Automated Schedule Settings
+                </h4>
+                {settings?.serverCurrentTime && (
+                  <span className="text-3xs font-medium text-slate-400 dark:text-slate-500">
+                    Server: {settings.serverCurrentDay} {settings.serverCurrentTime}
+                  </span>
+                )}
+              </div>
 
               {/* Enable toggle */}
               <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60">
                 <div>
                   <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Enable Auto-Send Every Monday
+                    Enable Automated Report Delivery
                   </p>
                   <p className="text-2xs text-slate-500 dark:text-slate-400">
-                    Automatically generates and delivers the previous week's summary
+                    Automatically generates and delivers project summary to Telegram
                   </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -293,37 +303,78 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
                 </label>
               </div>
 
-              {/* Time Configuration */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Day & Time Configuration */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Delivery Day
                   </label>
-                  <div className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Every Monday Morning
-                  </div>
+                  <select
+                    value={sendDay}
+                    onChange={(e) => setSendDay(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                  >
+                    <option value="Monday">Every Monday (Weekly Report)</option>
+                    <option value="Tuesday">Every Tuesday</option>
+                    <option value="Wednesday">Every Wednesday</option>
+                    <option value="Thursday">Every Thursday</option>
+                    <option value="Friday">Every Friday</option>
+                    <option value="Saturday">Every Saturday</option>
+                    <option value="Sunday">Every Sunday</option>
+                    <option value="Daily">Daily (Every Single Day)</option>
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Delivery Time
-                  </label>
-                  <select
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Delivery Time
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const now = new Date();
+                        now.setMinutes(now.getMinutes() + 2);
+                        const h = String(now.getHours()).padStart(2, '0');
+                        const m = String(now.getMinutes()).padStart(2, '0');
+                        setSendTime(`${h}:${m}`);
+                        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                        setSendDay(dayNames[now.getDay()]);
+                        setEnabled(true);
+                      }}
+                      className="text-3xs text-sky-600 dark:text-sky-400 hover:underline font-semibold cursor-pointer"
+                      title="Set delivery to 2 minutes from now to test automated sending"
+                    >
+                      ⚡ Test in 2 min
+                    </button>
+                  </div>
+                  <input
+                    type="time"
                     value={sendTime}
                     onChange={(e) => setSendTime(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-                  >
-                    <option value="06:00">06:00 AM</option>
-                    <option value="07:00">07:00 AM</option>
-                    <option value="07:30">07:30 AM</option>
-                    <option value="08:00">08:00 AM (Recommended)</option>
-                    <option value="08:30">08:30 AM</option>
-                    <option value="09:00">09:00 AM</option>
-                    <option value="09:30">09:30 AM</option>
-                    <option value="10:00">10:00 AM</option>
-                  </select>
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
                 </div>
               </div>
+
+              {/* Active Schedule Status Banner */}
+              {enabled && (
+                <div className="p-3 rounded-xl bg-sky-50/70 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/80 text-xs text-sky-900 dark:text-sky-200 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <Clock className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                    <span>Automated Schedule Active</span>
+                  </div>
+                  <p className="text-2xs text-sky-800 dark:text-sky-300">
+                    Will automatically dispatch to Telegram chat <b>{chatId || settings?.chatId}</b> every{' '}
+                    <b>{sendDay}</b> at <b>{sendTime}</b>.
+                  </p>
+                  {settings?.lastSentAt && (
+                    <p className="text-3xs text-slate-500 dark:text-slate-400">
+                      Last Message Sent: {new Date(settings.lastSentAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

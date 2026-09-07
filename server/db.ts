@@ -153,9 +153,12 @@ export async function runMigrationsAndSeed(): Promise<void> {
           send_day VARCHAR(16) DEFAULT 'Monday',
           send_time VARCHAR(8) DEFAULT '08:00',
           last_sent_at TIMESTAMPTZ,
+          last_auto_sent_date VARCHAR(16),
           created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
+
+      ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS last_auto_sent_date VARCHAR(16);
 
       INSERT INTO telegram_settings (id, enabled, send_day, send_time)
       VALUES ('default', false, 'Monday', '08:00')

@@ -345,6 +345,9 @@ export interface TelegramSettings {
   sendDay: string;
   sendTime: string;
   lastSentAt: string | null;
+  lastAutoSentDate?: string | null;
+  serverCurrentDay?: string;
+  serverCurrentTime?: string;
 }
 
 export async function fetchTelegramSettingsApi(): Promise<TelegramSettings> {
@@ -357,6 +360,7 @@ export async function updateTelegramSettingsApi(settings: {
   botToken?: string;
   chatId?: string;
   enabled?: boolean;
+  sendDay?: string;
   sendTime?: string;
 }): Promise<TelegramSettings> {
   const res = await fetch(`${API_BASE}/telegram/settings`, {

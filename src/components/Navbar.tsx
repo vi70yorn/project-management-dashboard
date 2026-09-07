@@ -112,37 +112,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               Dashboard Summary
             </button>
 
-            {/* Team management tab */}
-            <button
-              id="nav-team-management-btn"
-              onClick={onGoToTeam}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                currentView === 'team'
-                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              Team Directory
-              <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                {teamCount}
-              </span>
-            </button>
-
-            {/* Project Weekly Summary tab */}
-            <button
-              id="nav-project-summary-btn"
-              onClick={onGoToSummary}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                currentView === 'summary'
-                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-              title="Project Weekly Summary (Mon - Fri) for Project Manager"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              Project Summary
-            </button>
 
             {/* Calendar & Timeline View tab */}
             {onGoToCalendar && (
@@ -160,6 +129,38 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Calendar
               </button>
             )}
+
+            {/* Team management tab */}
+            <button
+              id="nav-team-management-btn"
+              onClick={onGoToTeam}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                currentView === 'team'
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              Team Directory
+              <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                {teamCount}
+              </span>
+            </button>
+
+              {/* Project Weekly Summary tab */}
+            <button
+              id="nav-project-summary-btn"
+              onClick={onGoToSummary}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                currentView === 'summary'
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title="Project Weekly Summary (Mon - Fri) for Project Manager"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Project Summary
+            </button>
 
             {/* Recycle Bin tab */}
            {/*  {handleRecycleBinAction && (
