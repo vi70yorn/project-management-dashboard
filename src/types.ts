@@ -4,6 +4,8 @@ export type PriorityType = 'Urgent' | 'High' | 'Medium' | 'Low';
 
 export type UserRole = 'admin' | 'staff';
 
+export type ViewType = 'dashboard' | 'project' | 'team' | 'summary' | 'recycle-bin';
+
 export interface AuthUser {
   id: string;
   name: string;

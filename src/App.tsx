@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Project, Task, TeamMember, StatusType, AuthUser, RecycleBinData } from './types';
+import { Project, Task, TeamMember, StatusType, AuthUser, RecycleBinData, ViewType } from './types';
 import {
   loadProjects,
   saveProjects,
@@ -31,6 +31,7 @@ import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { DatabaseStatusModal } from './components/DatabaseStatusModal';
 import { ProjectWeeklyReport } from './components/ProjectWeeklyReport';
 import { RecycleBinModal } from './components/RecycleBinModal';
+import { RecycleBinView } from './components/RecycleBinView';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import {
   checkDatabaseHealth,
@@ -90,7 +91,7 @@ export default function App() {
   };
 
   // Navigation & Core Data States
-  const [currentView, setCurrentView] = useState<'dashboard' | 'project' | 'team' | 'summary'>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [activeProjectId, setActiveProjectId] = useState<string>('');
   const [projects, setProjects] = useState<Project[]>(loadProjects);
   const [tasks, setTasks] = useState<Task[]>(loadTasks);
@@ -285,6 +286,12 @@ export default function App() {
 
   const handleGoToSummary = () => {
     setCurrentView('summary');
+  };
+
+  const handleGoToRecycleBin = () => {
+    refreshRecycleBin();
+    setCurrentView('recycle-bin');
+    setActiveProjectId('');
   };
 
   // Project management handlers
@@ -1051,6 +1058,7 @@ export default function App() {
         onGoToDashboard={handleGoToDashboard}
         onGoToTeam={handleGoToTeam}
         onGoToSummary={handleGoToSummary}
+        onGoToRecycleBin={handleGoToRecycleBin}
         projects={projects}
         activeProject={activeProject}
         onSelectProject={handleSelectProject}
@@ -1066,10 +1074,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         recycleBinCount={recycleBinData.totalCount}
-        onOpenRecycleBin={() => {
-          refreshRecycleBin();
-          setIsRecycleBinOpen(true);
-        }}
+        onOpenRecycleBin={handleGoToRecycleBin}
       />
 
       {/* Main Content Area */}
@@ -1089,10 +1094,7 @@ export default function App() {
             onDeleteProject={handleDeleteProjectRequest}
             refreshTrigger={activityTrigger}
             recycleBinCount={recycleBinData.totalCount}
-            onOpenRecycleBin={() => {
-              refreshRecycleBin();
-              setIsRecycleBinOpen(true);
-            }}
+            onOpenRecycleBin={handleGoToRecycleBin}
           />
         ) : currentView === 'team' ? (
           <TeamManagement
@@ -1113,6 +1115,16 @@ export default function App() {
             teamMembers={teamMembers}
             onSelectProject={handleSelectProject}
             onShowToast={showToast}
+          />
+        ) : currentView === 'recycle-bin' ? (
+          <RecycleBinView
+            recycleBinData={recycleBinData}
+            isLoading={isLoadingRecycleBin}
+            onRestoreItem={handleRestoreRecycleBinItem}
+            onPermanentDeleteItem={handlePermanentDeleteRecycleBinItem}
+            onEmptyRecycleBin={handleEmptyRecycleBin}
+            onBackToDashboard={handleGoToDashboard}
+            onRefresh={refreshRecycleBin}
           />
         ) : activeProject ? (
           <ProjectDetail

@@ -16,13 +16,14 @@ import {
   FileSpreadsheet,
   Trash2,
 } from 'lucide-react';
-import { Project, AuthUser } from '../types';
+import { Project, AuthUser, ViewType } from '../types';
 
 interface NavbarProps {
-  currentView: 'dashboard' | 'project' | 'team' | 'summary';
+  currentView: ViewType;
   onGoToDashboard: () => void;
   onGoToTeam: () => void;
   onGoToSummary: () => void;
+  onGoToRecycleBin?: () => void;
   projects: Project[];
   activeProject?: Project;
   onSelectProject: (projectId: string) => void;
@@ -46,6 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onGoToDashboard,
   onGoToTeam,
   onGoToSummary,
+  onGoToRecycleBin,
   projects,
   activeProject,
   onSelectProject,
@@ -64,6 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenRecycleBin,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
+  const handleRecycleBinAction = onGoToRecycleBin || onOpenRecycleBin;
 
   return (
     <header
@@ -139,11 +142,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* Recycle Bin tab */}
-            {onOpenRecycleBin && (
+            {handleRecycleBinAction && (
               <button
                 id="nav-recycle-bin-tab-btn"
-                onClick={onOpenRecycleBin}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/70 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                onClick={handleRecycleBinAction}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  currentView === 'recycle-bin'
+                    ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/70 dark:hover:bg-rose-950/40'
+                }`}
                 title="Recycle Bin (Kept for 1 week / 7 days)"
               >
                 <Trash2 className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
@@ -198,11 +205,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <FileSpreadsheet className="w-4 h-4" />
             </button>
-            {onOpenRecycleBin && (
+            {handleRecycleBinAction && (
               <button
                 id="nav-mobile-recycle-bin-btn"
-                onClick={onOpenRecycleBin}
-                className="relative p-1.5 rounded-lg text-xs text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                onClick={handleRecycleBinAction}
+                className={`relative p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                  currentView === 'recycle-bin'
+                    ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                }`}
                 title={`Recycle Bin${recycleBinCount > 0 ? ` (${recycleBinCount})` : ''}`}
               >
                 <Trash2 className="w-4 h-4 text-rose-500 dark:text-rose-400" />
@@ -279,12 +290,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           {/* Recycle Bin Button */}
-          {onOpenRecycleBin && (
+          {handleRecycleBinAction && (
             <button
               id="navbar-recycle-bin-btn"
-              onClick={onOpenRecycleBin}
+              onClick={handleRecycleBinAction}
               title={`Recycle Bin (Retention: 7 days)${recycleBinCount ? ` • ${recycleBinCount} items` : ''}`}
-              className="relative p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/40 transition-all cursor-pointer border border-transparent hover:border-rose-200 dark:hover:border-rose-800/60"
+              className={`relative p-2 rounded-xl transition-all cursor-pointer border ${
+                currentView === 'recycle-bin'
+                  ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800 shadow-2xs'
+                  : 'text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/40 border-transparent hover:border-rose-200 dark:hover:border-rose-800/60'
+              }`}
               aria-label="Open Recycle Bin"
             >
               <Trash2 className="w-4 h-4" />
