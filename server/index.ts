@@ -1511,6 +1511,37 @@ app.delete('/api/members/:id', async (req: Request, res: Response) => {
 // Telegram Automated Weekly Report Endpoints
 // ==========================================
 
+function escapeTelegramHtml(str: string): string {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function splitTelegramMessage(text: string, maxLength = 3900): string[] {
+  if (text.length <= maxLength) return [text];
+  const chunks: string[] = [];
+  let remaining = text;
+
+  while (remaining.length > 0) {
+    if (remaining.length <= maxLength) {
+      chunks.push(remaining);
+      break;
+    }
+    let splitIdx = remaining.lastIndexOf('\n\n', maxLength);
+    if (splitIdx === -1 || splitIdx < maxLength / 2) {
+      splitIdx = remaining.lastIndexOf('\n', maxLength);
+    }
+    if (splitIdx === -1 || splitIdx < maxLength / 2) {
+      splitIdx = maxLength;
+    }
+    chunks.push(remaining.slice(0, splitIdx).trim());
+    remaining = remaining.slice(splitIdx).trim();
+  }
+  return chunks;
+}
+
 async function sendTelegramMessage(botToken: string, chatId: string, text: string): Promise<{ ok: boolean; message?: string }> {
   if (!botToken || !chatId) {
     return { ok: false, message: 'Telegram Bot Token and Chat ID are required.' };
@@ -1518,20 +1549,27 @@ async function sendTelegramMessage(botToken: string, chatId: string, text: strin
   const cleanToken = botToken.trim();
   const cleanChatId = chatId.trim();
   const url = `https://api.telegram.org/bot${cleanToken}/sendMessage`;
+  const chunks = splitTelegramMessage(text, 3900);
+
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: cleanChatId,
-        text,
-        parse_mode: 'HTML',
-        disable_web_page_preview: true,
-      }),
-    });
-    const data: any = await res.json();
-    if (!data.ok) {
-      return { ok: false, message: data.description || 'Telegram API rejected message' };
+    for (const chunk of chunks) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: cleanChatId,
+          text: chunk,
+          parse_mode: 'HTML',
+          disable_web_page_preview: true,
+        }),
+      });
+      const data: any = await res.json();
+      if (!data.ok) {
+        return { ok: false, message: data.description || 'Telegram API rejected message' };
+      }
+      if (chunks.length > 1) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
     }
     return { ok: true };
   } catch (err: any) {
@@ -1577,32 +1615,67 @@ async function generateTelegramWeeklyReport(pool: any): Promise<string> {
   projects.forEach((p: any, idx: number) => {
     const pTasks = tasks.filter((t: any) => t.project_id === p.id);
     const pCompleted = pTasks.filter((t: any) => t.status === 'Completed');
-    const pOngoing = pTasks.filter((t: any) => t.status !== 'Completed');
+    const pInProgress = pTasks.filter((t: any) => t.status === 'In Progress');
+    const pPending = pTasks.filter((t: any) => t.status === 'Pending');
+    const pBlocked = pTasks.filter((t: any) => t.status === 'Blocked');
+    const pOther = pTasks.filter((t: any) => !['Completed', 'In Progress', 'Pending', 'Blocked'].includes(t.status));
     const pPercent = pTasks.length > 0 ? Math.round((pCompleted.length / pTasks.length) * 100) : 0;
 
     const statusEmoji = p.status === 'Completed' ? '✅' : p.status === 'Blocked' ? '🛑' : '🚀';
 
-    text += `${idx + 1}. ${statusEmoji} <b>${p.name.toUpperCase()}</b>\n`;
-    text += `   • <b>Status:</b> ${p.status} | <b>Progress:</b> ${pPercent}%\n`;
+    text += `${idx + 1}. ${statusEmoji} <b>${escapeTelegramHtml(p.name.toUpperCase())}</b>\n`;
+    text += `   • <b>Status:</b> ${escapeTelegramHtml(p.status)} | <b>Progress:</b> ${pPercent}%\n`;
     if (p.client) {
-      text += `   • <b>Client:</b> ${p.client}\n`;
+      text += `   • <b>Client:</b> ${escapeTelegramHtml(p.client)}\n`;
     }
 
+    // 1. Done / Completed tasks (All)
     if (pCompleted.length > 0) {
       text += `   • <b>Done:</b>\n`;
       pCompleted.forEach((t: any) => {
         const assignee = members.find((m: any) => m.id === t.assignee_id)?.name || 'Unassigned';
-        text += `     ✓ ${t.title} (${assignee})\n`;
+        text += `     ✓ ${escapeTelegramHtml(t.title)} (${escapeTelegramHtml(assignee)})\n`;
       });
     }
 
-    if (pOngoing.length > 0) {
+    // 2. In Progress tasks (All)
+    if (pInProgress.length > 0) {
       text += `   • <b>In Progress:</b>\n`;
-      pOngoing.slice(0, 4).forEach((t: any) => {
+      pInProgress.forEach((t: any) => {
         const assignee = members.find((m: any) => m.id === t.assignee_id)?.name || 'Unassigned';
-        const icon = t.status === 'Blocked' ? '⚠️' : '⏳';
-        text += `     ${icon} ${t.title} [${t.status}] (${assignee})\n`;
+        text += `     ⏳ ${escapeTelegramHtml(t.title)} [In Progress] (${escapeTelegramHtml(assignee)})\n`;
       });
+    }
+
+    // 3. Pending tasks (All)
+    if (pPending.length > 0) {
+      text += `   • <b>Pending:</b>\n`;
+      pPending.forEach((t: any) => {
+        const assignee = members.find((m: any) => m.id === t.assignee_id)?.name || 'Unassigned';
+        text += `     📋 ${escapeTelegramHtml(t.title)} [Pending] (${escapeTelegramHtml(assignee)})\n`;
+      });
+    }
+
+    // 4. Blocked tasks (All)
+    if (pBlocked.length > 0) {
+      text += `   • <b>Blocked:</b>\n`;
+      pBlocked.forEach((t: any) => {
+        const assignee = members.find((m: any) => m.id === t.assignee_id)?.name || 'Unassigned';
+        text += `     ⚠️ ${escapeTelegramHtml(t.title)} [Blocked] (${escapeTelegramHtml(assignee)})\n`;
+      });
+    }
+
+    // 5. Other custom statuses (if any exist)
+    if (pOther.length > 0) {
+      text += `   • <b>Other:</b>\n`;
+      pOther.forEach((t: any) => {
+        const assignee = members.find((m: any) => m.id === t.assignee_id)?.name || 'Unassigned';
+        text += `     • ${escapeTelegramHtml(t.title)} [${escapeTelegramHtml(t.status)}] (${escapeTelegramHtml(assignee)})\n`;
+      });
+    }
+
+    if (pTasks.length === 0) {
+      text += `   • <i>No tasks</i>\n`;
     }
 
     text += `\n`;
