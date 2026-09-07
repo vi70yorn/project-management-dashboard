@@ -6,6 +6,7 @@ import {
   AlertOctagon,
   Calendar,
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   Search,
   Users,
@@ -64,6 +65,11 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  // Deadlines Section Filter & Pagination State
+  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Pending' | 'Blocked'>('all');
+  const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(6);
+  const [deadlineCurrentPage, setDeadlineCurrentPage] = useState<number>(1);
+
   const safeProjects = Array.isArray(projects) ? projects : [];
   const safeTasks = Array.isArray(tasks) ? tasks : [];
   const safeMembers = Array.isArray(teamMembers) ? teamMembers : [];
@@ -100,13 +106,13 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     };
   }, [safeProjects, safeTasks]);
 
-  // Upcoming deadlines (Tasks & Projects sorted by deadline)
-  const upcomingDeadlines = useMemo(() => {
+  // All open tasks (In Progress, Pending, Blocked) sorted by nearest deadline
+  const allActiveDeadlines = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const activeTasks = safeTasks
-      .filter((t) => t.status !== 'Completed')
+    return safeTasks
+      .filter((t) => t.status === 'In Progress' || t.status === 'Pending' || t.status === 'Blocked')
       .map((t) => {
         const proj = safeProjects.find((p) => p.id === t.projectId);
         const assignee = safeMembers.find((m) => m.id === t.assigneeId);
@@ -128,9 +134,40 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         };
       })
       .sort((a, b) => a.diffDays - b.diffDays);
-
-    return activeTasks.slice(0, 6);
   }, [safeTasks, safeProjects, safeMembers]);
+
+  // Counts by status for quick tabs
+  const deadlineCounts = useMemo(() => {
+    return {
+      all: allActiveDeadlines.length,
+      inProgress: allActiveDeadlines.filter((d) => d.status === 'In Progress').length,
+      pending: allActiveDeadlines.filter((d) => d.status === 'Pending').length,
+      blocked: allActiveDeadlines.filter((d) => d.status === 'Blocked').length,
+    };
+  }, [allActiveDeadlines]);
+
+  // Filtered by selected tab
+  const filteredDeadlines = useMemo(() => {
+    if (deadlineStatusFilter === 'all') return allActiveDeadlines;
+    return allActiveDeadlines.filter((d) => d.status === deadlineStatusFilter);
+  }, [allActiveDeadlines, deadlineStatusFilter]);
+
+  // Pagination calculation
+  const totalDeadlineItems = filteredDeadlines.length;
+  const effectivePageSize = deadlinePageSize === 'all' ? (totalDeadlineItems || 1) : deadlinePageSize;
+  const totalDeadlinePages = Math.max(1, Math.ceil(totalDeadlineItems / effectivePageSize));
+  const safeCurrentPage = Math.min(Math.max(1, deadlineCurrentPage), totalDeadlinePages);
+
+  const displayedDeadlines = useMemo(() => {
+    if (deadlinePageSize === 'all') return filteredDeadlines;
+    const startIdx = (safeCurrentPage - 1) * effectivePageSize;
+    return filteredDeadlines.slice(startIdx, startIdx + effectivePageSize);
+  }, [filteredDeadlines, deadlinePageSize, safeCurrentPage, effectivePageSize]);
+
+  const handleStatusFilterChange = (status: 'all' | 'In Progress' | 'Pending' | 'Blocked') => {
+    setDeadlineStatusFilter(status);
+    setDeadlineCurrentPage(1);
+  };
 
   // Filtered Projects list
   const filteredProjects = useMemo(() => {
@@ -342,123 +379,229 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         <div className="xl:col-span-8 space-y-8 min-w-0">
           {/* Upcoming Deadlines Section */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 id="deadlines-heading" className="text-base font-semibold text-slate-900 dark:text-white">
-                Upcoming Deadlines & Milestones
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Sorted by nearest target due date across all projects
-              </p>
-            </div>
-          </div>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            {upcomingDeadlines.length} items queued
-          </span>
-        </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 id="deadlines-heading" className="text-base font-semibold text-slate-900 dark:text-white">
+                    Upcoming Deadlines & Milestones
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Sorted by nearest target due date across all projects
+                  </p>
+                </div>
+              </div>
 
-        {upcomingDeadlines.length === 0 ? (
-          <p className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">
-            No pending task deadlines. All current tasks completed!
-          </p>
-        ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {upcomingDeadlines.map((item) => {
-              const isOverdue = item.diffDays < 0;
-              const isToday = item.diffDays === 0;
-
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => onSelectProject(item.projectId)}
-                  className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 -mx-3 px-3 rounded-lg cursor-pointer transition-colors"
-                >
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
-                      style={{ backgroundColor: item.projectColor }}
-                      title={`Project: ${item.projectName}`}
-                    />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                          {item.title}
-                        </span>
-                        <PriorityBadge priority={item.priority} size="sm" />
-                        <StatusBadge status={item.status} size="sm" />
-                      </div>
-
-                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
-                        <span className="font-medium text-slate-700 dark:text-slate-300">{item.projectName}</span>
-                        {item.assignee && (
-                          <>
-                            <span>&bull;</span>
-                            <div className="flex items-center gap-1.5">
-                              {item.assignee.avatar ? (
-                                <img
-                                  src={item.assignee.avatar}
-                                  alt={item.assignee.name}
-                                  className="w-4 h-4 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div
-                                  style={{ backgroundColor: item.assignee.color || '#2563eb' }}
-                                  className="w-4 h-4 rounded-full text-white text-3xs flex items-center justify-center font-bold"
-                                >
-                                  {getInitials(item.assignee.name)}
-                                </div>
-                              )}
-                              <span>{item.assignee.name}</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Deadline Countdown Pill */}
-                  <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
-                    <div
-                      className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 ${
-                        isToday
-                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-bold ring-1 ring-rose-400/80 shadow-2xs'
-                          : isOverdue
-                          ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-semibold'
-                          : item.diffDays <= 3
-                          ? 'bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+              {/* Status Filter Tabs */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { label: 'All', value: 'all', count: deadlineCounts.all },
+                  { label: 'In Progress', value: 'In Progress', count: deadlineCounts.inProgress },
+                  { label: 'Pending', value: 'Pending', count: deadlineCounts.pending },
+                  { label: 'Blocked', value: 'Blocked', count: deadlineCounts.blocked },
+                ].map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => handleStatusFilterChange(tab.value as any)}
+                    className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                      deadlineStatusFilter === tab.value
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={`text-3xs px-1.5 py-0.2 rounded-full font-semibold ${
+                        deadlineStatusFilter === tab.value
+                          ? 'bg-white/25 text-white'
+                          : tab.value === 'Blocked' && tab.count > 0
+                          ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                       }`}
                     >
-                      {isToday ? (
-                        <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse shrink-0" />
-                      ) : isOverdue ? (
-                        <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
-                      ) : (
-                        <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-                      )}
-                      <span>
-                        {isToday
-                          ? 'Due Today!'
-                          : isOverdue
-                          ? `Overdue by ${Math.abs(item.diffDays)}d`
-                          : `Due in ${item.diffDays} days (${item.dueDate})`}
-                      </span>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {displayedDeadlines.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">
+                {deadlineStatusFilter === 'all'
+                  ? 'No pending task deadlines. All current tasks completed!'
+                  : `No tasks found with status "${deadlineStatusFilter}".`}
+              </p>
+            ) : (
+              <div
+                className={`divide-y divide-slate-100 dark:divide-slate-800 ${
+                  deadlinePageSize === 'all' || displayedDeadlines.length > 6
+                    ? 'max-h-[500px] overflow-y-auto pr-1'
+                    : ''
+                }`}
+              >
+                {displayedDeadlines.map((item) => {
+                  const isOverdue = item.diffDays < 0;
+                  const isToday = item.diffDays === 0;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => onSelectProject(item.projectId)}
+                      className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 -mx-3 px-3 rounded-lg cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
+                          style={{ backgroundColor: item.projectColor }}
+                          title={`Project: ${item.projectName}`}
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              {item.title}
+                            </span>
+                            <PriorityBadge priority={item.priority} size="sm" />
+                            <StatusBadge status={item.status} size="sm" />
+                          </div>
+
+                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+                            <span className="font-medium text-slate-700 dark:text-slate-300">{item.projectName}</span>
+                            {item.assignee && (
+                              <>
+                                <span>&bull;</span>
+                                <div className="flex items-center gap-1.5">
+                                  {item.assignee.avatar ? (
+                                    <img
+                                      src={item.assignee.avatar}
+                                      alt={item.assignee.name}
+                                      className="w-4 h-4 rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <div
+                                      style={{ backgroundColor: item.assignee.color || '#2563eb' }}
+                                      className="w-4 h-4 rounded-full text-white text-3xs flex items-center justify-center font-bold"
+                                    >
+                                      {getInitials(item.assignee.name)}
+                                    </div>
+                                  )}
+                                  <span>{item.assignee.name}</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Deadline Countdown Pill */}
+                      <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
+                        <div
+                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 ${
+                            isToday
+                              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-bold ring-1 ring-rose-400/80 shadow-2xs'
+                              : isOverdue
+                              ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-semibold'
+                              : item.diffDays <= 3
+                              ? 'bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                              : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                          }`}
+                        >
+                          {isToday ? (
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse shrink-0" />
+                          ) : isOverdue ? (
+                            <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                          ) : (
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                          )}
+                          <span>
+                            {isToday
+                              ? 'Due Today!'
+                              : isOverdue
+                              ? `Overdue by ${Math.abs(item.diffDays)}d`
+                              : `Due in ${item.diffDays} days (${item.dueDate})`}
+                          </span>
+                        </div>
+
+                        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            )}
 
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                  </div>
+            {/* Footer Pagination & View Controls */}
+            {totalDeadlineItems > 0 && (
+              <div className="pt-3.5 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex items-center gap-1.5">
+                  <span>
+                    Showing{' '}
+                    <strong className="text-slate-700 dark:text-slate-200">
+                      {deadlinePageSize === 'all'
+                        ? totalDeadlineItems
+                        : `${(safeCurrentPage - 1) * (deadlinePageSize as number) + 1}–${Math.min(
+                            safeCurrentPage * (deadlinePageSize as number),
+                            totalDeadlineItems
+                          )}`}
+                    </strong>{' '}
+                    of <strong className="text-slate-700 dark:text-slate-200">{totalDeadlineItems}</strong> tasks
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
-      {/* Projects Directory & Summary Cards */}
+                <div className="flex items-center gap-3">
+                  {/* View mode switcher */}
+                  <div className="flex items-center gap-1 text-2xs">
+                    <span className="text-slate-400 mr-0.5">Show:</span>
+                    {[6, 12, 'all'].map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => {
+                          setDeadlinePageSize(size as any);
+                          setDeadlineCurrentPage(1);
+                        }}
+                        className={`px-2 py-0.5 rounded cursor-pointer font-medium transition-colors ${
+                          deadlinePageSize === size
+                            ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {size === 'all' ? 'All' : size}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Pagination Buttons (when not viewing 'all' and more than 1 page) */}
+                  {deadlinePageSize !== 'all' && totalDeadlinePages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        disabled={safeCurrentPage <= 1}
+                        onClick={() => setDeadlineCurrentPage((p) => Math.max(1, p - 1))}
+                        className="p-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                        title="Previous page"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-2xs font-semibold px-1 text-slate-600 dark:text-slate-300">
+                        {safeCurrentPage} / {totalDeadlinePages}
+                      </span>
+                      <button
+                        disabled={safeCurrentPage >= totalDeadlinePages}
+                        onClick={() => setDeadlineCurrentPage((p) => Math.min(totalDeadlinePages, p + 1))}
+                        className="p-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                        title="Next page"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Projects Directory & Summary Cards */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
