@@ -89,9 +89,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onGoToDashboard}
             className="flex items-center gap-2.5 cursor-pointer group select-none"
           >
-            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors shrink-0">
+            {/* <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors shrink-0">
               <Layers className="w-5 h-5" />
-            </div>
+            </div> */}
             <div className="h-9 flex flex-col justify-center -translate-y-0.5">
               <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-none">
                 UX/UI
@@ -114,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
-              Dashboard Summary
+              Dashboard
             </button>
 
 
@@ -146,7 +146,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              Team Directory
+              Team
               <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                 {teamCount}
               </span>
@@ -164,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Project Weekly Summary (Mon - Fri) for Project Manager"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              Project Summary
+              Summary
             </button>
 
             {/* Recycle Bin tab */}
