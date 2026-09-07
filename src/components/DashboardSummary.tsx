@@ -414,7 +414,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </div>
 
               {/* Status Filter Tabs */}
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
                 {[
                   { label: 'All', value: 'all', count: deadlineCounts.all },
                   { label: 'In Progress', value: 'In Progress', count: deadlineCounts.inProgress },
@@ -424,20 +424,20 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                   <button
                     key={tab.value}
                     onClick={() => handleStatusFilterChange(tab.value as any)}
-                    className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
                       deadlineStatusFilter === tab.value
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <span>{tab.label}</span>
                     <span
-                      className={`text-3xs px-1.5 py-0.2 rounded-full font-semibold ${
+                      className={`text-3xs px-1.5 py-0.5 rounded-full font-semibold ${
                         deadlineStatusFilter === tab.value
-                          ? 'bg-white/25 text-white'
+                          ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
                           : tab.value === 'Blocked' && tab.count > 0
                           ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
-                          : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                          : 'bg-slate-200/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-400'
                       }`}
                     >
                       {tab.count}
