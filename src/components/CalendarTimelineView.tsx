@@ -445,7 +445,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
   return (
     <div id="calendar-timeline-view" className="space-y-5 animate-in fade-in duration-200">
       {/* Top Header & View Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
         <div>
           <button
             onClick={onBackToDashboard}
@@ -454,57 +454,30 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Dashboard
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-800 shadow-2xs shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
               <CalendarIcon className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
                 Calendar & Timeline
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Track project schedules and task deliverables spanning from Start Date to Target Due Date.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Month Navigation & View Switcher */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Month Switcher */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 rounded-xl p-1 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
-            <button
-              onClick={handlePrevMonth}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 transition-all cursor-pointer"
-              title="Previous Month"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="px-3 text-xs sm:text-sm font-bold text-slate-800 dark:text-white min-w-[130px] text-center">
-              {monthName}
-            </span>
-            <button
-              onClick={handleNextMonth}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 transition-all cursor-pointer"
-              title="Next Month"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleToday}
-              className="ml-1 px-2.5 py-1 text-2xs font-bold uppercase tracking-wider bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-lg shadow-2xs hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors cursor-pointer"
-            >
-              Today
-            </button>
-          </div>
-
+        {/* View Switcher & Month Navigation Controls */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Mode Switcher: Calendar vs Timeline */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 rounded-xl p-1 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
             <button
               onClick={() => setViewMode('calendar')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'calendar'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                  ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -513,14 +486,43 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
             </button>
             <button
               onClick={() => setViewMode('timeline')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'timeline'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                  ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Timeline (Gantt)</span>
+              <span>Timeline</span>
+            </button>
+          </div>
+
+          {/* Stepper navigator */}
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
+            <button
+              onClick={handlePrevMonth}
+              className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              title="Previous Month"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <div className="flex items-center gap-1.5 px-1">
+              <CalendarIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>{monthName}</span>
+            </div>
+            <button
+              onClick={handleNextMonth}
+              className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              title="Next Month"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handleToday}
+              className="ml-1 px-2 py-0.5 text-3xs font-bold uppercase tracking-wider bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-md shadow-2xs hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors cursor-pointer border border-slate-200/60 dark:border-slate-600/60"
+              title="Jump to Current Month"
+            >
+              Today
             </button>
           </div>
         </div>
