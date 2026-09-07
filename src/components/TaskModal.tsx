@@ -23,6 +23,7 @@ import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect } from './ui/CustomSelect';
+import { DatePicker } from './ui/DatePicker';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -592,12 +593,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Start Date
               </label>
-              <input
+              <DatePicker
                 id="task-start-date-input"
-                type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={FORM_STYLES.input}
+                onChange={setStartDate}
+                placeholder="Select start date"
               />
             </div>
 
@@ -613,17 +613,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   </span>
                 )}
               </div>
-              <input
+              <DatePicker
                 id="task-due-date-input"
-                type="date"
                 required
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-xs font-medium shadow-2xs transition-colors focus:outline-hidden ${
-                  dueDate && isDueToday(dueDate)
-                    ? 'border-rose-400 dark:border-rose-700 bg-rose-50/60 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 font-bold focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500'
-                    : FORM_STYLES.input
-                }`}
+                onChange={setDueDate}
+                placeholder="Select due date"
+                isDueToday={Boolean(dueDate && isDueToday(dueDate))}
               />
             </div>
           </div>
