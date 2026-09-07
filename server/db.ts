@@ -192,7 +192,7 @@ export async function runMigrationsAndSeed(): Promise<void> {
       INSERT INTO activity_logs (id, user_id, user_name, action_type, entity_type, entity_id, entity_name, project_id, project_name, details, created_at)
       VALUES
           ('act-1', 'mem-1788624800573', 'Likka', 'update_task_status', 'task', 'task-1788624838718', 'Report Screen', 'proj-1788624651745', 'Merchant 5.0', '{"fromStatus": "In Progress", "toStatus": "Completed"}', '2026-09-05T16:55:13.264Z'),
-          ('act-2', 'mem-1788624380119', 'David', 'update_task_status', 'task', 'task-1788624689153', 'Home', 'proj-1788624651745', 'Merchant 5.0', '{"fromStatus": "Pending", "toStatus": "In Progress"}', '2026-09-06T05:42:02.918Z'),
+          ('act-2', 'mem-1788624380119', 'David', 'update_task_status', 'task', 'task-1788624689153', 'Home', 'proj-1788624651745', 'Merchant 5.0', '{"fromStatus": "Ready Review", "toStatus": "In Progress"}', '2026-09-06T05:42:02.918Z'),
           ('act-3', 'mem-1788624319284', 'Y.VICHET', 'create_project', 'project', 'proj-1788624651745', 'Merchant 5.0', 'proj-1788624651745', 'Merchant 5.0', '{"status": "In Progress"}', '2026-09-05T16:10:52.120Z')
       ON CONFLICT (id) DO NOTHING;
 
@@ -288,6 +288,11 @@ export async function runMigrationsAndSeed(): Promise<void> {
       UPDATE tasks
       SET updated_by = COALESCE(created_by, assignee_id, 'mem-1788624319284')
       WHERE updated_by IS NULL;
+
+      -- Status migration: convert 'Pending' to 'Ready Review'
+      UPDATE tasks SET status = 'Ready Review' WHERE status = 'Pending';
+      UPDATE projects SET status = 'Ready Review' WHERE status = 'Pending';
+      ALTER TABLE projects ALTER COLUMN status SET DEFAULT 'Ready Review';
     `);
 
     console.log('[PostgreSQL] Database schema, credentials & initial seeds verified successfully.');

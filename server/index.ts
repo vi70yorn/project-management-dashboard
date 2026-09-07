@@ -331,7 +331,7 @@ app.post('/api/projects', async (req: Request, res: Response) => {
     name,
     description,
     client,
-    status = 'Pending',
+    status = 'Ready Review',
     startDate,
     targetDeadline,
     managerId,
@@ -1616,9 +1616,9 @@ async function generateTelegramWeeklyReport(pool: any): Promise<string> {
     const pTasks = tasks.filter((t: any) => t.project_id === p.id);
     const pCompleted = pTasks.filter((t: any) => t.status === 'Completed');
     const pInProgress = pTasks.filter((t: any) => t.status === 'In Progress');
-    const pPending = pTasks.filter((t: any) => t.status === 'Pending');
+    const pReadyReview = pTasks.filter((t: any) => t.status === 'Ready Review' || t.status === 'Pending');
     const pBlocked = pTasks.filter((t: any) => t.status === 'Blocked');
-    const pOther = pTasks.filter((t: any) => !['Completed', 'In Progress', 'Pending', 'Blocked'].includes(t.status));
+    const pOther = pTasks.filter((t: any) => !['Completed', 'In Progress', 'Ready Review', 'Pending', 'Blocked'].includes(t.status));
     const pPercent = pTasks.length > 0 ? Math.round((pCompleted.length / pTasks.length) * 100) : 0;
 
     const statusEmoji = p.status === 'Completed' ? '✅' : p.status === 'Blocked' ? '🛑' : '🚀';
@@ -1647,12 +1647,12 @@ async function generateTelegramWeeklyReport(pool: any): Promise<string> {
       });
     }
 
-    // 3. Pending tasks (All)
-    if (pPending.length > 0) {
-      text += `   • <b>Pending:</b>\n`;
-      pPending.forEach((t: any) => {
+    // 3. Ready Review tasks (All)
+    if (pReadyReview.length > 0) {
+      text += `   • <b>Ready Review:</b>\n`;
+      pReadyReview.forEach((t: any) => {
         const assignee = members.find((m: any) => m.id === t.assignee_id)?.name || 'Unassigned';
-        text += `     📋 ${escapeTelegramHtml(t.title)} [Pending] (${escapeTelegramHtml(assignee)})\n`;
+        text += `     📋 ${escapeTelegramHtml(t.title)} [Ready Review] (${escapeTelegramHtml(assignee)})\n`;
       });
     }
 

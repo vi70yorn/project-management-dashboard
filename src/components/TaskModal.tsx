@@ -449,7 +449,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Status <span className="text-2xs text-slate-400 dark:text-slate-500">(In Progress, Pending, Blocked, Completed)</span>
+                Status <span className="text-2xs text-slate-400 dark:text-slate-500">(In Progress, Ready Review, Blocked, Completed)</span>
               </label>
               <div className="relative">
                 <select
@@ -459,7 +459,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   className={FORM_STYLES.select}
                 >
                   <option value="In Progress">In Progress</option>
-                  <option value="Pending">Pending</option>
+                  <option value="Ready Review">Ready Review</option>
                   <option value="Blocked">Blocked</option>
                   <option value="Completed">Completed</option>
                 </select>

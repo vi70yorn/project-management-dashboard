@@ -216,19 +216,19 @@ erDiagram
 - **Team Velocity**: Active team members count and animated overall completion rate progress bar (`%`).
 
 #### 3.2 Upcoming Deadlines & Milestones
-- **Auto-Sorting**: Orders all pending, in-progress, and blocked tasks chronologically by due date.
+- **Auto-Sorting**: Orders all ready review, in-progress, and blocked tasks chronologically by due date.
 - **Dynamic Countdown Badges**:
   - `Due Today!` (Pulse alert with rose badge).
   - `Overdue by Xd` (Critical alert with rose badge).
   - `Due in X days` (Amber if $\le 3$ days, slate if $> 3$ days).
-- **Status Filters**: Quick filters for `All`, `In Progress`, `Pending`, and `Blocked` with inline counts.
+- **Status Filters**: Quick filters for `All`, `In Progress`, `Ready Review`, and `Blocked` with inline counts.
 - **Pagination**: Configurable page sizes (`6`, `12`, or `All`) with responsive pagination controls.
 
 #### 3.3 Projects Directory
 - **Status Tabs with Real-Time Counters**:
   - `All Projects (count)`
   - `In Progress (count)`
-  - `Pending (count)`
+  - `Ready Review (count)`
   - `Blocked (count)` (accented in soft red pill when count $> 0$)
   - `Completed (count)`
 - **Search & Filter Bar**:
@@ -248,7 +248,7 @@ erDiagram
   - Color banner, client tag, manager indicator, date range, and quick status modifier.
   - Overlapping team member avatar stack with role tooltips.
 - **Kanban Deliverables Board**:
-  - 4 workflow columns: **Pending**, **In Progress**, **Blocked**, **Completed**.
+  - 4 workflow columns: **In Progress**, **Ready Review**, **Blocked**, **Completed**.
   - Interactive cards showing priority pills (`Urgent`, `High`, `Medium`, `Low`), target deadlines, assignee avatars, and creator attribution.
   - Seamless status transition actions directly from cards or modal.
 - **Task Modal**:
@@ -339,7 +339,7 @@ erDiagram
 | `GET` | `/api/projects` | Fetch all active projects with member IDs & creator metadata | Optional |
 | `POST` | `/api/projects` | Create new project | `x-user-member-id`, `x-user-name` |
 | `PUT` | `/api/projects/:id` | Update project details (name, client, dates, description, tags) | `x-user-member-id` |
-| `PATCH`| `/api/projects/:id/status` | Update project status (`In Progress`, `Pending`, etc.) | `x-user-member-id` |
+| `PATCH`| `/api/projects/:id/status` | Update project status (`In Progress`, `Ready Review`, etc.) | `x-user-member-id` |
 | `PATCH`| `/api/projects/:id/members`| Update project team member assignments | `x-user-member-id` |
 | `DELETE`| `/api/projects/:id` | Soft-delete project (moves to Recycle Bin) | `x-user-member-id` (Admin) |
 | `GET` | `/api/tasks` | Fetch all active tasks with project & assignee details | Optional |

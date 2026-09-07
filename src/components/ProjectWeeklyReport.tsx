@@ -86,7 +86,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       const completed = pTasks.filter((t) => t.status === 'Completed');
       const inProgress = pTasks.filter((t) => t.status === 'In Progress');
       const blocked = pTasks.filter((t) => t.status === 'Blocked');
-      const pending = pTasks.filter((t) => t.status === 'Pending');
+      const readyReview = pTasks.filter((t) => t.status === 'Ready Review' || t.status === 'Pending');
 
       const percent = total > 0 ? Math.round((completed.length / total) * 100) : 0;
 
@@ -102,7 +102,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       });
 
       // In progress / ongoing deliverables
-      const ongoingList = [...inProgress, ...blocked, ...pending].map((t) => {
+      const ongoingList = [...inProgress, ...blocked, ...readyReview].map((t) => {
         const mem = teamMembers.find((m) => m.id === t.assigneeId);
         return {
           ...t,
@@ -122,7 +122,8 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
         completedCount: completed.length,
         inProgressCount: inProgress.length,
         blockedCount: blocked.length,
-        pendingCount: pending.length,
+        readyReviewCount: readyReview.length,
+        pendingCount: readyReview.length,
         percent,
         completedList,
         ongoingList,

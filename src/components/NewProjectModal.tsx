@@ -207,7 +207,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
                   className={FORM_STYLES.select}
                 >
                   <option value="In Progress">In Progress</option>
-                  <option value="Pending">Pending</option>
+                  <option value="Ready Review">Ready Review</option>
                   <option value="Blocked">Blocked</option>
                   <option value="Completed">Completed</option>
                 </select>

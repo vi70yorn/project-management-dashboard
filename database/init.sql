@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS projects (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     client VARCHAR(255),
-    status VARCHAR(32) NOT NULL DEFAULT 'Pending',   -- 'In Progress', 'Pending', 'Blocked', 'Completed'
+    status VARCHAR(32) NOT NULL DEFAULT 'Ready Review',   -- 'In Progress', 'Ready Review', 'Blocked', 'Completed'
     start_date VARCHAR(32),
     target_deadline VARCHAR(32),
     manager_id VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     project_id VARCHAR(64) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    status VARCHAR(32) NOT NULL DEFAULT 'In Progress', -- 'In Progress', 'Pending', 'Blocked', 'Completed'
+    status VARCHAR(32) NOT NULL DEFAULT 'In Progress', -- 'In Progress', 'Ready Review', 'Blocked', 'Completed'
     priority VARCHAR(32) NOT NULL DEFAULT 'Medium',    -- 'Urgent', 'High', 'Medium', 'Low'
     assignee_id VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     created_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
@@ -163,7 +163,7 @@ CREATE INDEX IF NOT EXISTS idx_activity_logs_project_id ON activity_logs(project
 INSERT INTO activity_logs (id, user_id, user_name, action_type, entity_type, entity_id, entity_name, project_id, project_name, details, created_at)
 VALUES
     ('act-1', 'mem-1788624800573', 'Likka', 'update_task_status', 'task', 'task-1788624838718', 'Report Screen', 'proj-1788624651745', 'Merchant 5.0', '{"fromStatus": "In Progress", "toStatus": "Completed"}', '2026-09-05T16:55:13.264Z'),
-    ('act-2', 'mem-1788624380119', 'David', 'update_task_status', 'task', 'task-1788624689153', 'Home', 'proj-1788624651745', 'Merchant 5.0', '{"fromStatus": "Pending", "toStatus": "In Progress"}', '2026-09-06T05:42:02.918Z'),
+    ('act-2', 'mem-1788624380119', 'David', 'update_task_status', 'task', 'task-1788624689153', 'Home', 'proj-1788624651745', 'Merchant 5.0', '{"fromStatus": "Ready Review", "toStatus": "In Progress"}', '2026-09-06T05:42:02.918Z'),
     ('act-3', 'mem-1788624319284', 'Y.VICHET', 'create_project', 'project', 'proj-1788624651745', 'Merchant 5.0', 'proj-1788624651745', 'Merchant 5.0', '{"status": "In Progress"}', '2026-09-05T16:10:52.120Z')
 ON CONFLICT (id) DO NOTHING;
 

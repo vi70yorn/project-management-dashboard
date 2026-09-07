@@ -70,7 +70,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const [projectListViewMode, setProjectListViewMode] = useState<'card' | 'table'>('table');
 
   // Deadlines Section Filter & Pagination State
-  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Pending' | 'Blocked'>('all');
+  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Ready Review' | 'Blocked'>('all');
   const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(6);
   const [deadlineCurrentPage, setDeadlineCurrentPage] = useState<number>(1);
 
@@ -82,7 +82,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const metrics = useMemo(() => {
     const totalProjects = safeProjects.length;
     const activeProjects = safeProjects.filter(
-      (p) => p.status === 'In Progress' || p.status === 'Pending'
+      (p) => p.status === 'In Progress' || p.status === 'Ready Review' || p.status === 'Pending'
     ).length;
     const blockedProjects = safeProjects.filter((p) => p.status === 'Blocked').length;
     const completedProjects = safeProjects.filter((p) => p.status === 'Completed').length;
@@ -91,7 +91,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     const inProgressTasks = safeTasks.filter((t) => t.status === 'In Progress').length;
     const blockedTasks = safeTasks.filter((t) => t.status === 'Blocked').length;
     const completedTasks = safeTasks.filter((t) => t.status === 'Completed').length;
-    const pendingTasks = safeTasks.filter((t) => t.status === 'Pending').length;
+    const readyReviewTasks = safeTasks.filter((t) => t.status === 'Ready Review' || t.status === 'Pending').length;
 
     const overallCompletionRate =
       totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -105,18 +105,19 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       inProgressTasks,
       blockedTasks,
       completedTasks,
-      pendingTasks,
+      readyReviewTasks,
+      pendingTasks: readyReviewTasks,
       overallCompletionRate,
     };
   }, [safeProjects, safeTasks]);
 
-  // All open tasks (In Progress, Pending, Blocked) sorted by nearest deadline
+  // All open tasks (In Progress, Ready Review, Blocked) sorted by nearest deadline
   const allActiveDeadlines = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     return safeTasks
-      .filter((t) => t.status === 'In Progress' || t.status === 'Pending' || t.status === 'Blocked')
+      .filter((t) => t.status === 'In Progress' || t.status === 'Ready Review' || t.status === 'Pending' || t.status === 'Blocked')
       .map((t) => {
         const proj = safeProjects.find((p) => p.id === t.projectId);
         const assignee = safeMembers.find((m) => m.id === t.assigneeId);
@@ -142,10 +143,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
   // Counts by status for quick tabs
   const deadlineCounts = useMemo(() => {
+    const readyReview = allActiveDeadlines.filter((d) => d.status === 'Ready Review' || d.status === 'Pending').length;
     return {
       all: allActiveDeadlines.length,
       inProgress: allActiveDeadlines.filter((d) => d.status === 'In Progress').length,
-      pending: allActiveDeadlines.filter((d) => d.status === 'Pending').length,
+      readyReview,
+      pending: readyReview,
       blocked: allActiveDeadlines.filter((d) => d.status === 'Blocked').length,
     };
   }, [allActiveDeadlines]);
@@ -168,17 +171,19 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     return filteredDeadlines.slice(startIdx, startIdx + effectivePageSize);
   }, [filteredDeadlines, deadlinePageSize, safeCurrentPage, effectivePageSize]);
 
-  const handleStatusFilterChange = (status: 'all' | 'In Progress' | 'Pending' | 'Blocked') => {
+  const handleStatusFilterChange = (status: 'all' | 'In Progress' | 'Ready Review' | 'Blocked') => {
     setDeadlineStatusFilter(status);
     setDeadlineCurrentPage(1);
   };
 
   // Project counts per status
   const projectStatusCounts = useMemo(() => {
+    const readyReview = safeProjects.filter((p) => p.status === 'Ready Review' || p.status === 'Pending').length;
     return {
       all: safeProjects.length,
       inProgress: safeProjects.filter((p) => p.status === 'In Progress').length,
-      pending: safeProjects.filter((p) => p.status === 'Pending').length,
+      readyReview,
+      pending: readyReview,
       blocked: safeProjects.filter((p) => p.status === 'Blocked').length,
       completed: safeProjects.filter((p) => p.status === 'Completed').length,
     };
@@ -303,7 +308,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{metrics.inProgressTasks}</p>
           <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
-            {metrics.pendingTasks} pending review
+            {metrics.readyReviewTasks} ready review
           </p>
         </div>
 
@@ -412,7 +417,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 {[
                   { label: 'All', value: 'all', count: deadlineCounts.all },
                   { label: 'In Progress', value: 'In Progress', count: deadlineCounts.inProgress },
-                  { label: 'Pending', value: 'Pending', count: deadlineCounts.pending },
+                  { label: 'Ready Review', value: 'Ready Review', count: deadlineCounts.readyReview },
                   { label: 'Blocked', value: 'Blocked', count: deadlineCounts.blocked },
                 ].map((tab) => (
                   <button
@@ -669,7 +674,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               {[
                 { label: 'All Projects', value: 'all', count: projectStatusCounts.all },
                 { label: 'In Progress', value: 'In Progress', count: projectStatusCounts.inProgress },
-                { label: 'Pending', value: 'Pending', count: projectStatusCounts.pending },
+                { label: 'Ready Review', value: 'Ready Review', count: projectStatusCounts.readyReview },
                 { label: 'Blocked', value: 'Blocked', count: projectStatusCounts.blocked },
                 { label: 'Completed', value: 'Completed', count: projectStatusCounts.completed },
               ].map((st) => (
@@ -791,7 +796,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                     const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
                     const inProgressCount = projectTasks.filter((t) => t.status === 'In Progress').length;
                     const blockedCount = projectTasks.filter((t) => t.status === 'Blocked').length;
-                    const pendingCount = projectTasks.filter((t) => t.status === 'Pending').length;
+                    const readyReviewCount = projectTasks.filter((t) => t.status === 'Ready Review' || t.status === 'Pending').length;
                     const completionPercent =
                       projectTasks.length > 0
                         ? Math.round((completedCount / projectTasks.length) * 100)
@@ -868,13 +873,13 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                                     ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                                     : project.status === 'Blocked'
                                     ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
-                                    : project.status === 'Pending'
+                                    : project.status === 'Ready Review' || project.status === 'Pending'
                                     ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                                     : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
                                 }`}
                               >
                                 <option value="In Progress">In Progress</option>
-                                <option value="Pending">Pending</option>
+                                <option value="Ready Review">Ready Review</option>
                                 <option value="Blocked">Blocked</option>
                                 <option value="Completed">Completed</option>
                               </select>
@@ -920,10 +925,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                                 {completedCount} Done
                               </span>
                             )}
-                            {inProgressCount + pendingCount > 0 && (
+                            {inProgressCount + readyReviewCount > 0 && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-4xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800">
                                 <Clock className="w-2.5 h-2.5" />
-                                {inProgressCount + pendingCount} Ongoing
+                                {inProgressCount + readyReviewCount} Ongoing
                               </span>
                             )}
                             {blockedCount > 0 && (
@@ -1112,7 +1117,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                             )}`}
                           >
                             <option value="In Progress">In Progress</option>
-                            <option value="Pending">Pending</option>
+                            <option value="Ready Review">Ready Review</option>
                             <option value="Blocked">Blocked</option>
                             <option value="Completed">Completed</option>
                           </select>

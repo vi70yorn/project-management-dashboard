@@ -200,12 +200,13 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
   };
 
   // Helper for status background pill
-  const getStatusPillClass = (status: StatusType) => {
+  const getStatusPillClass = (status: StatusType | string) => {
     switch (status) {
       case 'Completed':
         return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
       case 'In Progress':
         return 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800';
+      case 'Ready Review':
       case 'Pending':
         return 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800';
       case 'Blocked':
@@ -216,12 +217,13 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
   };
 
   // Helper for Gantt bar color
-  const getGanttTaskColor = (status: StatusType) => {
+  const getGanttTaskColor = (status: StatusType | string) => {
     switch (status) {
       case 'Completed':
         return 'bg-emerald-500 hover:bg-emerald-600 text-white';
       case 'In Progress':
         return 'bg-blue-600 hover:bg-blue-700 text-white';
+      case 'Ready Review':
       case 'Pending':
         return 'bg-amber-500 hover:bg-amber-600 text-white';
       case 'Blocked':
@@ -612,7 +614,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
             >
               <option value="all">All Statuses</option>
               <option value="In Progress">In Progress</option>
-              <option value="Pending">Pending</option>
+              <option value="Ready Review">Ready Review</option>
               <option value="Blocked">Blocked</option>
               <option value="Completed">Completed</option>
             </select>

@@ -1,4 +1,4 @@
-export type StatusType = 'In Progress' | 'Pending' | 'Blocked' | 'Completed';
+export type StatusType = 'In Progress' | 'Ready Review' | 'Blocked' | 'Completed';
 
 export type PriorityType = 'Urgent' | 'High' | 'Medium' | 'Low';
 

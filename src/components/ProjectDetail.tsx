@@ -46,7 +46,7 @@ interface ProjectDetailProps {
   onDeleteProject?: (project: Project) => void;
 }
 
-const KANBAN_STATUSES: StatusType[] = ['In Progress', 'Pending', 'Blocked', 'Completed'];
+const KANBAN_STATUSES: StatusType[] = ['In Progress', 'Ready Review', 'Blocked', 'Completed'];
 
 export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   project,
@@ -318,7 +318,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     )}`}
                   >
                     <option value="In Progress">In Progress</option>
-                    <option value="Pending">Pending</option>
+                    <option value="Ready Review">Ready Review</option>
                     <option value="Blocked">Blocked</option>
                     <option value="Completed">Completed</option>
                   </select>
@@ -632,7 +632,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         )}
       </div>
 
-      {/* VIEW 1: Task Board (Kanban Columns with same status as Project: In Progress, Pending, Blocked, Completed) */}
+      {/* VIEW 1: Task Board (Kanban Columns with same status as Project: In Progress, Ready Review, Blocked, Completed) */}
       {activeTab === 'board' && (
         <div id="kanban-board-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start pb-8">
           {KANBAN_STATUSES.map((status) => {
@@ -866,7 +866,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                                 className="appearance-none text-2xs py-0.5 pl-2 pr-5 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                               >
                                 <option value="In Progress">In Progress</option>
-                                <option value="Pending">Pending</option>
+                                <option value="Ready Review">Ready Review</option>
                                 <option value="Blocked">Blocked</option>
                                 <option value="Completed">Completed</option>
                               </select>
