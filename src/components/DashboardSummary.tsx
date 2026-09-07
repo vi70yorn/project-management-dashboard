@@ -442,106 +442,151 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             </div>
 
             {displayedDeadlines.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">
-                {deadlineStatusFilter === 'all'
-                  ? 'No pending task deadlines. All current tasks completed!'
-                  : `No tasks found with status "${deadlineStatusFilter}".`}
-              </p>
+              <div className="py-12 text-center">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                  {deadlineStatusFilter === 'all'
+                    ? 'No pending task deadlines. All current tasks completed!'
+                    : `No tasks found with status "${deadlineStatusFilter}".`}
+                </p>
+              </div>
             ) : (
-              <div
-                className={`divide-y divide-slate-100 dark:divide-slate-800 ${
-                  deadlinePageSize === 'all' || displayedDeadlines.length > 6
-                    ? 'max-h-[500px] overflow-y-auto pr-1'
-                    : ''
-                }`}
-              >
-                {displayedDeadlines.map((item) => {
-                  const isOverdue = item.diffDays < 0;
-                  const isToday = item.diffDays === 0;
+              <div className="overflow-x-auto -mx-6">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-y border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      <th className="py-3 pl-6 pr-3 text-center w-14">#</th>
+                      <th className="py-3 px-4 min-w-[200px]">Task / Deliverable</th>
+                      <th className="py-3 px-4 min-w-[150px]">Project</th>
+                      <th className="py-3 px-4 min-w-[140px]">Assignee</th>
+                      <th className="py-3 px-3 min-w-[95px]">Priority</th>
+                      <th className="py-3 px-3 min-w-[105px]">Status</th>
+                      <th className="py-3 px-4 min-w-[200px]">Deadline</th>
+                      <th className="py-3 pr-6 pl-3 text-right w-24">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                    {displayedDeadlines.map((item, idx) => {
+                      const isOverdue = item.diffDays < 0;
+                      const isToday = item.diffDays === 0;
+                      const rowNumber =
+                        deadlinePageSize === 'all'
+                          ? idx + 1
+                          : (safeCurrentPage - 1) * (deadlinePageSize as number) + idx + 1;
 
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => onSelectProject(item.projectId)}
-                      className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 -mx-3 px-3 rounded-lg cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
-                          style={{ backgroundColor: item.projectColor }}
-                          title={`Project: ${item.projectName}`}
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      return (
+                        <tr
+                          key={item.id}
+                          onClick={() => onSelectProject(item.projectId)}
+                          className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group"
+                        >
+                          {/* # Row Index */}
+                          <td className="py-3.5 pl-6 pr-3 text-center">
+                            <span className="text-3xs font-bold text-slate-400 dark:text-slate-500">
+                              {rowNumber}
+                            </span>
+                          </td>
+
+                          {/* Task / Deliverable Title */}
+                          <td className="py-3.5 px-4">
+                            <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                               {item.title}
                             </span>
-                            <PriorityBadge priority={item.priority} size="sm" />
-                            <StatusBadge status={item.status} size="sm" />
-                          </div>
+                          </td>
 
-                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
-                            <span className="font-medium text-slate-700 dark:text-slate-300">{item.projectName}</span>
-                            {item.assignee && (
-                              <>
-                                <span>&bull;</span>
-                                <div className="flex items-center gap-1.5">
-                                  {item.assignee.avatar ? (
-                                    <img
-                                      src={item.assignee.avatar}
-                                      alt={item.assignee.name}
-                                      className="w-4 h-4 rounded-full object-cover"
-                                    />
-                                  ) : (
-                                    <div
-                                      style={{ backgroundColor: item.assignee.color || '#2563eb' }}
-                                      className="w-4 h-4 rounded-full text-white text-3xs flex items-center justify-center font-bold"
-                                    >
-                                      {getInitials(item.assignee.name)}
-                                    </div>
-                                  )}
-                                  <span>{item.assignee.name}</span>
-                                </div>
-                              </>
+                          {/* Project Name with Color Dot */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
+                                style={{ backgroundColor: item.projectColor }}
+                              />
+                              <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">
+                                {item.projectName}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Assignee */}
+                          <td className="py-3.5 px-4">
+                            {item.assignee ? (
+                              <div className="flex items-center gap-2">
+                                {item.assignee.avatar ? (
+                                  <img
+                                    src={item.assignee.avatar}
+                                    alt={item.assignee.name}
+                                    className="w-5 h-5 rounded-full object-cover shrink-0"
+                                  />
+                                ) : (
+                                  <div
+                                    style={{ backgroundColor: item.assignee.color || '#2563eb' }}
+                                    className="w-5 h-5 rounded-full text-white text-3xs flex items-center justify-center font-bold shrink-0"
+                                  >
+                                    {getInitials(item.assignee.name)}
+                                  </div>
+                                )}
+                                <span className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate max-w-[110px]">
+                                  {item.assignee.name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-2xs text-slate-400 italic">Unassigned</span>
                             )}
-                          </div>
-                        </div>
-                      </div>
+                          </td>
 
-                      {/* Right Deadline Countdown Pill */}
-                      <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
-                        <div
-                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 ${
-                            isToday
-                              ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-bold ring-1 ring-rose-400/80 shadow-2xs'
-                              : isOverdue
-                              ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-semibold'
-                              : item.diffDays <= 3
-                              ? 'bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                              : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                          }`}
-                        >
-                          {isToday ? (
-                            <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse shrink-0" />
-                          ) : isOverdue ? (
-                            <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
-                          ) : (
-                            <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-                          )}
-                          <span>
-                            {isToday
-                              ? 'Due Today!'
-                              : isOverdue
-                              ? `Overdue by ${Math.abs(item.diffDays)}d`
-                              : `Due in ${item.diffDays} days (${item.dueDate})`}
-                          </span>
-                        </div>
+                          {/* Priority */}
+                          <td className="py-3.5 px-3">
+                            <PriorityBadge priority={item.priority} size="sm" />
+                          </td>
 
-                        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                      </div>
-                    </div>
-                  );
-                })}
+                          {/* Status */}
+                          <td className="py-3.5 px-3">
+                            <StatusBadge status={item.status} size="sm" />
+                          </td>
+
+                          {/* Deadline countdown badge */}
+                          <td className="py-3.5 px-4">
+                            <div
+                              className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${
+                                isToday
+                                  ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-bold ring-1 ring-rose-400/80 shadow-2xs'
+                                  : isOverdue
+                                  ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-semibold'
+                                  : item.diffDays <= 3
+                                  ? 'bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                  : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                              }`}
+                            >
+                              {isToday ? (
+                                <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse shrink-0" />
+                              ) : isOverdue ? (
+                                <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                              ) : (
+                                <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                              )}
+                              <span>
+                                {isToday
+                                  ? 'Due Today!'
+                                  : isOverdue
+                                  ? `Overdue by ${Math.abs(item.diffDays)}d`
+                                  : `Due in ${item.diffDays} days (${item.dueDate})`}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Action */}
+                          <td className="py-3.5 pr-6 pl-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-2xs font-semibold text-blue-600 dark:text-blue-400 group-hover:underline flex items-center gap-0.5">
+                                View
+                                <ArrowUpRight className="w-3 h-3" />
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
 
