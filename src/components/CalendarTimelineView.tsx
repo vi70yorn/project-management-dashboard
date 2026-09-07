@@ -1,0 +1,956 @@
+import React, { useState, useMemo } from 'react';
+import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Folder,
+  CheckSquare,
+  Search,
+  Filter,
+  X,
+  User,
+  ArrowLeft,
+  LayoutGrid,
+  Layers,
+  Flag,
+  Sparkles,
+  SlidersHorizontal,
+} from 'lucide-react';
+import { Project, Task, TeamMember, StatusType, PriorityType } from '../types';
+import { getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
+
+interface CalendarTimelineViewProps {
+  projects: Project[];
+  tasks: Task[];
+  teamMembers: TeamMember[];
+  onSelectProject: (projectId: string) => void;
+  onOpenTaskModal: (task?: Task | null, defaultStatus?: StatusType) => void;
+  onBackToDashboard: () => void;
+}
+
+export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
+  projects = [],
+  tasks = [],
+  teamMembers = [],
+  onSelectProject,
+  onOpenTaskModal,
+  onBackToDashboard,
+}) => {
+  // Navigation: Year & Month
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
+  const [viewMode, setViewMode] = useState<'calendar' | 'timeline'>('calendar');
+
+  // Filters
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedPriority, setSelectedPriority] = useState<string>('all');
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Day expanded popover state for calendar
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+
+  const activeYear = currentDate.getFullYear();
+  const activeMonth = currentDate.getMonth(); // 0 - 11
+
+  // Navigation handlers
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(activeYear, activeMonth - 1, 1));
+    setExpandedDay(null);
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(activeYear, activeMonth + 1, 1));
+    setExpandedDay(null);
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+    setExpandedDay(null);
+  };
+
+  const monthName = currentDate.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+  // Filtered tasks and projects
+  const filteredProjects = useMemo(() => {
+    let list = projects.filter((p) => !p.deletedAt);
+    if (selectedProjectId !== 'all') {
+      list = list.filter((p) => p.id === selectedProjectId);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.client && p.client.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [projects, selectedProjectId, searchQuery]);
+
+  const filteredTasks = useMemo(() => {
+    let list = tasks.filter((t) => !t.deletedAt);
+
+    if (selectedProjectId !== 'all') {
+      list = list.filter((t) => t.projectId === selectedProjectId);
+    }
+    if (selectedStatus !== 'all') {
+      list = list.filter((t) => t.status === selectedStatus);
+    }
+    if (selectedPriority !== 'all') {
+      list = list.filter((t) => t.priority === selectedPriority);
+    }
+    if (selectedAssigneeId !== 'all') {
+      list = list.filter((t) => t.assigneeId === selectedAssigneeId);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          (t.projectName && t.projectName.toLowerCase().includes(q)) ||
+          (t.description && t.description.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [tasks, selectedProjectId, selectedStatus, selectedPriority, selectedAssigneeId, searchQuery]);
+
+  // Quick stats for the current view
+  const stats = useMemo(() => {
+    const total = filteredTasks.length;
+    const completed = filteredTasks.filter((t) => t.status === 'Completed').length;
+    const inProgress = filteredTasks.filter((t) => t.status === 'In Progress').length;
+    const blocked = filteredTasks.filter((t) => t.status === 'Blocked').length;
+    return { total, completed, inProgress, blocked };
+  }, [filteredTasks]);
+
+  // Member map for quick lookup
+  const memberMap = useMemo(() => {
+    const map = new Map<string, TeamMember>();
+    teamMembers.forEach((m) => map.set(m.id, m));
+    return map;
+  }, [teamMembers]);
+
+  // Project map for quick lookup
+  const projectMap = useMemo(() => {
+    const map = new Map<string, Project>();
+    projects.forEach((p) => map.set(p.id, p));
+    return map;
+  }, [projects]);
+
+  // Helper for priority color dot
+  const getPriorityDot = (priority: PriorityType) => {
+    switch (priority) {
+      case 'Urgent':
+        return 'bg-rose-500';
+      case 'High':
+        return 'bg-amber-500';
+      case 'Medium':
+        return 'bg-blue-500';
+      case 'Low':
+        return 'bg-emerald-500';
+      default:
+        return 'bg-slate-400';
+    }
+  };
+
+  // Helper for status background pill
+  const getStatusPillClass = (status: StatusType) => {
+    switch (status) {
+      case 'Completed':
+        return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
+      case 'In Progress':
+        return 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800';
+      case 'Pending':
+        return 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800';
+      case 'Blocked':
+        return 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800';
+      default:
+        return 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-800';
+    }
+  };
+
+  // Helper for Gantt bar color
+  const getGanttTaskColor = (status: StatusType) => {
+    switch (status) {
+      case 'Completed':
+        return 'bg-emerald-500 hover:bg-emerald-600 text-white';
+      case 'In Progress':
+        return 'bg-blue-600 hover:bg-blue-700 text-white';
+      case 'Pending':
+        return 'bg-amber-500 hover:bg-amber-600 text-white';
+      case 'Blocked':
+        return 'bg-rose-600 hover:bg-rose-700 text-white';
+      default:
+        return 'bg-slate-500 hover:bg-slate-600 text-white';
+    }
+  };
+
+  // -------------------------------------------------------------
+  // Mode 1: Month Calendar Grid Logic
+  // -------------------------------------------------------------
+  const calendarDays = useMemo(() => {
+    const firstDayOfMonth = new Date(activeYear, activeMonth, 1);
+    const lastDayOfMonth = new Date(activeYear, activeMonth + 1, 0);
+
+    // Days in current month
+    const totalDaysInMonth = lastDayOfMonth.getDate();
+
+    // Day of week for first day (0 is Sunday, 1 is Monday ... 6 is Saturday)
+    // We want Monday as day 0
+    let startDayOfWeek = firstDayOfMonth.getDay() - 1;
+    if (startDayOfWeek === -1) startDayOfWeek = 6; // Sunday becomes 6
+
+    // Days from previous month to fill row
+    const prevMonthLastDay = new Date(activeYear, activeMonth, 0).getDate();
+    const days = [];
+
+    // Leading days from previous month
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const dayNum = prevMonthLastDay - i;
+      const date = new Date(activeYear, activeMonth - 1, dayNum);
+      const dateStr = date.toISOString().split('T')[0];
+      days.push({
+        date,
+        dateStr,
+        dayNum,
+        isCurrentMonth: false,
+      });
+    }
+
+    // Days in current month
+    for (let dayNum = 1; dayNum <= totalDaysInMonth; dayNum++) {
+      const date = new Date(activeYear, activeMonth, dayNum);
+      const dateStr = date.toISOString().split('T')[0];
+      days.push({
+        date,
+        dateStr,
+        dayNum,
+        isCurrentMonth: true,
+      });
+    }
+
+    // Trailing days to round up to full week (multiple of 7)
+    const remainingDays = 7 - (days.length % 7);
+    if (remainingDays < 7) {
+      for (let dayNum = 1; dayNum <= remainingDays; dayNum++) {
+        const date = new Date(activeYear, activeMonth + 1, dayNum);
+        const dateStr = date.toISOString().split('T')[0];
+        days.push({
+          date,
+          dateStr,
+          dayNum,
+          isCurrentMonth: false,
+        });
+      }
+    }
+
+    return days;
+  }, [activeYear, activeMonth]);
+
+  // Group tasks by dueDate
+  const tasksByDueDate = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    filteredTasks.forEach((task) => {
+      if (!task.dueDate) return;
+      const d = task.dueDate.split('T')[0];
+      if (!map.has(d)) map.set(d, []);
+      map.get(d)!.push(task);
+    });
+    return map;
+  }, [filteredTasks]);
+
+  // Group project deadlines by targetDeadline
+  const projectsByDeadline = useMemo(() => {
+    const map = new Map<string, Project[]>();
+    filteredProjects.forEach((proj) => {
+      if (!proj.targetDeadline) return;
+      const d = proj.targetDeadline.split('T')[0];
+      if (!map.has(d)) map.set(d, []);
+      map.get(d)!.push(proj);
+    });
+    return map;
+  }, [filteredProjects]);
+
+  const todayStr = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  // -------------------------------------------------------------
+  // Mode 2: Project Timeline (Gantt) Grid Logic
+  // -------------------------------------------------------------
+  const daysInMonthCount = new Date(activeYear, activeMonth + 1, 0).getDate();
+  const timelineDays = useMemo(() => {
+    return Array.from({ length: daysInMonthCount }, (_, i) => {
+      const dayNum = i + 1;
+      const d = new Date(activeYear, activeMonth, dayNum);
+      const dayStr = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      const dayOfWeekShort = d.toLocaleDateString('en-US', { weekday: 'narrow' });
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      const isToday = dayStr === todayStr;
+      return { dayNum, dayStr, dayOfWeekShort, isWeekend, isToday };
+    });
+  }, [activeYear, activeMonth, daysInMonthCount, todayStr]);
+
+  // Calculate left% and width% for a date range within current month
+  const getTimelinePosition = (startStr?: string, endStr?: string) => {
+    if (!startStr && !endStr) return null;
+
+    const monthStart = new Date(activeYear, activeMonth, 1).getTime();
+    const monthEnd = new Date(activeYear, activeMonth, daysInMonthCount, 23, 59, 59).getTime();
+
+    const startDate = startStr ? new Date(startStr).getTime() : (endStr ? new Date(endStr).getTime() : monthStart);
+    const endDate = endStr ? new Date(endStr).getTime() : startDate;
+
+    // Check if range overlaps with this month
+    if (endDate < monthStart || startDate > monthEnd) {
+      return null; // outside this month view
+    }
+
+    const clampedStart = Math.max(startDate, monthStart);
+    const clampedEnd = Math.min(endDate, monthEnd);
+
+    const totalDuration = monthEnd - monthStart;
+    const offset = clampedStart - monthStart;
+    const duration = Math.max(clampedEnd - clampedStart, 86400000); // at least 1 day width
+
+    const leftPercent = Math.max(0, Math.min(100, (offset / totalDuration) * 100));
+    const widthPercent = Math.max(1.5, Math.min(100 - leftPercent, (duration / totalDuration) * 100));
+
+    return { leftPercent, widthPercent };
+  };
+
+  return (
+    <div id="calendar-timeline-view" className="space-y-5 animate-in fade-in duration-200">
+      {/* Top Header & View Controls */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div>
+          <button
+            onClick={onBackToDashboard}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors mb-2 cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back to Dashboard
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-800 shadow-2xs shrink-0">
+              <CalendarIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                Calendar & Timeline
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                Track project deadlines and task deliverables across schedules in real-time.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Month Navigation & View Switcher */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Month Switcher */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 rounded-xl p-1 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+            <button
+              onClick={handlePrevMonth}
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 transition-all cursor-pointer"
+              title="Previous Month"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="px-3 text-xs sm:text-sm font-bold text-slate-800 dark:text-white min-w-[130px] text-center">
+              {monthName}
+            </span>
+            <button
+              onClick={handleNextMonth}
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 transition-all cursor-pointer"
+              title="Next Month"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleToday}
+              className="ml-1 px-2.5 py-1 text-2xs font-bold uppercase tracking-wider bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-lg shadow-2xs hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+            >
+              Today
+            </button>
+          </div>
+
+          {/* Mode Switcher: Calendar vs Timeline */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 rounded-xl p-1 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'calendar'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <CalendarIcon className="w-3.5 h-3.5" />
+              <span>Calendar</span>
+            </button>
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'timeline'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Timeline (Gantt)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Metrics Summary Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Total Deliverables
+            </p>
+            <p className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">
+              {stats.total}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <CheckSquare className="w-4 h-4" />
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              In Progress
+            </p>
+            <p className="text-xl font-extrabold text-blue-600 dark:text-blue-400 mt-0.5">
+              {stats.inProgress}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <Clock className="w-4 h-4" />
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Completed
+            </p>
+            <p className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">
+              {stats.completed}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+          <div>
+            <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Blocked / Attention
+            </p>
+            <p className="text-xl font-extrabold text-rose-600 dark:text-rose-400 mt-0.5">
+              {stats.blocked}
+            </p>
+          </div>
+          <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+            <AlertCircle className="w-4 h-4" />
+          </div>
+        </div>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+          {/* Project Filter */}
+          <div className="relative">
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              aria-label="Filter by project"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden cursor-pointer"
+            >
+              <option value="all">All Projects ({projects.length})</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="relative">
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              aria-label="Filter by status"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden cursor-pointer"
+            >
+              <option value="all">All Statuses</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Pending">Pending</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
+          {/* Priority Filter */}
+          <div className="relative">
+            <select
+              value={selectedPriority}
+              onChange={(e) => setSelectedPriority(e.target.value)}
+              aria-label="Filter by priority"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden cursor-pointer"
+            >
+              <option value="all">All Priorities</option>
+              <option value="Urgent">Urgent</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+
+          {/* Assignee Filter */}
+          <div className="relative">
+            <select
+              value={selectedAssigneeId}
+              onChange={(e) => setSelectedAssigneeId(e.target.value)}
+              aria-label="Filter by assignee"
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden cursor-pointer"
+            >
+              <option value="all">All Assignees ({teamMembers.length})</option>
+              {teamMembers.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.role})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {(selectedProjectId !== 'all' ||
+            selectedStatus !== 'all' ||
+            selectedPriority !== 'all' ||
+            selectedAssigneeId !== 'all' ||
+            searchQuery) && (
+            <button
+              onClick={() => {
+                setSelectedProjectId('all');
+                setSelectedStatus('all');
+                setSelectedPriority('all');
+                setSelectedAssigneeId('all');
+                setSearchQuery('');
+              }}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 font-semibold cursor-pointer"
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+
+        {/* Search Input */}
+        <div className="relative w-full sm:w-64">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search deliverables..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ============================================================= */}
+      {/* MODE 1: MONTHLY CALENDAR GRID                                  */}
+      {/* ============================================================= */}
+      {viewMode === 'calendar' && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+          {/* Day of Week Headers */}
+          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-center text-xs font-bold text-slate-600 dark:text-slate-400 py-3">
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div className="text-blue-600 dark:text-blue-400">Sat</div>
+            <div className="text-rose-600 dark:text-rose-400">Sun</div>
+          </div>
+
+          {/* Calendar Day Cells */}
+          <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-200 dark:divide-slate-800">
+            {calendarDays.map((day) => {
+              const dayTasks = tasksByDueDate.get(day.dateStr) || [];
+              const dayProjects = projectsByDeadline.get(day.dateStr) || [];
+              const isToday = day.dateStr === todayStr;
+
+              return (
+                <div
+                  key={day.dateStr}
+                  className={`min-h-[110px] sm:min-h-[130px] p-2 flex flex-col justify-between transition-colors ${
+                    !day.isCurrentMonth
+                      ? 'bg-slate-50/40 dark:bg-slate-900/30 text-slate-400 dark:text-slate-600'
+                      : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white hover:bg-slate-50/60 dark:hover:bg-slate-800/30'
+                  }`}
+                >
+                  {/* Day Header: Number + Milestone indicators */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span
+                      className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
+                        isToday
+                          ? 'bg-blue-600 text-white shadow-2xs ring-2 ring-blue-400/30'
+                          : day.isCurrentMonth
+                          ? 'text-slate-800 dark:text-slate-200'
+                          : 'text-slate-400 dark:text-slate-600'
+                      }`}
+                    >
+                      {day.dayNum}
+                    </span>
+
+                    {/* Project Deadline Flag */}
+                    {dayProjects.length > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 text-3xs font-extrabold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 cursor-pointer"
+                        title={`Project Deadline: ${dayProjects.map((p) => p.name).join(', ')}`}
+                        onClick={() => onSelectProject(dayProjects[0].id)}
+                      >
+                        <Flag className="w-2.5 h-2.5" />
+                        <span className="hidden sm:inline">Deadline</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Tasks Container */}
+                  <div className="space-y-1.5 flex-1 overflow-hidden">
+                    {dayTasks.slice(0, 2).map((task) => {
+                      const assignee = memberMap.get(task.assigneeId);
+                      const project = projectMap.get(task.projectId);
+
+                      return (
+                        <div
+                          key={task.id}
+                          onClick={() => onOpenTaskModal(task)}
+                          className={`group p-1.5 rounded-lg border text-2xs transition-all cursor-pointer hover:shadow-2xs ${getStatusPillClass(
+                            task.status
+                          )}`}
+                          title={`${task.title} (${task.status} • Priority: ${task.priority})`}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${getPriorityDot(
+                                task.priority
+                              )}`}
+                            />
+                            <p className="font-semibold truncate flex-1 leading-tight">
+                              {task.title}
+                            </p>
+                            {assignee?.avatar ? (
+                              <img
+                                src={assignee.avatar}
+                                alt={assignee.name}
+                                className="w-3.5 h-3.5 rounded-full object-cover shrink-0 ring-1 ring-white/50"
+                              />
+                            ) : assignee ? (
+                              <span className="w-3.5 h-3.5 rounded-full bg-slate-300 dark:bg-slate-700 text-3xs font-bold flex items-center justify-center shrink-0">
+                                {assignee.name.charAt(0)}
+                              </span>
+                            ) : null}
+                          </div>
+                          {project && (
+                            <p className="text-3xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                              {project.name}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {dayTasks.length > 2 && (
+                      <button
+                        onClick={() => setExpandedDay(day.dateStr)}
+                        className="w-full text-center text-3xs font-bold text-blue-600 dark:text-blue-400 hover:underline py-0.5 cursor-pointer"
+                      >
+                        +{dayTasks.length - 2} more
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Popover Modal for Expanded Day Tasks */}
+      {expandedDay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4 text-blue-600" />
+                  Due on {expandedDay}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {(tasksByDueDate.get(expandedDay) || []).length} deliverables due
+                </p>
+              </div>
+              <button
+                onClick={() => setExpandedDay(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto space-y-2.5 pr-1">
+              {(tasksByDueDate.get(expandedDay) || []).map((task) => {
+                const assignee = memberMap.get(task.assigneeId);
+                const project = projectMap.get(task.projectId);
+
+                return (
+                  <div
+                    key={task.id}
+                    onClick={() => {
+                      setExpandedDay(null);
+                      onOpenTaskModal(task);
+                    }}
+                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shadow-2xs flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${getPriorityDot(task.priority)}`} />
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          {task.title}
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {project && <span>{project.name}</span>}
+                        <span>•</span>
+                        <span className={getStatusBadgeClass(task.status, 'xs')}>
+                          {task.status}
+                        </span>
+                      </div>
+                    </div>
+                    {assignee && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {assignee.avatar ? (
+                          <img
+                            src={assignee.avatar}
+                            alt={assignee.name}
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 text-xs font-bold flex items-center justify-center">
+                            {assignee.name.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* MODE 2: PROJECT & TASK TIMELINE (GANTT)                        */}
+      {/* ============================================================= */}
+      {viewMode === 'timeline' && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+          {/* Timeline Table with Left Fixed Column & Right Horizontal Scroll */}
+          <div className="overflow-x-auto">
+            <div className="min-w-[950px]">
+              {/* Timeline Header Row (Days of Month) */}
+              <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
+                {/* Left Header: Entity Labels */}
+                <div className="w-72 p-3 font-bold text-xs text-slate-700 dark:text-slate-300 shrink-0 border-r border-slate-200 dark:border-slate-800">
+                  Projects & Deliverables
+                </div>
+
+                {/* Right Header: Days */}
+                <div className="flex-1 flex">
+                  {timelineDays.map((d) => (
+                    <div
+                      key={d.dayNum}
+                      className={`flex-1 min-w-[28px] text-center py-2 border-r border-slate-100 dark:border-slate-800/80 ${
+                        d.isToday
+                          ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-extrabold'
+                          : d.isWeekend
+                          ? 'bg-slate-100/60 dark:bg-slate-800/30 text-slate-400'
+                          : 'text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      <div className="text-3xs uppercase font-medium">{d.dayOfWeekShort}</div>
+                      <div className={`text-2xs font-bold mt-0.5 ${d.isToday ? 'text-blue-600' : ''}`}>
+                        {d.dayNum}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Timeline Body Rows (Grouped by Project) */}
+              {filteredProjects.length === 0 ? (
+                <div className="p-12 text-center text-slate-500 dark:text-slate-400">
+                  No projects match your current filters.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                  {filteredProjects.map((project) => {
+                    const projectTasks = filteredTasks.filter((t) => t.projectId === project.id);
+                    const manager = memberMap.get(project.managerId);
+                    const projectPos = getTimelinePosition(project.startDate, project.targetDeadline);
+
+                    return (
+                      <div key={project.id} className="group">
+                        {/* Project Header Bar Row */}
+                        <div className="flex items-center hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors bg-slate-50/30 dark:bg-slate-900/40">
+                          {/* Project Info Column */}
+                          <div
+                            onClick={() => onSelectProject(project.id)}
+                            className="w-72 p-3 border-r border-slate-200 dark:border-slate-800 shrink-0 flex items-center gap-2.5 cursor-pointer"
+                          >
+                            <div
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 shadow-2xs"
+                              style={{ backgroundColor: project.color || '#2563eb' }}
+                            >
+                              <Folder className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                {project.name}
+                              </h4>
+                              <p className="text-3xs text-slate-500 dark:text-slate-400 truncate">
+                                {project.client || 'Internal Project'} • {projectTasks.length} task(s)
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Project Timeline Gantt Span */}
+                          <div className="flex-1 relative h-12 flex items-center px-1">
+                            {/* Today vertical line marker */}
+                            <div
+                              className="absolute top-0 bottom-0 z-10 w-0.5 bg-rose-500/50 pointer-events-none"
+                              style={{
+                                left: `${
+                                  (Math.max(1, Math.min(daysInMonthCount, new Date().getDate())) /
+                                    daysInMonthCount) *
+                                  100
+                                }%`,
+                              }}
+                            />
+
+                            {/* Project Span Bar */}
+                            {projectPos ? (
+                              <div
+                                onClick={() => onSelectProject(project.id)}
+                                className="absolute h-6 rounded-lg text-2xs font-semibold px-2.5 flex items-center shadow-2xs text-white truncate cursor-pointer transition-all hover:scale-[1.01] hover:brightness-110"
+                                style={{
+                                  left: `${projectPos.leftPercent}%`,
+                                  width: `${projectPos.widthPercent}%`,
+                                  backgroundColor: project.color || '#2563eb',
+                                }}
+                                title={`${project.name} (${project.startDate || 'Start'} to ${
+                                  project.targetDeadline || 'Deadline'
+                                })`}
+                              >
+                                <span className="truncate">{project.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-3xs text-slate-400 italic px-2">
+                                (Outside current month window)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Nested Task Rows */}
+                        {projectTasks.map((task) => {
+                          const assignee = memberMap.get(task.assigneeId);
+                          const taskPos = getTimelinePosition(
+                            task.startDate || project.startDate,
+                            task.dueDate
+                          );
+
+                          return (
+                            <div
+                              key={task.id}
+                              className="flex items-center hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
+                            >
+                              {/* Task Info Column */}
+                              <div
+                                onClick={() => onOpenTaskModal(task)}
+                                className="w-72 py-2 pl-9 pr-3 border-r border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between gap-2 cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${getPriorityDot(
+                                      task.priority
+                                    )}`}
+                                  />
+                                  <span className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">
+                                    {task.title}
+                                  </span>
+                                </div>
+                                {assignee && (
+                                  <span
+                                    className="text-3xs text-slate-500 font-semibold shrink-0 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded"
+                                    title={`Assignee: ${assignee.name}`}
+                                  >
+                                    {assignee.name.split(' ')[0]}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Task Gantt Bar */}
+                              <div className="flex-1 relative h-9 flex items-center px-1">
+                                {taskPos && (
+                                  <div
+                                    onClick={() => onOpenTaskModal(task)}
+                                    className={`absolute h-4 rounded-md text-3xs font-medium px-2 flex items-center shadow-2xs truncate cursor-pointer transition-all hover:scale-[1.02] ${getGanttTaskColor(
+                                      task.status
+                                    )}`}
+                                    style={{
+                                      left: `${taskPos.leftPercent}%`,
+                                      width: `${taskPos.widthPercent}%`,
+                                    }}
+                                    title={`${task.title} (${task.status} • Due: ${task.dueDate})`}
+                                  >
+                                    <span className="truncate">{task.title}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

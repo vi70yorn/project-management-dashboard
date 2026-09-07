@@ -15,6 +15,7 @@ import {
   Moon,
   FileSpreadsheet,
   Trash2,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { Project, AuthUser, ViewType } from '../types';
 
@@ -23,6 +24,7 @@ interface NavbarProps {
   onGoToDashboard: () => void;
   onGoToTeam: () => void;
   onGoToSummary: () => void;
+  onGoToCalendar?: () => void;
   onGoToRecycleBin?: () => void;
   projects: Project[];
   activeProject?: Project;
@@ -47,6 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onGoToDashboard,
   onGoToTeam,
   onGoToSummary,
+  onGoToCalendar,
   onGoToRecycleBin,
   projects,
   activeProject,
@@ -141,8 +144,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               Project Summary
             </button>
 
+            {/* Calendar & Timeline View tab */}
+            {onGoToCalendar && (
+              <button
+                id="nav-calendar-btn"
+                onClick={onGoToCalendar}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  currentView === 'calendar'
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Calendar & Project/Task Timeline"
+              >
+                <CalendarIcon className="w-3.5 h-3.5" />
+                Calendar
+              </button>
+            )}
+
             {/* Recycle Bin tab */}
-            {handleRecycleBinAction && (
+           {/*  {handleRecycleBinAction && (
               <button
                 id="nav-recycle-bin-tab-btn"
                 onClick={handleRecycleBinAction}
@@ -164,7 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 )}
               </button>
-            )}
+            )} */}
           </div>
         </div>
 
@@ -205,6 +225,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <FileSpreadsheet className="w-4 h-4" />
             </button>
+            {onGoToCalendar && (
+              <button
+                onClick={onGoToCalendar}
+                className={`p-1.5 rounded-lg text-xs transition-colors ${
+                  currentView === 'calendar'
+                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Calendar"
+              >
+                <CalendarIcon className="w-4 h-4" />
+              </button>
+            )}
             {handleRecycleBinAction && (
               <button
                 id="nav-mobile-recycle-bin-btn"

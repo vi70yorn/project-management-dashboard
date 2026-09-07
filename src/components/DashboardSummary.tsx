@@ -191,7 +191,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             </button>
           )}
  */}
-          {onOpenRecycleBin && (
+         {/*  {onOpenRecycleBin && (
             <button
               id="dash-recycle-bin-btn"
               onClick={onOpenRecycleBin}
@@ -206,7 +206,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 </span>
               )}
             </button>
-          )}
+          )} */}
 
           {isAdmin && (
             <button

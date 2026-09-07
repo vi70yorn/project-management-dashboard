@@ -32,6 +32,7 @@ import { DatabaseStatusModal } from './components/DatabaseStatusModal';
 import { ProjectWeeklyReport } from './components/ProjectWeeklyReport';
 import { RecycleBinModal } from './components/RecycleBinModal';
 import { RecycleBinView } from './components/RecycleBinView';
+import { CalendarTimelineView } from './components/CalendarTimelineView';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import {
   checkDatabaseHealth,
@@ -291,6 +292,11 @@ export default function App() {
   const handleGoToRecycleBin = () => {
     refreshRecycleBin();
     setCurrentView('recycle-bin');
+    setActiveProjectId('');
+  };
+
+  const handleGoToCalendar = () => {
+    setCurrentView('calendar');
     setActiveProjectId('');
   };
 
@@ -1068,6 +1074,7 @@ export default function App() {
         onGoToTeam={handleGoToTeam}
         onGoToSummary={handleGoToSummary}
         onGoToRecycleBin={handleGoToRecycleBin}
+        onGoToCalendar={handleGoToCalendar}
         projects={projects}
         activeProject={activeProject}
         onSelectProject={handleSelectProject}
@@ -1134,6 +1141,15 @@ export default function App() {
             onEmptyRecycleBin={handleEmptyRecycleBin}
             onBackToDashboard={handleGoToDashboard}
             onRefresh={refreshRecycleBin}
+          />
+        ) : currentView === 'calendar' ? (
+          <CalendarTimelineView
+            projects={projects}
+            tasks={tasks}
+            teamMembers={teamMembers}
+            onSelectProject={handleSelectProject}
+            onOpenTaskModal={handleOpenTaskModal}
+            onBackToDashboard={handleGoToDashboard}
           />
         ) : activeProject ? (
           <ProjectDetail
