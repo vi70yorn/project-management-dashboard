@@ -25,7 +25,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
-import { getDueDateStatus, isDueToday } from '../utils/dateUtils';
+import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 
@@ -353,6 +353,55 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   {tag}
                 </span>
               ))}
+            </div>
+
+            {/* Project Audit History Banner */}
+            <div id="project-audit-history-strip" className="flex items-center gap-3 pt-3 flex-wrap text-2xs border-t border-slate-100 dark:border-slate-800/80 text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-3xs uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500">
+                  Created:
+                </span>
+                {project.createdByAvatar ? (
+                  <img
+                    src={project.createdByAvatar}
+                    alt={project.createdByName || 'Creator'}
+                    className="w-4 h-4 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <span className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-4xs flex items-center justify-center shrink-0">
+                    {(project.createdByName || 'U').charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {project.createdByName || 'System'}
+                </span>
+                <span className="text-3xs text-slate-400 dark:text-slate-500">
+                  • {formatDateTime(project.createdAt)}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-3xs uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500">
+                  Last Updated:
+                </span>
+                {project.updatedByAvatar ? (
+                  <img
+                    src={project.updatedByAvatar}
+                    alt={project.updatedByName || 'Updater'}
+                    className="w-4 h-4 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <span className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-4xs flex items-center justify-center shrink-0">
+                    {(project.updatedByName || project.createdByName || 'U').charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {project.updatedByName || project.createdByName || 'System'}
+                </span>
+                <span className="text-3xs text-slate-400 dark:text-slate-500">
+                  • {formatDateTime(project.updatedAt || project.createdAt)}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -785,6 +834,23 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               </div>
                             );
                           })()}
+                        </div>
+
+                        {/* Task Audit Info */}
+                        <div
+                          className="pt-1.5 flex items-center justify-between text-3xs text-slate-400 dark:text-slate-500 gap-2 border-t border-slate-100/80 dark:border-slate-700/50"
+                          title={`Created by ${task.createdByName || 'Team'} on ${formatDateTime(task.createdAt)} • Last updated by ${task.updatedByName || task.createdByName || 'Team'} on ${formatDateTime(task.updatedAt || task.createdAt)}`}
+                        >
+                          <span className="truncate flex items-center gap-1">
+                            <span className="text-slate-400 dark:text-slate-500">By</span>
+                            <span className="font-medium text-slate-600 dark:text-slate-300 truncate">
+                              {task.createdByName || 'Team'}
+                            </span>
+                          </span>
+                          <span className="shrink-0 flex items-center gap-1 text-slate-400 dark:text-slate-500">
+                            <Clock className="w-2.5 h-2.5 shrink-0" />
+                            {formatDateTime(task.updatedAt || task.createdAt).split(',')[0]}
+                          </span>
                         </div>
 
                         {/* Quick Move status bar: if canModifyTask, allow status change; else View Detail prompt */}

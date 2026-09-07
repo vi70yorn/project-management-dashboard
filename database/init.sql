@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS projects (
     color VARCHAR(32) DEFAULT '#2563eb',
     deleted_at TIMESTAMPTZ DEFAULT NULL,
     deleted_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
+    created_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
+    updated_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -56,6 +58,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     priority VARCHAR(32) NOT NULL DEFAULT 'Medium',    -- 'Urgent', 'High', 'Medium', 'Low'
     assignee_id VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     created_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
+    updated_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     start_date VARCHAR(32),
     due_date VARCHAR(32),
     deleted_at TIMESTAMPTZ DEFAULT NULL,
@@ -80,7 +83,11 @@ CREATE TABLE IF NOT EXISTS users (
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON tasks(assignee_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON tasks(created_by);
+CREATE INDEX IF NOT EXISTS idx_tasks_updated_by ON tasks(updated_by);
 CREATE INDEX IF NOT EXISTS idx_projects_manager_id ON projects(manager_id);
+CREATE INDEX IF NOT EXISTS idx_projects_created_by ON projects(created_by);
+CREATE INDEX IF NOT EXISTS idx_projects_updated_by ON projects(updated_by);
 CREATE INDEX IF NOT EXISTS idx_project_members_member_id ON project_members(member_id);
 
 -- ==========================================================
@@ -94,14 +101,14 @@ VALUES
     ('mem-1788624800573', 'Likka', 'likka', '1234', 'likka@team.org', 'UX/UI Designer', 'staff', '#2563eb', 'active')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, created_at, updated_at)
+INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, created_by, updated_by, created_at, updated_at)
 VALUES
     ('proj-1788624651745', 'Merchant 5.0', '- Home
 - View QR
 - Transaction
 - Report
 - Staff Management
-- Business Management', 'UX/UI', 'In Progress', '2026-09-05', '2026-10-05', 'mem-1788624319284', ARRAY['Mobile', 'Merchant'], '#7c3aed', '2026-09-05T16:10:52.120Z', '2026-09-05T16:54:45.761Z')
+- Business Management', 'UX/UI', 'In Progress', '2026-09-05', '2026-10-05', 'mem-1788624319284', ARRAY['Mobile', 'Merchant'], '#7c3aed', 'mem-1788624319284', 'mem-1788624319284', '2026-09-05T16:10:52.120Z', '2026-09-05T16:54:45.761Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO project_members (project_id, member_id, assigned_at)
@@ -111,10 +118,10 @@ VALUES
     ('proj-1788624651745', 'mem-1788624800573', '2026-09-05T16:54:45.761Z')
 ON CONFLICT (project_id, member_id) DO NOTHING;
 
-INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, created_by, start_date, due_date, created_at, updated_at)
+INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, created_by, updated_by, start_date, due_date, created_at, updated_at)
 VALUES
-    ('task-1788624838718', 'proj-1788624651745', 'Report Screen', 'Create a complete UI screen of the function', 'Completed', 'Medium', 'mem-1788624800573', 'mem-1788624319284', '2026-09-05', '2026-09-12', '2026-09-05T16:13:59.069Z', '2026-09-05T16:55:13.264Z'),
-    ('task-1788624689153', 'proj-1788624651745', 'Home', 'Create a complete home screen', 'In Progress', 'Medium', 'mem-1788624380119', 'mem-1788624319284', '2026-09-05', '2026-09-06', '2026-09-05T16:11:29.188Z', '2026-09-06T05:42:02.918Z')
+    ('task-1788624838718', 'proj-1788624651745', 'Report Screen', 'Create a complete UI screen of the function', 'Completed', 'Medium', 'mem-1788624800573', 'mem-1788624319284', 'mem-1788624319284', '2026-09-05', '2026-09-12', '2026-09-05T16:13:59.069Z', '2026-09-05T16:55:13.264Z'),
+    ('task-1788624689153', 'proj-1788624651745', 'Home', 'Create a complete home screen', 'In Progress', 'Medium', 'mem-1788624380119', 'mem-1788624319284', 'mem-1788624319284', '2026-09-05', '2026-09-06', '2026-09-05T16:11:29.188Z', '2026-09-06T05:42:02.918Z')
 ON CONFLICT (id) DO NOTHING;
 
 -- 6. Telegram Automated Weekly Report Settings Table

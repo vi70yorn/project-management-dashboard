@@ -22,7 +22,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
-import { getDueDateStatus, isDueToday } from '../utils/dateUtils';
+import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { TeamActivitiesFeed } from './TeamActivitiesFeed';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
@@ -630,10 +630,41 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                       {projectTeam.length} members
                     </span>
                   </div>
+
+                  {/* Project Audit Attribution */}
+                  <div
+                    className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-3xs text-slate-400 dark:text-slate-500 gap-2"
+                    title={`Created by ${project.createdByName || 'Admin'} on ${formatDateTime(project.createdAt)} • Last updated by ${project.updatedByName || project.createdByName || 'Admin'} on ${formatDateTime(project.updatedAt || project.createdAt)}`}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-slate-400 dark:text-slate-500">By:</span>
+                      {project.createdByAvatar ? (
+                        <img
+                          src={project.createdByAvatar}
+                          alt={project.createdByName || 'Creator'}
+                          className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                        />
+                      ) : (
+                        <span className="w-3.5 h-3.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold text-4xs flex items-center justify-center shrink-0">
+                          {(project.createdByName || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="font-medium text-slate-600 dark:text-slate-300 truncate">
+                        {project.createdByName || 'Admin'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0 text-slate-400 dark:text-slate-500">
+                      <span>Updated</span>
+                      <span className="font-medium text-slate-600 dark:text-slate-300">
+                        {formatDateTime(project.updatedAt || project.createdAt).split(',')[0]}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Progress & Bottom Bar */}
-                <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="text-slate-500 dark:text-slate-400 font-medium">
                       {completedCount} of {projectTasks.length} deliverables completed

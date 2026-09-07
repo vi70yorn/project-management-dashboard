@@ -99,14 +99,20 @@ export async function runMigrationsAndSeed(): Promise<void> {
   const client: PoolClient = await currentPool.connect();
 
   try {
-    // Pre-migration: ensure deleted_at columns exist on any pre-existing projects/tasks tables
+    // Pre-migration: ensure deleted_at, deleted_by, created_by, and updated_by columns exist on any pre-existing projects/tasks tables
     await client.query(`
       DO $$ BEGIN
         IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projects') THEN
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+          ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_by VARCHAR(64);
+          ALTER TABLE projects ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
+          ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
         END IF;
         IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tasks') THEN
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+          ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_by VARCHAR(64);
+          ALTER TABLE tasks ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
+          ALTER TABLE tasks ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
         END IF;
       END $$;
     `).catch(() => {});
@@ -218,6 +224,70 @@ export async function runMigrationsAndSeed(): Promise<void> {
         ORDER BY entity_id, created_at DESC
       ) sub
       WHERE p.id = sub.entity_id AND p.deleted_by IS NULL;
+
+      -- Audit fields migration: created_by and updated_by for projects and tasks
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
+      CREATE INDEX IF NOT EXISTS idx_projects_created_by ON projects(created_by);
+      CREATE INDEX IF NOT EXISTS idx_projects_updated_by ON projects(updated_by);
+      CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON tasks(created_by);
+      CREATE INDEX IF NOT EXISTS idx_tasks_updated_by ON tasks(updated_by);
+
+      -- Backfill created_by for projects
+      UPDATE projects p
+      SET created_by = sub.user_id
+      FROM (
+        SELECT DISTINCT ON (entity_id) entity_id, user_id
+        FROM activity_logs
+        WHERE action_type = 'create_project' AND user_id IS NOT NULL
+        ORDER BY entity_id, created_at ASC
+      ) sub
+      WHERE p.id = sub.entity_id AND p.created_by IS NULL;
+
+      UPDATE projects
+      SET created_by = COALESCE(manager_id, (SELECT member_id FROM project_members WHERE project_id = projects.id LIMIT 1), 'mem-1788624319284')
+      WHERE created_by IS NULL;
+
+      -- Backfill updated_by for projects
+      UPDATE projects p
+      SET updated_by = sub.user_id
+      FROM (
+        SELECT DISTINCT ON (entity_id) entity_id, user_id
+        FROM activity_logs
+        WHERE entity_type = 'project' AND user_id IS NOT NULL
+        ORDER BY entity_id, created_at DESC
+      ) sub
+      WHERE p.id = sub.entity_id AND p.updated_by IS NULL;
+
+      UPDATE projects
+      SET updated_by = COALESCE(created_by, manager_id, 'mem-1788624319284')
+      WHERE updated_by IS NULL;
+
+      -- Backfill created_by for tasks
+      UPDATE tasks t
+      SET created_by = COALESCE(
+        (SELECT user_id FROM activity_logs WHERE entity_id = t.id AND action_type = 'create_task' ORDER BY created_at ASC LIMIT 1),
+        assignee_id,
+        (SELECT created_by FROM projects WHERE id = t.project_id),
+        'mem-1788624319284'
+      )
+      WHERE created_by IS NULL;
+
+      -- Backfill updated_by for tasks
+      UPDATE tasks t
+      SET updated_by = sub.user_id
+      FROM (
+        SELECT DISTINCT ON (entity_id) entity_id, user_id
+        FROM activity_logs
+        WHERE entity_type = 'task' AND user_id IS NOT NULL
+        ORDER BY entity_id, created_at DESC
+      ) sub
+      WHERE t.id = sub.entity_id AND t.updated_by IS NULL;
+
+      UPDATE tasks
+      SET updated_by = COALESCE(created_by, assignee_id, 'mem-1788624319284')
+      WHERE updated_by IS NULL;
     `);
 
     console.log('[PostgreSQL] Database schema, credentials & initial seeds verified successfully.');

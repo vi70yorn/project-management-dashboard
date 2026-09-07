@@ -100,3 +100,42 @@ export function getDueDateStatus(dateStr?: string): DueDateStatus {
     badgeClass: 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 font-medium',
   };
 }
+
+/**
+ * Formats an ISO date/timestamp string into a human-readable format,
+ * e.g. "Sep 5, 2026, 4:10 PM" or "Sep 5, 2026"
+ */
+export function formatDateTime(isoString?: string | null): string {
+  if (!isoString) return '—';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return String(isoString);
+    return d.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return String(isoString);
+  }
+}
+
+/**
+ * Formats an ISO date string into short date only, e.g. "Sep 5, 2026"
+ */
+export function formatDateOnly(isoString?: string | null): string {
+  if (!isoString) return '—';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return String(isoString);
+    return d.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return String(isoString);
+  }
+}

@@ -209,7 +209,78 @@ app.post('/api/activities', async (req: Request, res: Response) => {
 // Projects Endpoints
 // ==========================================
 
-// GET all projects with their memberIds array
+// Helper: fetch full project with creator, updater, and memberIds
+async function getProjectById(pool: any, id: string) {
+  const query = `
+    SELECT 
+      p.id,
+      p.name,
+      p.description,
+      p.client,
+      p.status,
+      p.start_date AS "startDate",
+      p.target_deadline AS "targetDeadline",
+      p.manager_id AS "managerId",
+      p.tags,
+      p.color,
+      p.created_by AS "createdBy",
+      COALESCE(cb_m.name, cb_u.name, 'Admin') AS "createdByName",
+      COALESCE(cb_m.avatar, cb_u.avatar) AS "createdByAvatar",
+      p.updated_by AS "updatedBy",
+      COALESCE(ub_m.name, ub_u.name, 'Admin') AS "updatedByName",
+      COALESCE(ub_m.avatar, ub_u.avatar) AS "updatedByAvatar",
+      p.created_at AS "createdAt",
+      p.updated_at AS "updatedAt",
+      COALESCE(
+        (SELECT array_agg(pm.member_id) FROM project_members pm WHERE pm.project_id = p.id),
+        '{}'
+      ) AS "memberIds"
+    FROM projects p
+    LEFT JOIN team_members cb_m ON cb_m.id = p.created_by
+    LEFT JOIN users cb_u ON cb_u.member_id = p.created_by
+    LEFT JOIN team_members ub_m ON ub_m.id = p.updated_by
+    LEFT JOIN users ub_u ON ub_u.member_id = p.updated_by
+    WHERE p.id = $1;
+  `;
+  const result = await pool.query(query, [id]);
+  return result.rows[0] || null;
+}
+
+// Helper: fetch full task with creator, updater, and project details
+async function getTaskById(pool: any, id: string) {
+  const query = `
+    SELECT 
+      t.id,
+      t.project_id AS "projectId",
+      p.name AS "projectName",
+      t.title,
+      t.description,
+      t.status,
+      t.priority,
+      t.assignee_id AS "assigneeId",
+      t.created_by AS "createdBy",
+      COALESCE(cb_m.name, cb_u.name, 'Team Member') AS "createdByName",
+      COALESCE(cb_m.avatar, cb_u.avatar) AS "createdByAvatar",
+      t.updated_by AS "updatedBy",
+      COALESCE(ub_m.name, ub_u.name, 'Team Member') AS "updatedByName",
+      COALESCE(ub_m.avatar, ub_u.avatar) AS "updatedByAvatar",
+      t.start_date AS "startDate",
+      t.due_date AS "dueDate",
+      t.created_at AS "createdAt",
+      t.updated_at AS "updatedAt"
+    FROM tasks t
+    LEFT JOIN projects p ON p.id = t.project_id
+    LEFT JOIN team_members cb_m ON cb_m.id = t.created_by
+    LEFT JOIN users cb_u ON cb_u.member_id = t.created_by
+    LEFT JOIN team_members ub_m ON ub_m.id = t.updated_by
+    LEFT JOIN users ub_u ON ub_u.member_id = t.updated_by
+    WHERE t.id = $1;
+  `;
+  const result = await pool.query(query, [id]);
+  return result.rows[0] || null;
+}
+
+// GET all projects with their memberIds array and audit info
 app.get('/api/projects', async (_req: Request, res: Response) => {
   try {
     const pool = getPool();
@@ -225,6 +296,12 @@ app.get('/api/projects', async (_req: Request, res: Response) => {
         p.manager_id AS "managerId",
         p.tags,
         p.color,
+        p.created_by AS "createdBy",
+        COALESCE(cb_m.name, cb_u.name, 'Admin') AS "createdByName",
+        COALESCE(cb_m.avatar, cb_u.avatar) AS "createdByAvatar",
+        p.updated_by AS "updatedBy",
+        COALESCE(ub_m.name, ub_u.name, 'Admin') AS "updatedByName",
+        COALESCE(ub_m.avatar, ub_u.avatar) AS "updatedByAvatar",
         p.created_at AS "createdAt",
         p.updated_at AS "updatedAt",
         COALESCE(
@@ -232,6 +309,10 @@ app.get('/api/projects', async (_req: Request, res: Response) => {
           '{}'
         ) AS "memberIds"
       FROM projects p
+      LEFT JOIN team_members cb_m ON cb_m.id = p.created_by
+      LEFT JOIN users cb_u ON cb_u.member_id = p.created_by
+      LEFT JOIN team_members ub_m ON ub_m.id = p.updated_by
+      LEFT JOIN users ub_u ON ub_u.member_id = p.updated_by
       WHERE p.deleted_at IS NULL
       ORDER BY p.created_at DESC;
     `;
@@ -257,8 +338,11 @@ app.post('/api/projects', async (req: Request, res: Response) => {
     tags = [],
     color = '#2563eb',
     memberIds = [],
+    createdBy,
   } = req.body;
 
+  const headerMemberId = (req.headers['x-user-member-id'] as string) || null;
+  const effectiveCreatedBy = createdBy || headerMemberId || managerId || null;
   const projectId = id || `proj-${Date.now()}`;
   const pool = getPool();
   const dbClient = await pool.connect();
@@ -267,8 +351,8 @@ app.post('/api/projects', async (req: Request, res: Response) => {
     await dbClient.query('BEGIN');
 
     const insertProjectQuery = `
-      INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
       RETURNING *;
     `;
     await dbClient.query(insertProjectQuery, [
@@ -282,6 +366,7 @@ app.post('/api/projects', async (req: Request, res: Response) => {
       managerId || null,
       tags,
       color,
+      effectiveCreatedBy,
     ]);
 
     // Insert project members
@@ -306,7 +391,8 @@ app.post('/api/projects', async (req: Request, res: Response) => {
       details: { status, client, managerId },
     }, req);
 
-    res.status(201).json({
+    const fullProject = await getProjectById(pool, projectId);
+    res.status(201).json(fullProject || {
       id: projectId,
       name,
       description,
@@ -318,7 +404,10 @@ app.post('/api/projects', async (req: Request, res: Response) => {
       tags,
       color,
       memberIds,
+      createdBy: effectiveCreatedBy,
+      updatedBy: effectiveCreatedBy,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
@@ -343,7 +432,11 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
     tags,
     color,
     memberIds,
+    updatedBy,
   } = req.body;
+
+  const headerMemberId = (req.headers['x-user-member-id'] as string) || null;
+  const effectiveUpdatedBy = updatedBy || headerMemberId || null;
 
   const pool = getPool();
   const dbClient = await pool.connect();
@@ -363,8 +456,9 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
         manager_id = $7,
         tags = COALESCE($8, tags),
         color = COALESCE($9, color),
+        updated_by = COALESCE($10, updated_by),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $10
+      WHERE id = $11
       RETURNING *;
     `;
 
@@ -378,6 +472,7 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
       managerId || null,
       tags,
       color,
+      effectiveUpdatedBy,
       id,
     ]);
 
@@ -398,19 +493,20 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
     }
 
     await dbClient.query('COMMIT');
-    const updatedProj = result.rows[0];
+
+    const fullProject = await getProjectById(pool, id);
 
     recordActivity(pool, {
       actionType: 'update_project',
       entityType: 'project',
       entityId: id,
-      entityName: updatedProj?.name || name,
+      entityName: fullProject?.name || name,
       projectId: id,
-      projectName: updatedProj?.name || name,
-      details: { status: updatedProj?.status, managerId },
+      projectName: fullProject?.name || name,
+      details: { status: fullProject?.status, managerId },
     }, req);
 
-    res.json({ ...updatedProj, memberIds });
+    res.json(fullProject);
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
     console.error('Error updating project:', err);
@@ -424,26 +520,32 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
 app.patch('/api/projects/:id/status', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
   try {
     const pool = getPool();
     const result = await pool.query(
-      `UPDATE projects SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
-      [status, id]
+      `UPDATE projects 
+       SET status = $1, 
+           updated_by = COALESCE($2, updated_by), 
+           updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $3 RETURNING *`,
+      [status, actorMemberId, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: 'Project not found' });
-    const updated = result.rows[0];
+
+    const fullProject = await getProjectById(pool, id);
 
     recordActivity(pool, {
       actionType: 'update_project_status',
       entityType: 'project',
       entityId: id,
-      entityName: updated.name,
+      entityName: fullProject?.name || result.rows[0].name,
       projectId: id,
-      projectName: updated.name,
+      projectName: fullProject?.name || result.rows[0].name,
       details: { newStatus: status },
     }, req);
 
-    res.json(updated);
+    res.json(fullProject || result.rows[0]);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -453,6 +555,7 @@ app.patch('/api/projects/:id/status', async (req: Request, res: Response) => {
 app.patch('/api/projects/:id/members', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { memberIds } = req.body;
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
   const pool = getPool();
   const dbClient = await pool.connect();
 
@@ -467,8 +570,14 @@ app.patch('/api/projects/:id/members', async (req: Request, res: Response) => {
         );
       }
     }
+    await dbClient.query(
+      `UPDATE projects SET updated_by = COALESCE($1, updated_by), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+      [actorMemberId, id]
+    );
     await dbClient.query('COMMIT');
-    res.json({ projectId: id, memberIds });
+
+    const fullProject = await getProjectById(pool, id);
+    res.json(fullProject || { projectId: id, memberIds });
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
     res.status(500).json({ error: err.message });
@@ -533,17 +642,28 @@ app.get('/api/tasks', async (_req: Request, res: Response) => {
       SELECT 
         t.id,
         t.project_id AS "projectId",
+        p.name AS "projectName",
         t.title,
         t.description,
         t.status,
         t.priority,
         t.assignee_id AS "assigneeId",
         t.created_by AS "createdBy",
+        COALESCE(cb_m.name, cb_u.name, 'Team Member') AS "createdByName",
+        COALESCE(cb_m.avatar, cb_u.avatar) AS "createdByAvatar",
+        t.updated_by AS "updatedBy",
+        COALESCE(ub_m.name, ub_u.name, 'Team Member') AS "updatedByName",
+        COALESCE(ub_m.avatar, ub_u.avatar) AS "updatedByAvatar",
         t.start_date AS "startDate",
         t.due_date AS "dueDate",
         t.created_at AS "createdAt",
         t.updated_at AS "updatedAt"
       FROM tasks t
+      LEFT JOIN projects p ON p.id = t.project_id
+      LEFT JOIN team_members cb_m ON cb_m.id = t.created_by
+      LEFT JOIN users cb_u ON cb_u.member_id = t.created_by
+      LEFT JOIN team_members ub_m ON ub_m.id = t.updated_by
+      LEFT JOIN users ub_u ON ub_u.member_id = t.updated_by
       WHERE t.deleted_at IS NULL
       ORDER BY t.created_at DESC;
     `;
@@ -628,27 +748,17 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
     dueDate,
   } = req.body;
 
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
+  const effectiveCreatedBy = createdBy || actorMemberId || assigneeId || null;
   const taskId = id || `task-${Date.now()}`;
   try {
     const pool = getPool();
     const query = `
-      INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, created_by, start_date, due_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING 
-        id,
-        project_id AS "projectId",
-        title,
-        description,
-        status,
-        priority,
-        assignee_id AS "assigneeId",
-        created_by AS "createdBy",
-        start_date AS "startDate",
-        due_date AS "dueDate",
-        created_at AS "createdAt",
-        updated_at AS "updatedAt";
+      INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, created_by, updated_by, start_date, due_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9, $10)
+      RETURNING id;
     `;
-    const result = await pool.query(query, [
+    await pool.query(query, [
       taskId,
       projectId,
       title,
@@ -656,11 +766,12 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
       status,
       priority,
       assigneeId || null,
-      createdBy || null,
+      effectiveCreatedBy,
       startDate || null,
       dueDate,
     ]);
-    const createdTask = result.rows[0];
+
+    const createdTask = await getTaskById(pool, taskId);
     if (createdTask?.projectId) {
       await syncProjectStatus(pool, createdTask.projectId);
     }
@@ -668,13 +779,27 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
     recordActivity(pool, {
       actionType: 'create_task',
       entityType: 'task',
-      entityId: createdTask.id,
-      entityName: createdTask.title,
-      projectId: createdTask.projectId,
-      details: { status: createdTask.status, priority: createdTask.priority, assigneeId: createdTask.assigneeId },
+      entityId: taskId,
+      entityName: title,
+      projectId: projectId,
+      details: { status, priority, assigneeId },
     }, req);
 
-    res.status(201).json(createdTask);
+    res.status(201).json(createdTask || {
+      id: taskId,
+      projectId,
+      title,
+      description,
+      status,
+      priority,
+      assigneeId,
+      createdBy: effectiveCreatedBy,
+      updatedBy: effectiveCreatedBy,
+      startDate,
+      dueDate,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
   } catch (err: any) {
     console.error('Error creating task:', err);
     res.status(500).json({ error: err.message });
@@ -694,7 +819,11 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
     createdBy,
     startDate,
     dueDate,
+    updatedBy,
   } = req.body;
+
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
+  const effectiveUpdatedBy = updatedBy || actorMemberId || null;
 
   try {
     const pool = getPool();
@@ -710,21 +839,10 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
         created_by = COALESCE($7, created_by),
         start_date = $8,
         due_date = COALESCE($9, due_date),
+        updated_by = COALESCE($10, updated_by),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $10
-      RETURNING 
-        id,
-        project_id AS "projectId",
-        title,
-        description,
-        status,
-        priority,
-        assignee_id AS "assigneeId",
-        created_by AS "createdBy",
-        start_date AS "startDate",
-        due_date AS "dueDate",
-        created_at AS "createdAt",
-        updated_at AS "updatedAt";
+      WHERE id = $11
+      RETURNING id, project_id AS "projectId";
     `;
     const result = await pool.query(query, [
       projectId,
@@ -736,10 +854,12 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
       createdBy,
       startDate || null,
       dueDate,
+      effectiveUpdatedBy,
       id,
     ]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found' });
-    const updatedTask = result.rows[0];
+    
+    const updatedTask = await getTaskById(pool, id);
     if (updatedTask?.projectId) {
       await syncProjectStatus(pool, updatedTask.projectId);
     }
@@ -747,10 +867,10 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
     recordActivity(pool, {
       actionType: 'update_task',
       entityType: 'task',
-      entityId: updatedTask.id,
-      entityName: updatedTask.title,
-      projectId: updatedTask.projectId,
-      details: { status: updatedTask.status, priority: updatedTask.priority, assigneeId: updatedTask.assigneeId },
+      entityId: id,
+      entityName: updatedTask?.title || title,
+      projectId: updatedTask?.projectId || projectId,
+      details: { status: updatedTask?.status || status, priority: updatedTask?.priority || priority, assigneeId: updatedTask?.assigneeId || assigneeId },
     }, req);
 
     res.json(updatedTask);
@@ -763,15 +883,21 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
 app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
   try {
     const pool = getPool();
     const result = await pool.query(
-      `UPDATE tasks SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 
+      `UPDATE tasks 
+       SET status = $1, 
+           updated_by = COALESCE($2, updated_by), 
+           updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $3 
        RETURNING id, project_id AS "projectId", title, status, updated_at AS "updatedAt"`,
-      [status, id]
+      [status, actorMemberId, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found' });
-    const updatedTask = result.rows[0];
+    
+    const updatedTask = await getTaskById(pool, id);
     if (updatedTask?.projectId) {
       await syncProjectStatus(pool, updatedTask.projectId);
     }
@@ -779,13 +905,13 @@ app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
     recordActivity(pool, {
       actionType: 'update_task_status',
       entityType: 'task',
-      entityId: updatedTask.id,
-      entityName: updatedTask.title,
-      projectId: updatedTask.projectId,
+      entityId: id,
+      entityName: updatedTask?.title || result.rows[0].title,
+      projectId: updatedTask?.projectId || result.rows[0].projectId,
       details: { newStatus: status },
     }, req);
 
-    res.json(updatedTask);
+    res.json(updatedTask || result.rows[0]);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -842,6 +968,12 @@ app.get('/api/recycle-bin', async (_req: Request, res: Response) => {
           p.manager_id AS "managerId",
           p.tags,
           p.color,
+          p.created_by AS "createdBy",
+          COALESCE(cb_m.name, cb_u.name, 'Admin') AS "createdByName",
+          COALESCE(cb_m.avatar, cb_u.avatar) AS "createdByAvatar",
+          p.updated_by AS "updatedBy",
+          COALESCE(ub_m.name, ub_u.name, 'Admin') AS "updatedByName",
+          COALESCE(ub_m.avatar, ub_u.avatar) AS "updatedByAvatar",
           p.created_at AS "createdAt",
           p.updated_at AS "updatedAt",
           p.deleted_at AS "deletedAt",
@@ -867,6 +999,10 @@ app.get('/api/recycle-bin', async (_req: Request, res: Response) => {
         FROM projects p
         LEFT JOIN team_members del_m ON del_m.id = p.deleted_by
         LEFT JOIN users del_u ON del_u.member_id = p.deleted_by
+        LEFT JOIN team_members cb_m ON cb_m.id = p.created_by
+        LEFT JOIN users cb_u ON cb_u.member_id = p.created_by
+        LEFT JOIN team_members ub_m ON ub_m.id = p.updated_by
+        LEFT JOIN users ub_u ON ub_u.member_id = p.updated_by
         WHERE p.deleted_at IS NOT NULL
         ORDER BY p.deleted_at DESC
       `),
@@ -881,6 +1017,11 @@ app.get('/api/recycle-bin', async (_req: Request, res: Response) => {
           t.priority,
           t.assignee_id AS "assigneeId",
           t.created_by AS "createdBy",
+          COALESCE(cb_m.name, cb_u.name, 'Team Member') AS "createdByName",
+          COALESCE(cb_m.avatar, cb_u.avatar) AS "createdByAvatar",
+          t.updated_by AS "updatedBy",
+          COALESCE(ub_m.name, ub_u.name, 'Team Member') AS "updatedByName",
+          COALESCE(ub_m.avatar, ub_u.avatar) AS "updatedByAvatar",
           t.start_date AS "startDate",
           t.due_date AS "dueDate",
           t.created_at AS "createdAt",
@@ -905,6 +1046,10 @@ app.get('/api/recycle-bin', async (_req: Request, res: Response) => {
         LEFT JOIN projects p ON p.id = t.project_id
         LEFT JOIN team_members del_m ON del_m.id = t.deleted_by
         LEFT JOIN users del_u ON del_u.member_id = t.deleted_by
+        LEFT JOIN team_members cb_m ON cb_m.id = t.created_by
+        LEFT JOIN users cb_u ON cb_u.member_id = t.created_by
+        LEFT JOIN team_members ub_m ON ub_m.id = t.updated_by
+        LEFT JOIN users ub_u ON ub_u.member_id = t.updated_by
         WHERE t.deleted_at IS NOT NULL
         ORDER BY t.deleted_at DESC
       `),

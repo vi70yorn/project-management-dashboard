@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, FolderPlus, Users, Briefcase, Check, UserPlus, ChevronDown, AlertCircle, Edit3 } from 'lucide-react';
+import { X, FolderPlus, Users, Briefcase, Check, UserPlus, ChevronDown, AlertCircle, Edit3, Clock } from 'lucide-react';
 import { Project, StatusType, TeamMember } from '../types';
-import { isDueToday } from '../utils/dateUtils';
+import { isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 
 interface NewProjectModalProps {
@@ -383,6 +383,70 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Audit Metadata (Created Date/By, Last Updated Date/By) */}
+          {initialProject && (
+            <div id="project-modal-audit-metadata-card" className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-2 text-2xs">
+              <span className="text-3xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                Activity & Audit History
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Created By & Date */}
+                <div className="flex items-center gap-2.5 bg-white dark:bg-slate-900/70 p-2 rounded-lg border border-slate-200/60 dark:border-slate-800 shadow-2xs">
+                  {initialProject.createdByAvatar ? (
+                    <img
+                      src={initialProject.createdByAvatar}
+                      alt={initialProject.createdByName || 'Creator'}
+                      className="w-7 h-7 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold text-3xs flex items-center justify-center shrink-0">
+                      {(initialProject.createdByName || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 dark:text-slate-500 font-medium text-3xs">Created by:</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-200 truncate text-2xs">
+                        {initialProject.createdByName || 'System'}
+                      </span>
+                    </div>
+                    <span className="text-slate-500 dark:text-slate-400 text-3xs flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                      {formatDateTime(initialProject.createdAt)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Last Updated By & Date */}
+                <div className="flex items-center gap-2.5 bg-white dark:bg-slate-900/70 p-2 rounded-lg border border-slate-200/60 dark:border-slate-800 shadow-2xs">
+                  {initialProject.updatedByAvatar ? (
+                    <img
+                      src={initialProject.updatedByAvatar}
+                      alt={initialProject.updatedByName || 'Updater'}
+                      className="w-7 h-7 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-3xs flex items-center justify-center shrink-0">
+                      {(initialProject.updatedByName || initialProject.createdByName || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 dark:text-slate-500 font-medium text-3xs">Last updated by:</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-200 truncate text-2xs">
+                        {initialProject.updatedByName || initialProject.createdByName || 'System'}
+                      </span>
+                    </div>
+                    <span className="text-slate-500 dark:text-slate-400 text-3xs flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                      {formatDateTime(initialProject.updatedAt || initialProject.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">

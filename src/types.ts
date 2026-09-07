@@ -43,6 +43,11 @@ export interface Task {
   priority: PriorityType;
   assigneeId: string;
   createdBy?: string;
+  createdByName?: string;
+  createdByAvatar?: string;
+  updatedBy?: string;
+  updatedByName?: string;
+  updatedByAvatar?: string;
   startDate?: string;
   dueDate: string;
   createdAt: string;
@@ -67,6 +72,12 @@ export interface Project {
   memberIds: string[];
   tags: string[];
   color: string;
+  createdBy?: string;
+  createdByName?: string;
+  createdByAvatar?: string;
+  updatedBy?: string;
+  updatedByName?: string;
+  updatedByAvatar?: string;
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string;
