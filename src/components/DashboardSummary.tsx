@@ -21,6 +21,8 @@ import {
   Trash2,
   ShieldCheck,
   UserCheck,
+  Table as TableIcon,
+  LayoutGrid,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
@@ -64,6 +66,9 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const isAdmin = currentUser?.role === 'admin';
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Projects Directory View Mode State (Cards vs Table)
+  const [projectListViewMode, setProjectListViewMode] = useState<'card' | 'table'>('card');
 
   // Deadlines Section Filter & Pagination State
   const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Pending' | 'Blocked'>('all');
@@ -603,7 +608,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
           {/* Projects Directory & Summary Cards */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mr-1">Filter by Status:</span>
             <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
@@ -623,31 +628,327 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             </div>
           </div>
 
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
-            <input
-              id="search-projects-input"
-              type="text"
-              placeholder="Search projects, clients, tags..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={FORM_STYLES.searchInput}
-            />
-            {searchQuery && (
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            {/* View Mode Switcher: Cards vs Table */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
-                title="Clear search"
+                id="projects-view-cards-btn"
+                onClick={() => setProjectListViewMode('card')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  projectListViewMode === 'card'
+                    ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Card View"
               >
-                <X className="w-3.5 h-3.5" />
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Cards</span>
               </button>
-            )}
+              <button
+                type="button"
+                id="projects-view-table-btn"
+                onClick={() => setProjectListViewMode('table')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  projectListViewMode === 'table'
+                    ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Table View"
+              >
+                <TableIcon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Table</span>
+              </button>
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+              <input
+                id="search-projects-input"
+                type="text"
+                placeholder="Search projects, clients, tags..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={FORM_STYLES.searchInput}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Project Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Content Section: Empty state vs Table View vs Cards View */}
+        {filteredProjects.length === 0 ? (
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-2xs">
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No matching projects found</p>
+            <p className="text-xs text-slate-400 mt-1">Try adjusting your search query or status filter.</p>
+          </div>
+        ) : projectListViewMode === 'table' ? (
+          /* Table View */
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 text-2xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="py-3 px-3 text-center w-10">#</th>
+                    <th className="py-3 px-4 min-w-[200px]">Project</th>
+                    <th className="py-3 px-4 min-w-[120px]">Status</th>
+                    <th className="py-3 px-4 min-w-[130px]">Progress</th>
+                    <th className="py-3 px-4 min-w-[180px]">Deliverables</th>
+                    <th className="py-3 px-4 min-w-[110px]">Deadline</th>
+                    <th className="py-3 px-4 min-w-[130px]">Team</th>
+                    <th className="py-3 px-4 text-right min-w-[110px]">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                  {filteredProjects.map((project, idx) => {
+                    const projectTasks = tasks.filter((t) => t.projectId === project.id);
+                    const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
+                    const inProgressCount = projectTasks.filter((t) => t.status === 'In Progress').length;
+                    const blockedCount = projectTasks.filter((t) => t.status === 'Blocked').length;
+                    const pendingCount = projectTasks.filter((t) => t.status === 'Pending').length;
+                    const completionPercent =
+                      projectTasks.length > 0
+                        ? Math.round((completedCount / projectTasks.length) * 100)
+                        : 0;
+                    const projectTeam = teamMembers.filter((m) => project.memberIds?.includes(m.id));
+                    const isCurrentUserAssigned =
+                      currentUser && (project.memberIds || []).includes(currentUser.memberId);
+
+                    return (
+                      <tr
+                        key={project.id}
+                        id={`project-row-${project.id}`}
+                        onClick={() => onSelectProject(project.id)}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                      >
+                        {/* # Index */}
+                        <td className="py-3.5 px-3 text-center">
+                          <span className="text-3xs font-bold text-slate-400 dark:text-slate-500">
+                            {idx + 1}
+                          </span>
+                        </td>
+
+                        {/* Project Name, Client & Creator */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className="w-3 h-3 rounded-full shrink-0 shadow-2xs"
+                              style={{ backgroundColor: project.color || '#2563eb' }}
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                                  {project.name}
+                                </span>
+                                {project.client && (
+                                  <span className="px-1.5 py-0.2 rounded text-3xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                    {project.client}
+                                  </span>
+                                )}
+                                {isCurrentUserAssigned && (
+                                  <span className="inline-flex items-center gap-0.5 text-4xs font-bold px-1 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                    <UserCheck className="w-2.5 h-2.5" />
+                                    You
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-3xs text-slate-400 dark:text-slate-500 mt-0.5">
+                                {project.createdByName && (
+                                  <span>By: {project.createdByName}</span>
+                                )}
+                                {project.updatedAt && (
+                                  <>
+                                    <span>&bull;</span>
+                                    <span>Updated {formatDateTime(project.updatedAt).split(',')[0]}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
+                          {isAdmin ? (
+                            <div className="relative inline-block">
+                              <select
+                                id={`project-status-select-${project.id}`}
+                                value={project.status}
+                                onChange={(e) =>
+                                  onUpdateProjectStatus(project.id, e.target.value as StatusType)
+                                }
+                                className={`text-2xs font-semibold px-2 py-1 rounded-md border appearance-none pr-6 cursor-pointer ${
+                                  project.status === 'Completed'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                    : project.status === 'Blocked'
+                                    ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                                    : project.status === 'Pending'
+                                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                    : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                }`}
+                              >
+                                <option value="In Progress">In Progress</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Blocked">Blocked</option>
+                                <option value="Completed">Completed</option>
+                              </select>
+                              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            </div>
+                          ) : (
+                            <StatusBadge status={project.status} size="sm" />
+                          )}
+                        </td>
+
+                        {/* Progress */}
+                        <td className="py-3.5 px-4">
+                          <div className="space-y-1 max-w-[120px]">
+                            <div className="flex items-center justify-between text-2xs">
+                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                                {completionPercent}%
+                              </span>
+                              <span className="text-3xs text-slate-400 dark:text-slate-500">
+                                {completedCount}/{projectTasks.length}
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  completionPercent === 100
+                                    ? 'bg-emerald-500'
+                                    : completionPercent >= 50
+                                    ? 'bg-blue-600'
+                                    : 'bg-amber-500'
+                                }`}
+                                style={{ width: `${completionPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Deliverables Overview */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {completedCount > 0 && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-4xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800">
+                                <CheckCircle2 className="w-2.5 h-2.5" />
+                                {completedCount} Done
+                              </span>
+                            )}
+                            {inProgressCount + pendingCount > 0 && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-4xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800">
+                                <Clock className="w-2.5 h-2.5" />
+                                {inProgressCount + pendingCount} Ongoing
+                              </span>
+                            )}
+                            {blockedCount > 0 && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-4xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800">
+                                <AlertOctagon className="w-2.5 h-2.5" />
+                                {blockedCount} Blocked
+                              </span>
+                            )}
+                            {projectTasks.length === 0 && (
+                              <span className="text-3xs text-slate-400 italic">No tasks</span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Deadline */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-1 text-2xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            <Calendar className="w-3 h-3 text-slate-400" />
+                            <span>
+                              {project.targetDeadline
+                                ? project.targetDeadline.slice(0, 10)
+                                : project.dueDate
+                                ? project.dueDate.slice(0, 10)
+                                : '—'}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Team Avatars */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center -space-x-1.5 overflow-hidden">
+                            {projectTeam.slice(0, 3).map((m) =>
+                              m.avatar ? (
+                                <img
+                                  key={m.id}
+                                  src={m.avatar}
+                                  alt={m.name}
+                                  title={`${m.name} (${m.role})`}
+                                  className="w-6 h-6 rounded-full object-cover border-2 border-white dark:border-slate-900"
+                                />
+                              ) : (
+                                <div
+                                  key={m.id}
+                                  style={{ backgroundColor: m.color || '#2563eb' }}
+                                  title={`${m.name} (${m.role})`}
+                                  className="w-6 h-6 rounded-full text-white text-4xs flex items-center justify-center font-bold border-2 border-white dark:border-slate-900"
+                                >
+                                  {getInitials(m.name)}
+                                </div>
+                              )
+                            )}
+                            {projectTeam.length > 3 && (
+                              <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-900 flex items-center justify-center text-4xs text-slate-500 font-semibold">
+                                +{projectTeam.length - 3}
+                              </div>
+                            )}
+                            {projectTeam.length === 0 && (
+                              <span className="text-3xs text-slate-400">None</span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Action Buttons */}
+                        <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {isAdmin && onEditProject && (
+                              <button
+                                onClick={() => onEditProject(project)}
+                                title="Edit Project"
+                                className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {isAdmin && onDeleteProject && (
+                              <button
+                                onClick={() => onDeleteProject(project)}
+                                title="Delete Project"
+                                className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => onSelectProject(project.id)}
+                              className="inline-flex items-center gap-1 text-2xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer ml-1"
+                            >
+                              <span>{isAdmin ? 'Workspace' : 'Details'}</span>
+                              <ArrowUpRight className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          /* Project Cards Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredProjects.map((project) => {
             const projectTasks = tasks.filter((t) => t.projectId === project.id);
             const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
@@ -899,6 +1200,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             );
           })}
         </div>
+      )}
       </div>
     </div>
 
