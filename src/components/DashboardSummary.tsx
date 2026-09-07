@@ -66,8 +66,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Projects Directory View Mode State (Cards vs Table)
-  const [projectListViewMode, setProjectListViewMode] = useState<'card' | 'table'>('card');
+  // Projects Directory View Mode State (Table vs Cards - Table default)
+  const [projectListViewMode, setProjectListViewMode] = useState<'card' | 'table'>('table');
 
   // Deadlines Section Filter & Pagination State
   const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Pending' | 'Blocked'>('all');
@@ -684,22 +684,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             {searchQuery && <span className="text-slate-400"> matching &ldquo;{searchQuery}&rdquo;</span>}
           </div>
 
-          {/* View Mode Switcher: Cards vs Table */}
+          {/* View Mode Switcher: Table vs Cards */}
           <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              id="projects-view-cards-btn"
-              onClick={() => setProjectListViewMode('card')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                projectListViewMode === 'card'
-                  ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Card View"
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Cards</span>
-            </button>
             <button
               type="button"
               id="projects-view-table-btn"
@@ -713,6 +699,20 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             >
               <TableIcon className="w-3.5 h-3.5" />
               <span>Table</span>
+            </button>
+            <button
+              type="button"
+              id="projects-view-cards-btn"
+              onClick={() => setProjectListViewMode('card')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                projectListViewMode === 'card'
+                  ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Card View"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Cards</span>
             </button>
           </div>
         </div>
