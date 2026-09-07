@@ -395,12 +395,18 @@ export default function App() {
         const deletedProjItem: Project = {
           ...project,
           deletedAt: nowIso,
+          deletedById: currentUser?.memberId,
+          deletedByName: currentUser?.name || 'Admin',
+          deletedByAvatar: currentUser?.avatar,
           expiresAt: expiresIso,
           daysLeft: 7,
         };
         const deletedTaskItems: Task[] = projectTasks.map((t) => ({
           ...t,
           deletedAt: nowIso,
+          deletedById: currentUser?.memberId,
+          deletedByName: currentUser?.name || 'Admin',
+          deletedByAvatar: currentUser?.avatar,
           expiresAt: expiresIso,
           daysLeft: 7,
           projectName: project.name,
@@ -681,6 +687,9 @@ export default function App() {
         const deletedTaskItem: Task = {
           ...task,
           deletedAt: nowIso,
+          deletedById: currentUser?.memberId,
+          deletedByName: currentUser?.name || 'Team Member',
+          deletedByAvatar: currentUser?.avatar,
           expiresAt: expiresIso,
           daysLeft: 7,
           projectName: projName,

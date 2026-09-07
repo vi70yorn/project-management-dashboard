@@ -48,6 +48,9 @@ export interface Task {
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string;
+  deletedById?: string;
+  deletedByName?: string;
+  deletedByAvatar?: string;
   expiresAt?: string;
   daysLeft?: number;
 }
@@ -67,6 +70,9 @@ export interface Project {
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string;
+  deletedById?: string;
+  deletedByName?: string;
+  deletedByAvatar?: string;
   expiresAt?: string;
   daysLeft?: number;
 }

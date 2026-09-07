@@ -480,13 +480,14 @@ app.patch('/api/projects/:id/members', async (req: Request, res: Response) => {
 // DELETE project (Soft delete / Move to Recycle Bin)
 app.delete('/api/projects/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
   const pool = getPool();
   const dbClient = await pool.connect();
   try {
     await dbClient.query('BEGIN');
     const result = await dbClient.query(
-      `UPDATE projects SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL RETURNING id, name`,
-      [id]
+      `UPDATE projects SET deleted_at = CURRENT_TIMESTAMP, deleted_by = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL RETURNING id, name`,
+      [id, actorMemberId]
     );
     if (result.rowCount === 0) {
       await dbClient.query('ROLLBACK');
@@ -496,8 +497,8 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
 
     // Cascade soft-delete active tasks belonging to this project
     await dbClient.query(
-      `UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE project_id = $1 AND deleted_at IS NULL`,
-      [id]
+      `UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP, deleted_by = $2, updated_at = CURRENT_TIMESTAMP WHERE project_id = $1 AND deleted_at IS NULL`,
+      [id, actorMemberId]
     );
 
     await dbClient.query('COMMIT');
@@ -793,11 +794,12 @@ app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
 // DELETE task (Soft delete / Move to Recycle Bin)
 app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
   try {
     const pool = getPool();
     const result = await pool.query(
-      `UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL RETURNING id, title, project_id AS "projectId"`,
-      [id]
+      `UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP, deleted_by = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL RETURNING id, title, project_id AS "projectId"`,
+      [id, actorMemberId]
     );
     if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found or already in Recycle Bin' });
     const deletedTask = result.rows[0];
@@ -843,6 +845,19 @@ app.get('/api/recycle-bin', async (_req: Request, res: Response) => {
           p.created_at AS "createdAt",
           p.updated_at AS "updatedAt",
           p.deleted_at AS "deletedAt",
+          p.deleted_by AS "deletedById",
+          COALESCE(
+            del_m.name, 
+            del_u.name, 
+            (SELECT user_name FROM activity_logs WHERE entity_id = p.id AND action_type = 'delete_project' ORDER BY created_at DESC LIMIT 1),
+            'Admin'
+          ) AS "deletedByName",
+          COALESCE(
+            del_m.avatar, 
+            del_u.avatar, 
+            (SELECT user_avatar FROM activity_logs WHERE entity_id = p.id AND action_type = 'delete_project' ORDER BY created_at DESC LIMIT 1),
+            NULL
+          ) AS "deletedByAvatar",
           (p.deleted_at + INTERVAL '7 days') AS "expiresAt",
           GREATEST(0, CEIL(EXTRACT(EPOCH FROM ((p.deleted_at + INTERVAL '7 days') - CURRENT_TIMESTAMP)) / 86400))::int AS "daysLeft",
           COALESCE(
@@ -850,6 +865,8 @@ app.get('/api/recycle-bin', async (_req: Request, res: Response) => {
             '{}'
           ) AS "memberIds"
         FROM projects p
+        LEFT JOIN team_members del_m ON del_m.id = p.deleted_by
+        LEFT JOIN users del_u ON del_u.member_id = p.deleted_by
         WHERE p.deleted_at IS NOT NULL
         ORDER BY p.deleted_at DESC
       `),
@@ -869,10 +886,25 @@ app.get('/api/recycle-bin', async (_req: Request, res: Response) => {
           t.created_at AS "createdAt",
           t.updated_at AS "updatedAt",
           t.deleted_at AS "deletedAt",
+          t.deleted_by AS "deletedById",
+          COALESCE(
+            del_m.name, 
+            del_u.name, 
+            (SELECT user_name FROM activity_logs WHERE entity_id = t.id AND action_type = 'delete_task' ORDER BY created_at DESC LIMIT 1),
+            'Team Member'
+          ) AS "deletedByName",
+          COALESCE(
+            del_m.avatar, 
+            del_u.avatar, 
+            (SELECT user_avatar FROM activity_logs WHERE entity_id = t.id AND action_type = 'delete_task' ORDER BY created_at DESC LIMIT 1),
+            NULL
+          ) AS "deletedByAvatar",
           (t.deleted_at + INTERVAL '7 days') AS "expiresAt",
           GREATEST(0, CEIL(EXTRACT(EPOCH FROM ((t.deleted_at + INTERVAL '7 days') - CURRENT_TIMESTAMP)) / 86400))::int AS "daysLeft"
         FROM tasks t
         LEFT JOIN projects p ON p.id = t.project_id
+        LEFT JOIN team_members del_m ON del_m.id = t.deleted_by
+        LEFT JOIN users del_u ON del_u.member_id = t.deleted_by
         WHERE t.deleted_at IS NOT NULL
         ORDER BY t.deleted_at DESC
       `),
@@ -900,7 +932,7 @@ app.post('/api/recycle-bin/restore', async (req: Request, res: Response) => {
   try {
     if (type === 'project') {
       const result = await pool.query(
-        `UPDATE projects SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id, name`,
+        `UPDATE projects SET deleted_at = NULL, deleted_by = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id, name`,
         [id]
       );
       if (result.rowCount === 0) {
@@ -910,7 +942,7 @@ app.post('/api/recycle-bin/restore', async (req: Request, res: Response) => {
 
       // Restore associated tasks for this project
       await pool.query(
-        `UPDATE tasks SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE project_id = $1`,
+        `UPDATE tasks SET deleted_at = NULL, deleted_by = NULL, updated_at = CURRENT_TIMESTAMP WHERE project_id = $1`,
         [id]
       );
 
@@ -926,7 +958,7 @@ app.post('/api/recycle-bin/restore', async (req: Request, res: Response) => {
       return res.json({ success: true, message: 'Project and associated tasks restored', id, type });
     } else if (type === 'task') {
       const result = await pool.query(
-        `UPDATE tasks SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id, title, project_id AS "projectId"`,
+        `UPDATE tasks SET deleted_at = NULL, deleted_by = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id, title, project_id AS "projectId"`,
         [id]
       );
       if (result.rowCount === 0) {
@@ -937,7 +969,7 @@ app.post('/api/recycle-bin/restore', async (req: Request, res: Response) => {
       // Ensure parent project is restored if it was soft-deleted
       if (restoredTask.projectId) {
         await pool.query(
-          `UPDATE projects SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL`,
+          `UPDATE projects SET deleted_at = NULL, deleted_by = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL`,
           [restoredTask.projectId]
         );
         await syncProjectStatus(pool, restoredTask.projectId);

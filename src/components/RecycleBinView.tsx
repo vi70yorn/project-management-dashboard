@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   X,
   AlertTriangle,
+  UserX,
 } from 'lucide-react';
 import { Project, Task, RecycleBinData } from '../types';
 import { getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
@@ -152,13 +153,46 @@ export const RecycleBinView: React.FC<RecycleBinViewProps> = ({
     if (!dateStr) return '';
     try {
       const d = new Date(dateStr);
-      return `Deleted ${d.toLocaleDateString('en-US', {
+      return `${d.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
       })} at ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
     } catch {
       return '';
     }
+  };
+
+  const renderDeletedByBadge = (item: { deletedAt?: string; deletedByName?: string; deletedByAvatar?: string }) => {
+    const formattedDate = formatDeletedDate(item.deletedAt);
+    if (!item.deletedByName && !formattedDate) return null;
+
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-rose-700 dark:text-rose-300 bg-rose-50/80 dark:bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-200/70 dark:border-rose-900/50">
+        <UserX className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+        <span className="text-slate-500 dark:text-slate-400">Deleted by:</span>
+        {item.deletedByName && (
+          <span className="inline-flex items-center gap-1 font-semibold text-rose-900 dark:text-rose-100">
+            {item.deletedByAvatar ? (
+              <img
+                src={item.deletedByAvatar}
+                alt={item.deletedByName}
+                className="w-4 h-4 rounded-full object-cover shrink-0 ring-1 ring-rose-300 dark:ring-rose-700"
+              />
+            ) : (
+              <span className="w-4 h-4 rounded-full bg-rose-200 dark:bg-rose-800 text-rose-800 dark:text-rose-100 text-3xs font-bold flex items-center justify-center shrink-0">
+                {item.deletedByName.charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span>{item.deletedByName}</span>
+          </span>
+        )}
+        {formattedDate && (
+          <span className="text-slate-400 dark:text-slate-500 font-normal">
+            ({formattedDate})
+          </span>
+        )}
+      </span>
+    );
   };
 
   const renderProjectCard = (project: Project) => (
@@ -184,7 +218,7 @@ export const RecycleBinView: React.FC<RecycleBinViewProps> = ({
             {formatCountdownBadge(project.daysLeft)}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
             {project.client && (
               <span className="flex items-center gap-1 font-medium">
                 Client: <strong className="text-slate-700 dark:text-slate-300">{project.client}</strong>
@@ -196,11 +230,7 @@ export const RecycleBinView: React.FC<RecycleBinViewProps> = ({
                 Deadline: {project.targetDeadline}
               </span>
             )}
-            {project.deletedAt && (
-              <span className="text-slate-400 dark:text-slate-500">
-                {formatDeletedDate(project.deletedAt)}
-              </span>
-            )}
+            {renderDeletedByBadge(project)}
           </div>
           {project.description && (
             <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
@@ -263,7 +293,7 @@ export const RecycleBinView: React.FC<RecycleBinViewProps> = ({
             {formatCountdownBadge(task.daysLeft)}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
             {task.projectName && (
               <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
                 <Folder className="w-3 h-3 text-blue-500" />
@@ -276,11 +306,7 @@ export const RecycleBinView: React.FC<RecycleBinViewProps> = ({
                 Due: {task.dueDate}
               </span>
             )}
-            {task.deletedAt && (
-              <span className="text-slate-400 dark:text-slate-500">
-                {formatDeletedDate(task.deletedAt)}
-              </span>
-            )}
+            {renderDeletedByBadge(task)}
           </div>
           {task.description && (
             <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">

@@ -187,11 +187,34 @@ export async function runMigrationsAndSeed(): Promise<void> {
           ('act-3', 'mem-1788624319284', 'Y.VICHET', 'create_project', 'project', 'proj-1788624651745', 'Merchant 5.0', 'proj-1788624651745', 'Merchant 5.0', '{"status": "In Progress"}', '2026-09-05T16:10:52.120Z')
       ON CONFLICT (id) DO NOTHING;
 
-      -- Recycle Bin migrations: soft-delete columns and indexes
+      -- Recycle Bin migrations: soft-delete columns, deleted_by actor, and indexes
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_by VARCHAR(64);
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_by VARCHAR(64);
       CREATE INDEX IF NOT EXISTS idx_projects_deleted_at ON projects(deleted_at);
       CREATE INDEX IF NOT EXISTS idx_tasks_deleted_at ON tasks(deleted_at);
+
+      -- Backfill deleted_by from activity_logs for any tasks or projects soft-deleted previously
+      UPDATE tasks t
+      SET deleted_by = sub.user_id
+      FROM (
+        SELECT DISTINCT ON (entity_id) entity_id, user_id
+        FROM activity_logs
+        WHERE action_type = 'delete_task' AND user_id IS NOT NULL
+        ORDER BY entity_id, created_at DESC
+      ) sub
+      WHERE t.id = sub.entity_id AND t.deleted_by IS NULL;
+
+      UPDATE projects p
+      SET deleted_by = sub.user_id
+      FROM (
+        SELECT DISTINCT ON (entity_id) entity_id, user_id
+        FROM activity_logs
+        WHERE action_type = 'delete_project' AND user_id IS NOT NULL
+        ORDER BY entity_id, created_at DESC
+      ) sub
+      WHERE p.id = sub.entity_id AND p.deleted_by IS NULL;
     `);
 
     console.log('[PostgreSQL] Database schema, credentials & initial seeds verified successfully.');
