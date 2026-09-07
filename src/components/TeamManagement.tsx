@@ -100,27 +100,29 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
   return (
     <div id="team-management-view" className="space-y-6">
-      {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Top Header & Actions Card */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Users className="w-4 h-4" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Users className="w-5 h-5" />
             </div>
-            <h1 id="team-roster-title" className="text-xl font-bold text-slate-900 dark:text-white">
-              Team Members & Roster
-            </h1>
+            <div>
+              <h2 id="team-roster-title" className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                Team Members & Roster
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Add team members, configure their roles, and manage their assignments across projects and tasks.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Add team members, configure their roles, and manage their assignments across projects and tasks.
-          </p>
         </div>
 
         {isAdmin && (
           <button
             id="add-team-member-btn"
             onClick={onAddMember}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             Add Team Member
