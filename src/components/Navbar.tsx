@@ -79,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header
       id="main-navbar"
-      className="sticky top-0 z-30 bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shadow-md transition-colors"
+      className="sticky top-0 z-30 bg-blue-600 dark:bg-blue-600 backdrop-blur-md border-b border-blue-700 text-white shadow-md transition-colors"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Left: Brand & Main Navigation */}
@@ -96,21 +96,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-sm font-bold text-white tracking-tight leading-none">
                 UX/UI
               </span>
-              <span className="text-2xs text-slate-400 font-medium leading-none mt-1">
+              <span className="text-2xs text-blue-100 font-medium leading-none mt-1">
                 Management
               </span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 pl-4 border-l border-slate-800">
+          <div className="hidden md:flex items-center gap-2 pl-4 border-l border-blue-500/60">
             {/* Dashboard summary tab */}
             <button
               id="nav-dashboard-summary-btn"
               onClick={onGoToDashboard}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 currentView === 'dashboard'
-                  ? 'bg-blue-600 text-white border border-blue-500 shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
@@ -124,8 +124,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={onGoToCalendar}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                   currentView === 'calendar'
-                    ? 'bg-blue-600 text-white border border-blue-500 shadow-xs'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                    ? 'bg-white text-blue-700 shadow-xs'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
                 }`}
                 title="Calendar & Project/Task Timeline"
               >
@@ -140,13 +140,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onGoToTeam}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 currentView === 'team'
-                  ? 'bg-blue-600 text-white border border-blue-500 shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
               Team
-              <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-3xs font-bold ${
+                  currentView === 'team'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-blue-700/80 text-blue-100 border border-blue-500/50'
+                }`}
+              >
                 {teamCount}
               </span>
             </button>
@@ -157,8 +163,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onGoToSummary}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 currentView === 'summary'
-                  ? 'bg-blue-600 text-white border border-blue-500 shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
               }`}
               title="Project Weekly Summary (Mon - Fri) for Project Manager"
             >
@@ -201,8 +207,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onGoToDashboard}
               className={`p-1.5 rounded-lg text-xs transition-colors ${
                 currentView === 'dashboard'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
               }`}
               title="Dashboard"
             >
@@ -212,8 +218,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onGoToTeam}
               className={`p-1.5 rounded-lg text-xs transition-colors ${
                 currentView === 'team'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
               }`}
               title="Team"
             >
@@ -223,8 +229,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onGoToSummary}
               className={`p-1.5 rounded-lg text-xs transition-colors ${
                 currentView === 'summary'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
               }`}
               title="Project Weekly Summary"
             >
@@ -235,8 +241,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={onGoToCalendar}
                 className={`p-1.5 rounded-lg text-xs transition-colors ${
                   currentView === 'calendar'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-white text-blue-700 shadow-xs'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
                 }`}
                 title="Calendar"
               >
@@ -249,14 +255,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={handleRecycleBinAction}
                 className={`relative p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
                   currentView === 'recycle-bin'
-                    ? 'bg-rose-950/60 text-rose-300'
-                    : 'text-slate-400 hover:text-rose-400 hover:bg-rose-950/40'
+                    ? 'bg-rose-700 text-white'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
                 }`}
                 title={`Recycle Bin${recycleBinCount > 0 ? ` (${recycleBinCount})` : ''}`}
               >
-                <Trash2 className="w-4 h-4 text-rose-400" />
+                <Trash2 className="w-4 h-4" />
                 {recycleBinCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-1 ring-blue-600">
                     {recycleBinCount > 9 ? '9+' : recycleBinCount}
                   </span>
                 )}
@@ -268,14 +274,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={onOpenTeamActivities}
                 className={`relative p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
                   isTeamActivitiesOpen
-                    ? 'bg-blue-950/60 text-blue-300'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    ? 'bg-blue-700 text-white'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-500/60'
                 }`}
                 title="Team Activities"
               >
                 <Activity className="w-4 h-4" />
                 <span className="absolute top-0.5 right-0.5 flex h-1.5 w-1.5">
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
                 </span>
               </button>
             )}
@@ -287,13 +293,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="navbar-theme-toggle-btn"
               onClick={onToggleTheme}
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className="p-2 rounded-xl text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700"
+              className="p-2 rounded-xl text-blue-100 hover:text-amber-200 hover:bg-blue-500/60 transition-all cursor-pointer border border-transparent hover:border-blue-400/40"
               aria-label="Toggle theme mode"
             >
               {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
+                <Sun className="w-4 h-4 text-amber-300" />
               ) : (
-                <Moon className="w-4 h-4 text-slate-300" />
+                <Moon className="w-4 h-4 text-blue-100" />
               )}
             </button>
           )}
@@ -306,8 +312,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={`Recycle Bin (Retention: 7 days)${recycleBinCount ? ` • ${recycleBinCount} items` : ''}`}
               className={`relative p-2 rounded-xl transition-all cursor-pointer border ${
                 currentView === 'recycle-bin'
-                  ? 'bg-rose-950/60 text-rose-300 border-rose-800 shadow-2xs'
-                  : 'text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border-transparent hover:border-rose-800/60'
+                  ? 'bg-rose-700 text-white border-rose-500 shadow-2xs'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-500/60 border-transparent hover:border-blue-400/40'
               }`}
               aria-label="Open Recycle Bin"
             >
@@ -315,7 +321,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {recycleBinCount > 0 && (
                 <span
                   id="navbar-recycle-bin-badge"
-                  className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-2 ring-slate-900 shadow-2xs leading-none"
+                  className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-2 ring-blue-600 shadow-2xs leading-none"
                 >
                   {recycleBinCount > 99 ? '99+' : recycleBinCount}
                 </span>
@@ -331,15 +337,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Team Activities (Live update feed)"
               className={`relative p-2 rounded-xl transition-all cursor-pointer border ${
                 isTeamActivitiesOpen
-                  ? 'bg-blue-950/60 text-blue-300 border-blue-800 shadow-2xs'
-                  : 'text-slate-400 hover:text-blue-400 hover:bg-slate-800 border-transparent hover:border-slate-700'
+                  ? 'bg-blue-700 text-white border-blue-400 shadow-2xs'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-500/60 border-transparent hover:border-blue-400/40'
               }`}
               aria-label="Open Team Activities"
             >
               <Activity className="w-4 h-4" />
               <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
               </span>
             </button>
           )}
@@ -348,17 +354,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           {currentUser && (
             <div
               id="navbar-user-profile"
-              className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-800"
+              className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-blue-500/60"
             >
               <div className="flex items-center gap-2">
                 {currentUser.avatar ? (
                   <img
                     src={currentUser.avatar}
                     alt={currentUser.name}
-                    className="w-8 h-8 rounded-full object-cover border border-slate-700 shadow-2xs shrink-0"
+                    className="w-8 h-8 rounded-full object-cover border border-blue-400/60 shadow-2xs shrink-0"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 border border-slate-700">
+                  <div className="w-8 h-8 rounded-full bg-blue-700 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 border border-blue-400/60">
                     {currentUser.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -368,7 +374,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {currentUser.name}
                     </span>
                   </div>
-                  <p className="text-3xs text-slate-400 truncate max-w-[130px]">
+                  <p className="text-3xs text-blue-100 truncate max-w-[130px]">
                     {currentUser.username ? `@${currentUser.username}` : currentUser.email}
                   </p>
                 </div>
@@ -379,7 +385,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   id="navbar-edit-profile-btn"
                   onClick={onOpenEditProfile}
                   title="Update your user profile & info"
-                  className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-blue-100 hover:text-white hover:bg-blue-500/60 rounded-lg transition-colors cursor-pointer"
                 >
                   <User className="w-4 h-4" />
                 </button>
@@ -390,7 +396,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   id="navbar-change-password-btn"
                   onClick={onOpenResetPassword}
                   title="Reset your password"
-                  className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-blue-100 hover:text-white hover:bg-blue-500/60 rounded-lg transition-colors cursor-pointer"
                 >
                   <KeyRound className="w-4 h-4" />
                 </button>
@@ -401,7 +407,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   id="navbar-logout-btn"
                   onClick={onLogout}
                   title={`Sign out (${currentUser.name})`}
-                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
+                  className="p-1.5 text-blue-100 hover:text-white hover:bg-rose-600/70 rounded-lg transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
