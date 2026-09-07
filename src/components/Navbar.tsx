@@ -91,7 +91,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <img
               src="/favicon.svg"
               alt="UX/UI Task Tracking"
-              className="w-9 h-9 rounded-xl shadow-xs group-hover:scale-105 transition-transform shrink-0"
+              className="w-9 h-9 shadow-xs group-hover:scale-105 transition-transform shrink-0"
             />
             <div className="h-9 flex flex-col justify-center -translate-y-0.5">
               <span className="text-sm font-bold text-white tracking-tight leading-none">
