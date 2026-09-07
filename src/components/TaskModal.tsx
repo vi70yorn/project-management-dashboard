@@ -151,7 +151,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     onClose();
   };
 
-  const selectedMemberObj = safeMembers.find((m) => m.id === (initialTask?.assigneeId || assigneeId));
+  const selectedMemberObj = safeMembers.find((m) => m.id === (assigneeId || initialTask?.assigneeId));
 
   // If Staff role and viewing ANOTHER member's task: render pristine, read-only Task Detail View
   if (isStaff && initialTask && !isOwnTask) {
@@ -490,9 +490,29 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           {/* Assignee Selection */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Assigned Team Member <span className="text-rose-500">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Assigned Team Member <span className="text-rose-500">*</span>
+              </label>
+              {!isStaff && (
+                <div className="flex items-center gap-2">
+                  <span className="text-2xs text-slate-400">
+                    {selectedMemberObj ? selectedMemberObj.name : 'Select an assignee'}
+                  </span>
+                  {onOpenAddMember && (
+                    <button
+                      type="button"
+                      onClick={onOpenAddMember}
+                      className="text-2xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 font-semibold cursor-pointer"
+                    >
+                      <UserPlus className="w-3 h-3" />
+                      + New Member
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
             {isStaff ? (
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -517,48 +537,60 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 </span>
               </div>
             ) : (
-              <>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-2xs text-slate-400 dark:text-slate-500">Assign to project member or team</span>
-                  {onOpenAddMember && (
-                    <button
-                      type="button"
-                      onClick={onOpenAddMember}
-                      className="text-2xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 font-semibold cursor-pointer"
+              <div
+                id="task-assignee-grid"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50/50 dark:bg-slate-800/50"
+              >
+                {sortedMembers.map((member) => {
+                  const isSelected = (assigneeId || selectedMemberObj?.id) === member.id;
+                  const isInProject = currentProject?.memberIds?.includes(member.id);
+
+                  return (
+                    <div
+                      key={member.id}
+                      id={`task-assignee-card-${member.id}`}
+                      onClick={() => setAssigneeId(member.id)}
+                      className={`flex items-center justify-between p-2 rounded-md cursor-pointer text-xs transition-colors ${
+                        isSelected
+                          ? 'bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 font-medium'
+                          : 'bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
                     >
-                      <UserPlus className="w-3 h-3" />
-                      + New Member
-                    </button>
-                  )}
-                </div>
-
-                <div className="relative">
-                  <select
-                    id="task-assignee-select"
-                    value={assigneeId}
-                    onChange={(e) => setAssigneeId(e.target.value)}
-                    className={FORM_STYLES.select}
-                  >
-                    {sortedMembers.map((m) => {
-                      const isInProject = currentProject?.memberIds?.includes(m.id);
-                      return (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.role}) {isInProject ? '★ Project Roster' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-
-                {selectedMemberObj && (
-                  <div className="flex items-center gap-2 mt-1.5 text-2xs text-slate-500 dark:text-slate-400">
-                    <span>{selectedMemberObj.role}</span>
-                    <span>&bull;</span>
-                    <span className="text-slate-400 dark:text-slate-500">{selectedMemberObj.email}</span>
-                  </div>
-                )}
-              </>
+                      <div className="flex items-center gap-2 truncate">
+                        {member.avatar ? (
+                          <img
+                            src={member.avatar}
+                            alt={member.name}
+                            className="w-6 h-6 rounded-full object-cover shrink-0"
+                          />
+                        ) : (
+                          <div
+                            style={{ backgroundColor: member.color || '#2563eb' }}
+                            className="w-6 h-6 rounded-full text-white text-3xs font-semibold flex items-center justify-center shrink-0"
+                          >
+                            {member.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="truncate">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <p className="truncate font-medium">{member.name}</p>
+                            {isInProject && (
+                              <span
+                                className="text-4xs font-semibold px-1 py-0.2 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 shrink-0"
+                                title="Member of this project"
+                              >
+                                Project
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-2xs text-slate-500 dark:text-slate-400 truncate">{member.role}</p>
+                        </div>
+                      </div>
+                      {isSelected && <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 ml-1" />}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
 
