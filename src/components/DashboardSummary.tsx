@@ -37,6 +37,7 @@ interface DashboardSummaryProps {
   onSelectProject: (projectId: string) => void;
   onOpenNewProject: () => void;
   onUpdateProjectStatus: (projectId: string, newStatus: StatusType) => void;
+  onUpdateTaskStatus?: (taskId: string, newStatus: StatusType) => void;
   onNavigateToTeam?: () => void;
   onOpenAddMember?: () => void;
   currentUser?: AuthUser | null;
@@ -54,6 +55,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   onSelectProject,
   onOpenNewProject,
   onUpdateProjectStatus,
+  onUpdateTaskStatus,
   onNavigateToTeam,
   onOpenAddMember,
   currentUser,
@@ -137,10 +139,23 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           priority: t.priority,
           status: t.status,
           assignee,
+          assigneeId: t.assigneeId,
+          createdBy: t.createdBy,
         };
       })
       .sort((a, b) => a.diffDays - b.diffDays);
   }, [safeTasks, safeProjects, safeMembers]);
+
+  // Check if current user can modify task status
+  const canModifyTask = (taskItem: { assigneeId?: string; createdBy?: string }) => {
+    if (!onUpdateTaskStatus) return false;
+    if (!currentUser) return true;
+    if (currentUser.role === 'admin') return true;
+    return (
+      taskItem.assigneeId === currentUser.memberId ||
+      taskItem.createdBy === currentUser.memberId
+    );
+  };
 
   // Counts by status for quick tabs
   const deadlineCounts = useMemo(() => {
@@ -465,7 +480,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                       <th className="py-3 px-4 min-w-[150px]">Project</th>
                       <th className="py-3 px-4 min-w-[140px]">Assignee</th>
                       <th className="py-3 px-3 min-w-[95px]">Priority</th>
-                      <th className="py-3 px-3 min-w-[105px]">Status</th>
+                      <th className="py-3 px-4 min-w-[140px]">Status</th>
                       <th className="py-3 px-4 min-w-[200px]">Deadline</th>
                       <th className="py-3 pr-6 pl-3 text-right w-24">Action</th>
                     </tr>
@@ -545,8 +560,17 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                           </td>
 
                           {/* Status */}
-                          <td className="py-3.5 px-3">
-                            <StatusBadge status={item.status} size="sm" />
+                          <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
+                            {canModifyTask(item) ? (
+                              <StatusDropdown
+                                id={`deadline-task-status-${item.id}`}
+                                status={item.status}
+                                onChange={(newStatus) => onUpdateTaskStatus?.(item.id, newStatus)}
+                                size="sm"
+                              />
+                            ) : (
+                              <StatusBadge status={item.status} size="sm" />
+                            )}
                           </td>
 
                           {/* Deadline countdown badge */}

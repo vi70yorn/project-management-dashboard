@@ -1109,6 +1109,7 @@ export default function App() {
             onSelectProject={handleSelectProject}
             onOpenNewProject={handleOpenCreateProject}
             onUpdateProjectStatus={handleUpdateProjectStatus}
+            onUpdateTaskStatus={handleUpdateTaskStatus}
             onNavigateToTeam={handleGoToTeam}
             onOpenAddMember={handleOpenAddMember}
             currentUser={currentUser}
