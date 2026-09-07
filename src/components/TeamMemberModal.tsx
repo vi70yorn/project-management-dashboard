@@ -70,7 +70,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('');
   const [email, setEmail] = useState('');
-  const [department, setDepartment] = useState('Engineering');
+  const [department, setDepartment] = useState('');
   const [systemRole, setSystemRole] = useState<UserRole>('staff');
   const [status, setStatus] = useState<'active' | 'busy' | 'away'>('active');
   const [avatarType, setAvatarType] = useState<'photo' | 'initials'>('initials');
@@ -112,7 +112,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
       setRole('');
       setSystemRole('staff');
       setEmail('');
-      setDepartment('Engineering');
+      setDepartment('');
       setStatus('active');
       setAvatarType('initials');
       setAvatarUrl('');
