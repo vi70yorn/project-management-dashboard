@@ -2,7 +2,6 @@ import React from 'react';
 import {
   LayoutDashboard,
   Plus,
-  Layers,
   Users,
   UserPlus,
   LogOut,
@@ -89,15 +88,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onGoToDashboard}
             className="flex items-center gap-2.5 cursor-pointer group select-none"
           >
-            {/* <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors shrink-0">
-              <Layers className="w-5 h-5" />
-            </div> */}
+            <img
+              src="/favicon.svg"
+              alt="UX/UI Task Tracking"
+              className="w-9 h-9 rounded-xl shadow-xs group-hover:scale-105 transition-transform shrink-0"
+            />
             <div className="h-9 flex flex-col justify-center -translate-y-0.5">
               <span className="text-sm font-bold text-white tracking-tight leading-none">
                 UX/UI
               </span>
               <span className="text-2xs text-blue-100 dark:text-slate-400 font-medium leading-none mt-1">
-                Management
+                Task Tracking
               </span>
             </div>
           </div>
