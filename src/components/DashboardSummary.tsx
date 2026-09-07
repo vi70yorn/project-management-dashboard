@@ -174,6 +174,17 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     setDeadlineCurrentPage(1);
   };
 
+  // Project counts per status
+  const projectStatusCounts = useMemo(() => {
+    return {
+      all: safeProjects.length,
+      inProgress: safeProjects.filter((p) => p.status === 'In Progress').length,
+      pending: safeProjects.filter((p) => p.status === 'Pending').length,
+      blocked: safeProjects.filter((p) => p.status === 'Blocked').length,
+      completed: safeProjects.filter((p) => p.status === 'Completed').length,
+    };
+  }, [safeProjects]);
+
   // Filtered Projects list
   const filteredProjects = useMemo(() => {
     return safeProjects.filter((p) => {
@@ -608,80 +619,104 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
           {/* Projects Directory & Summary Cards */}
       <div className="space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        {/* Row 1: Filter by Status + Search */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mr-1">Filter by Status:</span>
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-              {['all', 'In Progress', 'Pending', 'Blocked', 'Completed'].map((st) => (
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
+              {[
+                { label: 'All Projects', value: 'all', count: projectStatusCounts.all },
+                { label: 'In Progress', value: 'In Progress', count: projectStatusCounts.inProgress },
+                { label: 'Pending', value: 'Pending', count: projectStatusCounts.pending },
+                { label: 'Blocked', value: 'Blocked', count: projectStatusCounts.blocked },
+                { label: 'Completed', value: 'Completed', count: projectStatusCounts.completed },
+              ].map((st) => (
                 <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                    statusFilter === st
+                  key={st.value}
+                  onClick={() => setStatusFilter(st.value)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                    statusFilter === st.value
                       ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  {st === 'all' ? 'All Projects' : st}
+                  <span>{st.label}</span>
+                  <span
+                    className={`text-3xs px-1.5 py-0.2 rounded-full font-semibold ${
+                      statusFilter === st.value
+                        ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
+                        : st.value === 'Blocked' && st.count > 0
+                        ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
+                        : 'bg-slate-200/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {st.count}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-            {/* View Mode Switcher: Cards vs Table */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="relative w-full sm:w-64 shrink-0">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+            <input
+              id="search-projects-input"
+              type="text"
+              placeholder="Search projects, clients, tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={FORM_STYLES.searchInput}
+            />
+            {searchQuery && (
               <button
                 type="button"
-                id="projects-view-cards-btn"
-                onClick={() => setProjectListViewMode('card')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  projectListViewMode === 'card'
-                    ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Card View"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
+                title="Clear search"
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Cards</span>
+                <X className="w-3.5 h-3.5" />
               </button>
-              <button
-                type="button"
-                id="projects-view-table-btn"
-                onClick={() => setProjectListViewMode('table')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  projectListViewMode === 'table'
-                    ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Table View"
-              >
-                <TableIcon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Table</span>
-              </button>
-            </div>
+            )}
+          </div>
+        </div>
 
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
-              <input
-                id="search-projects-input"
-                type="text"
-                placeholder="Search projects, clients, tags..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={FORM_STYLES.searchInput}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
-                  title="Clear search"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+        {/* Row 2: Below Status - View Mode Switcher (Cards vs Table) & Summary Info */}
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Showing <strong className="text-slate-700 dark:text-slate-200">{filteredProjects.length}</strong> {filteredProjects.length === 1 ? 'project' : 'projects'}
+            {searchQuery && <span className="text-slate-400"> matching &ldquo;{searchQuery}&rdquo;</span>}
+          </div>
+
+          {/* View Mode Switcher: Cards vs Table */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              id="projects-view-cards-btn"
+              onClick={() => setProjectListViewMode('card')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                projectListViewMode === 'card'
+                  ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Card View"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Cards</span>
+            </button>
+            <button
+              type="button"
+              id="projects-view-table-btn"
+              onClick={() => setProjectListViewMode('table')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                projectListViewMode === 'table'
+                  ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+              title="Table View"
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              <span>Table</span>
+            </button>
           </div>
         </div>
 
