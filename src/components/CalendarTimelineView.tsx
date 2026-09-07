@@ -18,6 +18,8 @@ import {
   Flag,
   Sparkles,
   SlidersHorizontal,
+  Target,
+  ArrowRight,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType } from '../types';
 import { getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
@@ -30,6 +32,43 @@ interface CalendarTimelineViewProps {
   onOpenTaskModal: (task?: Task | null, defaultStatus?: StatusType) => void;
   onBackToDashboard: () => void;
 }
+
+export interface TaskScheduleItem {
+  task: Task;
+  isStart: boolean;
+  isEnd: boolean;
+  isSingleDay: boolean;
+  isOngoing: boolean;
+  startDate: string;
+  dueDate: string;
+}
+
+// Format local date YYYY-MM-DD without UTC timezone skew
+export const formatLocalDate = (year: number, monthIndex: number, day: number): string => {
+  return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
+// Format short date e.g. "Sep 8"
+export const formatShortDate = (dateStr?: string): string => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('T')[0].split('-');
+  if (parts.length < 3) return dateStr;
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const mIndex = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  return `${monthNames[mIndex] || ''} ${day}`;
+};
+
+// Get standardized task start and due dates
+export const getTaskScheduleRange = (task: Task): { startDate: string; dueDate: string } | null => {
+  const due = task.dueDate ? task.dueDate.split('T')[0] : '';
+  const start = task.startDate ? task.startDate.split('T')[0] : due;
+  if (!due && !start) return null;
+  if (start && due && start > due) {
+    return { startDate: due, dueDate: due };
+  }
+  return { startDate: start || due, dueDate: due || start };
+};
 
 export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
   projects = [],
@@ -209,13 +248,18 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
 
     // Days from previous month to fill row
     const prevMonthLastDay = new Date(activeYear, activeMonth, 0).getDate();
-    const days = [];
+    const days: Array<{
+      date: Date;
+      dateStr: string;
+      dayNum: number;
+      isCurrentMonth: boolean;
+    }> = [];
 
     // Leading days from previous month
     for (let i = startDayOfWeek - 1; i >= 0; i--) {
       const dayNum = prevMonthLastDay - i;
       const date = new Date(activeYear, activeMonth - 1, dayNum);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = formatLocalDate(date.getFullYear(), date.getMonth(), date.getDate());
       days.push({
         date,
         dateStr,
@@ -227,7 +271,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
     // Days in current month
     for (let dayNum = 1; dayNum <= totalDaysInMonth; dayNum++) {
       const date = new Date(activeYear, activeMonth, dayNum);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = formatLocalDate(activeYear, activeMonth, dayNum);
       days.push({
         date,
         dateStr,
@@ -241,7 +285,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
     if (remainingDays < 7) {
       for (let dayNum = 1; dayNum <= remainingDays; dayNum++) {
         const date = new Date(activeYear, activeMonth + 1, dayNum);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatLocalDate(date.getFullYear(), date.getMonth(), date.getDate());
         days.push({
           date,
           dateStr,
@@ -254,33 +298,80 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
     return days;
   }, [activeYear, activeMonth]);
 
-  // Group tasks by dueDate
-  const tasksByDueDate = useMemo(() => {
-    const map = new Map<string, Task[]>();
-    filteredTasks.forEach((task) => {
-      if (!task.dueDate) return;
-      const d = task.dueDate.split('T')[0];
-      if (!map.has(d)) map.set(d, []);
-      map.get(d)!.push(task);
-    });
-    return map;
-  }, [filteredTasks]);
+  // Group tasks across their full active range [startDate, dueDate]
+  const tasksByDay = useMemo(() => {
+    const map = new Map<string, TaskScheduleItem[]>();
 
-  // Group project deadlines by targetDeadline
-  const projectsByDeadline = useMemo(() => {
-    const map = new Map<string, Project[]>();
-    filteredProjects.forEach((proj) => {
-      if (!proj.targetDeadline) return;
-      const d = proj.targetDeadline.split('T')[0];
-      if (!map.has(d)) map.set(d, []);
-      map.get(d)!.push(proj);
+    calendarDays.forEach((d) => {
+      map.set(d.dateStr, []);
     });
+
+    // Sort tasks consistently by startDate, dueDate, title so multi-day items align
+    const sortedTasks = [...filteredTasks].sort((a, b) => {
+      const rangeA = getTaskScheduleRange(a);
+      const rangeB = getTaskScheduleRange(b);
+      const startA = rangeA?.startDate || '';
+      const startB = rangeB?.startDate || '';
+      if (startA !== startB) return startA.localeCompare(startB);
+      const dueA = rangeA?.dueDate || '';
+      const dueB = rangeB?.dueDate || '';
+      if (dueA !== dueB) return dueA.localeCompare(dueB);
+      return a.title.localeCompare(b.title);
+    });
+
+    sortedTasks.forEach((task) => {
+      const range = getTaskScheduleRange(task);
+      if (!range) return;
+      const { startDate, dueDate } = range;
+
+      calendarDays.forEach((d) => {
+        const dayStr = d.dateStr;
+        if (startDate <= dayStr && dayStr <= dueDate) {
+          const isStart = dayStr === startDate;
+          const isEnd = dayStr === dueDate;
+          const isSingleDay = startDate === dueDate;
+          const isOngoing = !isStart && !isEnd;
+
+          if (!map.has(dayStr)) map.set(dayStr, []);
+          map.get(dayStr)!.push({
+            task,
+            isStart,
+            isEnd,
+            isSingleDay,
+            isOngoing,
+            startDate,
+            dueDate,
+          });
+        }
+      });
+    });
+
+    return map;
+  }, [filteredTasks, calendarDays]);
+
+  // Group project deadlines and kickoffs
+  const projectMilestonesByDay = useMemo(() => {
+    const map = new Map<string, Array<{ project: Project; type: 'kickoff' | 'deadline' }>>();
+
+    filteredProjects.forEach((proj) => {
+      if (proj.targetDeadline) {
+        const d = proj.targetDeadline.split('T')[0];
+        if (!map.has(d)) map.set(d, []);
+        map.get(d)!.push({ project: proj, type: 'deadline' });
+      }
+      if (proj.startDate) {
+        const d = proj.startDate.split('T')[0];
+        if (!map.has(d)) map.set(d, []);
+        map.get(d)!.push({ project: proj, type: 'kickoff' });
+      }
+    });
+
     return map;
   }, [filteredProjects]);
 
   const todayStr = useMemo(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return formatLocalDate(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
 
   // -------------------------------------------------------------
@@ -291,7 +382,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
     return Array.from({ length: daysInMonthCount }, (_, i) => {
       const dayNum = i + 1;
       const d = new Date(activeYear, activeMonth, dayNum);
-      const dayStr = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      const dayStr = formatLocalDate(activeYear, activeMonth, dayNum);
       const dayOfWeekShort = d.toLocaleDateString('en-US', { weekday: 'narrow' });
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const isToday = dayStr === todayStr;
@@ -299,19 +390,35 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
     });
   }, [activeYear, activeMonth, daysInMonthCount, todayStr]);
 
-  // Calculate left% and width% for a date range within current month
+  // Calculate left% and width% for a date range within current month (pure local midnight)
   const getTimelinePosition = (startStr?: string, endStr?: string) => {
     if (!startStr && !endStr) return null;
 
-    const monthStart = new Date(activeYear, activeMonth, 1).getTime();
-    const monthEnd = new Date(activeYear, activeMonth, daysInMonthCount, 23, 59, 59).getTime();
+    const monthStart = new Date(activeYear, activeMonth, 1, 0, 0, 0).getTime();
+    const monthEnd = new Date(activeYear, activeMonth, daysInMonthCount, 23, 59, 59, 999).getTime();
 
-    const startDate = startStr ? new Date(startStr).getTime() : (endStr ? new Date(endStr).getTime() : monthStart);
-    const endDate = endStr ? new Date(endStr).getTime() : startDate;
+    const parseToLocalStart = (s: string) => {
+      const parts = s.split('T')[0].split('-').map(Number);
+      if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+        return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0).getTime();
+      }
+      return new Date(s).getTime();
+    };
+
+    const parseToLocalEnd = (s: string) => {
+      const parts = s.split('T')[0].split('-').map(Number);
+      if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+        return new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999).getTime();
+      }
+      return new Date(s).getTime();
+    };
+
+    const startDate = startStr ? parseToLocalStart(startStr) : (endStr ? parseToLocalStart(endStr) : monthStart);
+    const endDate = endStr ? parseToLocalEnd(endStr) : startDate;
 
     // Check if range overlaps with this month
     if (endDate < monthStart || startDate > monthEnd) {
-      return null; // outside this month view
+      return null;
     }
 
     const clampedStart = Math.max(startDate, monthStart);
@@ -326,6 +433,11 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
 
     return { leftPercent, widthPercent };
   };
+
+  const isCurrentMonthView = useMemo(() => {
+    const now = new Date();
+    return activeYear === now.getFullYear() && activeMonth === now.getMonth();
+  }, [activeYear, activeMonth]);
 
   return (
     <div id="calendar-timeline-view" className="space-y-5 animate-in fade-in duration-200">
@@ -348,7 +460,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
                 Calendar & Timeline
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                Track project deadlines and task deliverables across schedules in real-time.
+                Track project schedules and task deliverables spanning from Start Date to Target Due Date.
               </p>
             </div>
           </div>
@@ -418,58 +530,61 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
             <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Total Deliverables
             </p>
-            <p className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">
+            <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5">
               {stats.total}
             </p>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <div className="p-2 bg-blue-50 dark:bg-blue-950/50 rounded-lg text-blue-600 dark:text-blue-400">
             <CheckSquare className="w-4 h-4" />
           </div>
         </div>
+
         <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               In Progress
             </p>
-            <p className="text-xl font-extrabold text-blue-600 dark:text-blue-400 mt-0.5">
+            <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 mt-0.5">
               {stats.inProgress}
             </p>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+          <div className="p-2 bg-blue-50 dark:bg-blue-950/50 rounded-lg text-blue-600 dark:text-blue-400">
             <Clock className="w-4 h-4" />
           </div>
         </div>
+
         <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Completed
             </p>
-            <p className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">
+            <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
               {stats.completed}
             </p>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+          <div className="p-2 bg-emerald-50 dark:bg-emerald-950/50 rounded-lg text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="w-4 h-4" />
           </div>
         </div>
+
         <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Blocked / Attention
+              Blocked / Critical
             </p>
-            <p className="text-xl font-extrabold text-rose-600 dark:text-rose-400 mt-0.5">
+            <p className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 mt-0.5">
               {stats.blocked}
             </p>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+          <div className="p-2 bg-rose-50 dark:bg-rose-950/50 rounded-lg text-rose-600 dark:text-rose-400">
             <AlertCircle className="w-4 h-4" />
           </div>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
+      {/* Interactive Filters Bar */}
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Project Filter */}
           <div className="relative">
             <select
@@ -492,7 +607,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              aria-label="Filter by status"
+              aria-label="Filter by task status"
               className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden cursor-pointer"
             >
               <option value="all">All Statuses</option>
@@ -596,14 +711,14 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
           {/* Calendar Day Cells */}
           <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-200 dark:divide-slate-800">
             {calendarDays.map((day) => {
-              const dayTasks = tasksByDueDate.get(day.dateStr) || [];
-              const dayProjects = projectsByDeadline.get(day.dateStr) || [];
+              const dayTasks = tasksByDay.get(day.dateStr) || [];
+              const dayMilestones = projectMilestonesByDay.get(day.dateStr) || [];
               const isToday = day.dateStr === todayStr;
 
               return (
                 <div
                   key={day.dateStr}
-                  className={`min-h-[110px] sm:min-h-[130px] p-2 flex flex-col justify-between transition-colors ${
+                  className={`min-h-[110px] sm:min-h-[135px] p-2 flex flex-col justify-between transition-colors ${
                     !day.isCurrentMonth
                       ? 'bg-slate-50/40 dark:bg-slate-900/30 text-slate-400 dark:text-slate-600'
                       : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white hover:bg-slate-50/60 dark:hover:bg-slate-800/30'
@@ -623,33 +738,58 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
                       {day.dayNum}
                     </span>
 
-                    {/* Project Deadline Flag */}
-                    {dayProjects.length > 0 && (
-                      <span
-                        className="inline-flex items-center gap-1 text-3xs font-extrabold px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 cursor-pointer"
-                        title={`Project Deadline: ${dayProjects.map((p) => p.name).join(', ')}`}
-                        onClick={() => onSelectProject(dayProjects[0].id)}
-                      >
-                        <Flag className="w-2.5 h-2.5" />
-                        <span className="hidden sm:inline">Deadline</span>
-                      </span>
+                    {/* Project Milestone Badges (Kickoff / Deadline) */}
+                    {dayMilestones.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        {dayMilestones.slice(0, 1).map((m, idx) => (
+                          <span
+                            key={idx}
+                            className={`inline-flex items-center gap-1 text-3xs font-extrabold px-1.5 py-0.5 rounded-md cursor-pointer ${
+                              m.type === 'deadline'
+                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80'
+                                : 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80'
+                            }`}
+                            title={`Project ${m.type === 'deadline' ? 'Deadline' : 'Kickoff'}: ${m.project.name}`}
+                            onClick={() => onSelectProject(m.project.id)}
+                          >
+                            {m.type === 'deadline' ? (
+                              <Flag className="w-2.5 h-2.5" />
+                            ) : (
+                              <Sparkles className="w-2.5 h-2.5" />
+                            )}
+                            <span className="hidden sm:inline">
+                              {m.type === 'deadline' ? 'Deadline' : 'Kickoff'}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
 
-                  {/* Tasks Container */}
+                  {/* Tasks Container (Showing Multi-day Spans from startDate to dueDate) */}
                   <div className="space-y-1.5 flex-1 overflow-hidden">
-                    {dayTasks.slice(0, 2).map((task) => {
+                    {dayTasks.slice(0, 2).map((item) => {
+                      const { task, isStart, isEnd, isSingleDay, isOngoing, startDate, dueDate } = item;
                       const assignee = memberMap.get(task.assigneeId);
                       const project = projectMap.get(task.projectId);
 
+                      // Determine card border and styling based on role in schedule
+                      const cardStyle = isSingleDay
+                        ? getStatusPillClass(task.status)
+                        : isEnd
+                        ? 'bg-rose-500/10 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-800 ring-1 ring-rose-400/40'
+                        : isStart
+                        ? 'bg-blue-500/10 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-800 border-l-4 border-l-blue-600 dark:border-l-blue-400'
+                        : 'bg-slate-500/10 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 border-l-2 border-l-blue-400/60 dark:border-l-blue-500/60';
+
                       return (
                         <div
-                          key={task.id}
+                          key={`${task.id}-${day.dateStr}`}
                           onClick={() => onOpenTaskModal(task)}
-                          className={`group p-1.5 rounded-lg border text-2xs transition-all cursor-pointer hover:shadow-2xs ${getStatusPillClass(
-                            task.status
-                          )}`}
-                          title={`${task.title} (${task.status} • Priority: ${task.priority})`}
+                          className={`group p-1.5 rounded-lg border text-2xs transition-all cursor-pointer hover:shadow-2xs hover:scale-[1.01] ${cardStyle}`}
+                          title={`${task.title} (${task.status} • Priority: ${task.priority})\nSchedule: ${startDate} → ${dueDate} (${
+                            isSingleDay ? '1 Day' : isStart ? 'Start Date' : isEnd ? 'Target Due Date' : 'Ongoing'
+                          })`}
                         >
                           <div className="flex items-center gap-1.5">
                             <span
@@ -672,11 +812,32 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
                               </span>
                             ) : null}
                           </div>
-                          {project && (
-                            <p className="text-3xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                              {project.name}
-                            </p>
-                          )}
+
+                          <div className="flex items-center justify-between gap-1 mt-0.5">
+                            {project ? (
+                              <p className="text-3xs text-slate-500 dark:text-slate-400 truncate flex-1">
+                                {project.name}
+                              </p>
+                            ) : (
+                              <span />
+                            )}
+
+                            {/* Schedule Span Tag */}
+                            {isSingleDay ? null : isEnd ? (
+                              <span className="inline-flex items-center gap-0.5 text-3xs font-bold text-rose-600 dark:text-rose-400 bg-rose-100/80 dark:bg-rose-900/60 px-1 py-0.2 rounded shrink-0">
+                                <Flag className="w-2 h-2" />
+                                Due
+                              </span>
+                            ) : isStart ? (
+                              <span className="text-3xs font-bold text-blue-600 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-900/60 px-1 py-0.2 rounded shrink-0">
+                                Start
+                              </span>
+                            ) : (
+                              <span className="text-3xs text-slate-400 dark:text-slate-500 font-medium shrink-0">
+                                ⇄ Due {formatShortDate(dueDate)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -705,10 +866,10 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-blue-600" />
-                  Due on {expandedDay}
+                  Deliverables on {formatShortDate(expandedDay)} ({expandedDay})
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {(tasksByDueDate.get(expandedDay) || []).length} deliverables due
+                  {(tasksByDay.get(expandedDay) || []).length} active deliverable(s)
                 </p>
               </div>
               <button
@@ -720,7 +881,8 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
             </div>
 
             <div className="max-h-80 overflow-y-auto space-y-2.5 pr-1">
-              {(tasksByDueDate.get(expandedDay) || []).map((task) => {
+              {(tasksByDay.get(expandedDay) || []).map((item) => {
+                const { task, isStart, isEnd, isSingleDay, isOngoing, startDate, dueDate } = item;
                 const assignee = memberMap.get(task.assigneeId);
                 const project = projectMap.get(task.projectId);
 
@@ -746,6 +908,27 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
                         <span className={getStatusBadgeClass(task.status, 'xs')}>
                           {task.status}
                         </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1.5 text-3xs text-slate-500 dark:text-slate-400">
+                        <span className="font-semibold">Schedule:</span>
+                        <span>
+                          {startDate} → {dueDate}
+                        </span>
+                        {isEnd && (
+                          <span className="font-bold text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/60 px-1 py-0.2 rounded">
+                            Target Due Date
+                          </span>
+                        )}
+                        {isStart && !isEnd && (
+                          <span className="font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/60 px-1 py-0.2 rounded">
+                            Start Date
+                          </span>
+                        )}
+                        {isOngoing && (
+                          <span className="font-medium text-slate-600 dark:text-slate-400">
+                            Ongoing
+                          </span>
+                        )}
                       </div>
                     </div>
                     {assignee && (
@@ -848,16 +1031,16 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
                           {/* Project Timeline Gantt Span */}
                           <div className="flex-1 relative h-12 flex items-center px-1">
                             {/* Today vertical line marker */}
-                            <div
-                              className="absolute top-0 bottom-0 z-10 w-0.5 bg-rose-500/50 pointer-events-none"
-                              style={{
-                                left: `${
-                                  (Math.max(1, Math.min(daysInMonthCount, new Date().getDate())) /
-                                    daysInMonthCount) *
-                                  100
-                                }%`,
-                              }}
-                            />
+                            {isCurrentMonthView && (
+                              <div
+                                className="absolute top-0 bottom-0 z-10 w-0.5 bg-rose-500/60 pointer-events-none"
+                                style={{
+                                  left: `${
+                                    ((new Date().getDate() - 0.5) / daysInMonthCount) * 100
+                                  }%`,
+                                }}
+                              />
+                            )}
 
                             {/* Project Span Bar */}
                             {projectPos ? (
@@ -923,17 +1106,31 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
 
                               {/* Task Gantt Bar */}
                               <div className="flex-1 relative h-9 flex items-center px-1">
+                                {/* Today vertical line marker */}
+                                {isCurrentMonthView && (
+                                  <div
+                                    className="absolute top-0 bottom-0 z-10 w-0.5 bg-rose-500/30 pointer-events-none"
+                                    style={{
+                                      left: `${
+                                        ((new Date().getDate() - 0.5) / daysInMonthCount) * 100
+                                      }%`,
+                                    }}
+                                  />
+                                )}
+
                                 {taskPos && (
                                   <div
                                     onClick={() => onOpenTaskModal(task)}
-                                    className={`absolute h-4 rounded-md text-3xs font-medium px-2 flex items-center shadow-2xs truncate cursor-pointer transition-all hover:scale-[1.02] ${getGanttTaskColor(
+                                    className={`absolute h-5 rounded-md text-3xs font-medium px-2 flex items-center shadow-2xs truncate cursor-pointer transition-all hover:scale-[1.02] ${getGanttTaskColor(
                                       task.status
                                     )}`}
                                     style={{
                                       left: `${taskPos.leftPercent}%`,
                                       width: `${taskPos.widthPercent}%`,
                                     }}
-                                    title={`${task.title} (${task.status} • Due: ${task.dueDate})`}
+                                    title={`${task.title} (${task.status} • Schedule: ${
+                                      task.startDate || 'Start'
+                                    } → ${task.dueDate})`}
                                   >
                                     <span className="truncate">{task.title}</span>
                                   </div>
