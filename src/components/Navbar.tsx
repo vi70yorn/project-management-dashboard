@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
   Trash2,
   Calendar as CalendarIcon,
+  Activity,
 } from 'lucide-react';
 import { Project, AuthUser, ViewType } from '../types';
 
@@ -42,6 +43,8 @@ interface NavbarProps {
   onToggleTheme?: () => void;
   recycleBinCount?: number;
   onOpenRecycleBin?: () => void;
+  onOpenTeamActivities?: () => void;
+  isTeamActivitiesOpen?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -67,6 +70,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleTheme,
   recycleBinCount = 0,
   onOpenRecycleBin,
+  onOpenTeamActivities,
+  isTeamActivitiesOpen = false,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const handleRecycleBinAction = onGoToRecycleBin || onOpenRecycleBin;
@@ -84,9 +89,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={onGoToDashboard}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-           {/*  <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors">
+            <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors">
               <Layers className="w-5 h-5" />
-            </div> */}
+            </div>
             <div>
               <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-none">
                 UX/UI
@@ -258,6 +263,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </button>
             )}
+            {onOpenTeamActivities && (
+              <button
+                id="nav-mobile-team-activities-btn"
+                onClick={onOpenTeamActivities}
+                className={`relative p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                  isTeamActivitiesOpen
+                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="Team Activities"
+              >
+                <Activity className="w-4 h-4" />
+                <span className="absolute top-0.5 right-0.5 flex h-1.5 w-1.5">
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Admin-only: Add Member */}
@@ -345,6 +367,27 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {recycleBinCount > 99 ? '99+' : recycleBinCount}
                 </span>
               )}
+            </button>
+          )}
+
+          {/* Team Activities Slide-over Trigger Button */}
+          {onOpenTeamActivities && (
+            <button
+              id="navbar-team-activities-btn"
+              onClick={onOpenTeamActivities}
+              title="Team Activities (Live update feed)"
+              className={`relative p-2 rounded-xl transition-all cursor-pointer border ${
+                isTeamActivitiesOpen
+                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 shadow-2xs'
+                  : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-800 border-transparent hover:border-blue-200 dark:hover:border-slate-700'
+              }`}
+              aria-label="Open Team Activities"
+            >
+              <Activity className="w-4 h-4" />
+              <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
             </button>
           )}
 

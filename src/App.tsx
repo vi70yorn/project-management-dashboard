@@ -20,6 +20,7 @@ import {
 } from './services/storage';
 import { Navbar } from './components/Navbar';
 import { DashboardSummary } from './components/DashboardSummary';
+import { TeamActivitiesDrawer } from './components/TeamActivitiesDrawer';
 import { ProjectDetail } from './components/ProjectDetail';
 import { TeamManagement } from './components/TeamManagement';
 import { TeamMemberModal } from './components/TeamMemberModal';
@@ -137,6 +138,9 @@ export default function App() {
   // Team Activity refresh trigger
   const [activityTrigger, setActivityTrigger] = useState<number>(0);
   const triggerActivityRefresh = () => setActivityTrigger((prev) => prev + 1);
+
+  // Team Activities slide-over drawer state
+  const [isTeamActivitiesOpen, setIsTeamActivitiesOpen] = useState(false);
 
   // Recycle Bin State
   const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
@@ -1091,6 +1095,8 @@ export default function App() {
         onToggleTheme={toggleTheme}
         recycleBinCount={recycleBinData.totalCount}
         onOpenRecycleBin={handleGoToRecycleBin}
+        onOpenTeamActivities={() => setIsTeamActivitiesOpen(true)}
+        isTeamActivitiesOpen={isTeamActivitiesOpen}
       />
 
       {/* Main Content Area */}
@@ -1269,6 +1275,14 @@ export default function App() {
         onRestoreItem={handleRestoreRecycleBinItem}
         onPermanentDeleteItem={handlePermanentDeleteRecycleBinItem}
         onEmptyRecycleBin={handleEmptyRecycleBin}
+      />
+
+      {/* Team Activities Slide-over Drawer */}
+      <TeamActivitiesDrawer
+        isOpen={isTeamActivitiesOpen}
+        onClose={() => setIsTeamActivitiesOpen(false)}
+        onSelectProject={handleSelectProject}
+        refreshTrigger={activityTrigger}
       />
 
       {/* Toast Notification */}

@@ -27,7 +27,6 @@ import {
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
-import { TeamActivitiesFeed } from './TeamActivitiesFeed';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 
 interface DashboardSummaryProps {
@@ -389,11 +388,9 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         </div>
       </div>
 
-      {/* 2-Column Dashboard Body: Left = Deadlines & Projects, Right = Live Team Activities */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
-        {/* Left Column (8 cols on xl): Deadlines & Projects Directory */}
-        <div className="xl:col-span-8 space-y-8 min-w-0">
-          {/* Upcoming Deadlines Section */}
+      {/* Deadlines & Projects Directory */}
+      <div className="space-y-8 min-w-0">
+        {/* Upcoming Deadlines Section */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2.5">
@@ -983,7 +980,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           </div>
         ) : (
           /* Project Cards Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredProjects.map((project) => {
             const projectTasks = tasks.filter((t) => t.projectId === project.id);
             const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
@@ -1238,15 +1235,6 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       )}
       </div>
     </div>
-
-    {/* Right Column: Live Team Activities Feed */}
-    <div className="xl:col-span-4 xl:sticky xl:top-24 space-y-6">
-      <TeamActivitiesFeed
-        onSelectProject={onSelectProject}
-        refreshTrigger={refreshTrigger}
-      />
-    </div>
   </div>
-</div>
 );
 };

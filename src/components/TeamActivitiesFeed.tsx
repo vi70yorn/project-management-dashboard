@@ -10,17 +10,22 @@ import {
   RefreshCw,
   Sparkles,
   ArrowRight,
+  X,
 } from 'lucide-react';
 import { fetchActivitiesApi, ActivityLog } from '../services/api';
 
 interface TeamActivitiesFeedProps {
   onSelectProject?: (projectId: string) => void;
   refreshTrigger?: number; // increments when project/task updates occur
+  isDrawer?: boolean;
+  onClose?: () => void;
 }
 
 export const TeamActivitiesFeed: React.FC<TeamActivitiesFeedProps> = ({
   onSelectProject,
   refreshTrigger,
+  isDrawer = false,
+  onClose,
 }) => {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -253,11 +258,17 @@ export const TeamActivitiesFeed: React.FC<TeamActivitiesFeedProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-2xs flex flex-col h-full">
+    <div
+      className={
+        isDrawer
+          ? 'bg-transparent p-5 sm:p-6 flex flex-col h-full min-h-0'
+          : 'bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-2xs flex flex-col h-full min-h-0'
+      }
+    >
       {/* Header */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
             <Activity className="w-4 h-4" />
           </div>
           <div>
@@ -276,18 +287,30 @@ export const TeamActivitiesFeed: React.FC<TeamActivitiesFeedProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={() => loadActivities(true)}
-          disabled={isRefreshing}
-          className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-          title="Refresh activities"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => loadActivities(true)}
+            disabled={isRefreshing}
+            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            title="Refresh activities"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
+          </button>
+          {onClose && (
+            <button
+              id="team-activities-close-btn"
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              title="Close drawer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 pt-3.5 pb-2 flex-wrap">
+      <div className="flex items-center gap-2 pt-3.5 pb-2 flex-wrap shrink-0">
         <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
           {(['all', 'task', 'project'] as const).map((f) => (
             <button
@@ -309,7 +332,7 @@ export const TeamActivitiesFeed: React.FC<TeamActivitiesFeedProps> = ({
       </div>
 
       {/* Activity Timeline */}
-      <div className="flex-1 overflow-y-auto mt-2 space-y-3.5 max-h-[580px] pr-1 scrollbar-thin">
+      <div className={`flex-1 overflow-y-auto mt-2 space-y-3.5 pr-1 scrollbar-thin ${isDrawer ? '' : 'max-h-[580px]'}`}>
         {isLoading ? (
           <div className="py-12 text-center text-xs text-slate-400">
             <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
@@ -330,6 +353,7 @@ export const TeamActivitiesFeed: React.FC<TeamActivitiesFeedProps> = ({
                 onClick={() => {
                   if (isClickable && act.projectId) {
                     onSelectProject(act.projectId);
+                    if (onClose) onClose();
                   }
                 }}
                 className={`group relative flex items-start gap-3 p-2.5 rounded-xl border border-transparent transition-all ${
