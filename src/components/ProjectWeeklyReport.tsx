@@ -91,16 +91,26 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       const percent = total > 0 ? Math.round((completed.length / total) * 100) : 0;
 
       // Completed deliverables
-      const completedList = completed.map((t) => ({
-        ...t,
-        assigneeName: teamMembers.find((m) => m.id === t.assigneeId)?.name || 'Unassigned',
-      }));
+      const completedList = completed.map((t) => {
+        const mem = teamMembers.find((m) => m.id === t.assigneeId);
+        return {
+          ...t,
+          assigneeName: mem?.name || 'Unassigned',
+          assigneeAvatar: mem?.avatar,
+          assigneeColor: mem?.color,
+        };
+      });
 
       // In progress / ongoing deliverables
-      const ongoingList = [...inProgress, ...blocked, ...pending].map((t) => ({
-        ...t,
-        assigneeName: teamMembers.find((m) => m.id === t.assigneeId)?.name || 'Unassigned',
-      }));
+      const ongoingList = [...inProgress, ...blocked, ...pending].map((t) => {
+        const mem = teamMembers.find((m) => m.id === t.assigneeId);
+        return {
+          ...t,
+          assigneeName: mem?.name || 'Unassigned',
+          assigneeAvatar: mem?.avatar,
+          assigneeColor: mem?.color,
+        };
+      });
 
       const assignedMembers = teamMembers.filter((m) =>
         project.memberIds?.includes(m.id) || project.managerId === m.id
@@ -898,16 +908,34 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                               {assignedMembers.length > 0 ? (
                                 <div className="flex items-center gap-2">
                                   <div className="flex items-center -space-x-1.5 shrink-0">
-                                    {assignedMembers.slice(0, 3).map((m) => (
-                                      <div
-                                        key={m.id}
-                                        title={`${m.name} (${m.role})`}
-                                        style={{ backgroundColor: m.color || '#2563eb' }}
-                                        className="w-5 h-5 rounded-full text-white text-3xs font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs"
+                                    {assignedMembers.slice(0, 3).map((m) =>
+                                      m.avatar ? (
+                                        <img
+                                          key={m.id}
+                                          src={m.avatar}
+                                          alt={m.name}
+                                          title={`${m.name} (${m.role})`}
+                                          className="w-5.5 h-5.5 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover shrink-0 shadow-2xs"
+                                        />
+                                      ) : (
+                                        <div
+                                          key={m.id}
+                                          title={`${m.name} (${m.role})`}
+                                          style={{ backgroundColor: m.color || '#2563eb' }}
+                                          className="w-5.5 h-5.5 rounded-full text-white text-3xs font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs shrink-0"
+                                        >
+                                          {m.name.charAt(0).toUpperCase()}
+                                        </div>
+                                      )
+                                    )}
+                                    {assignedMembers.length > 3 && (
+                                      <span
+                                        className="w-5.5 h-5.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-3xs font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shrink-0 shadow-2xs"
+                                        title={assignedMembers.slice(3).map((m) => m.name).join(', ')}
                                       >
-                                        {m.name.charAt(0).toUpperCase()}
-                                      </div>
-                                    ))}
+                                        +{assignedMembers.length - 3}
+                                      </span>
+                                    )}
                                   </div>
                                   <span
                                     className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate max-w-[130px]"
@@ -964,9 +992,23 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                             <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
                                               ✓ {t.title}
                                             </span>
-                                            <span className="text-3xs text-slate-500 dark:text-slate-400 shrink-0 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                              {t.assigneeName}
-                                            </span>
+                                            <div className="flex items-center gap-1.5 shrink-0 text-3xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                              {t.assigneeAvatar ? (
+                                                <img
+                                                  src={t.assigneeAvatar}
+                                                  alt={t.assigneeName}
+                                                  className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                                                />
+                                              ) : (
+                                                <div
+                                                  style={{ backgroundColor: t.assigneeColor || '#2563eb' }}
+                                                  className="w-3.5 h-3.5 rounded-full text-white text-4xs font-bold flex items-center justify-center shrink-0"
+                                                >
+                                                  {t.assigneeName.charAt(0)}
+                                                </div>
+                                              )}
+                                              <span>{t.assigneeName}</span>
+                                            </div>
                                           </li>
                                         ))}
                                       </ul>
@@ -997,9 +1039,23 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                             </span>
                                             <div className="flex items-center gap-1.5 shrink-0">
                                               <StatusBadge status={t.status} size="xs" />
-                                              <span className="text-3xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                                {t.assigneeName}
-                                              </span>
+                                              <div className="flex items-center gap-1 text-3xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                                {t.assigneeAvatar ? (
+                                                  <img
+                                                    src={t.assigneeAvatar}
+                                                    alt={t.assigneeName}
+                                                    className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                                                  />
+                                                ) : (
+                                                  <div
+                                                    style={{ backgroundColor: t.assigneeColor || '#2563eb' }}
+                                                    className="w-3.5 h-3.5 rounded-full text-white text-4xs font-bold flex items-center justify-center shrink-0"
+                                                  >
+                                                    {t.assigneeName.charAt(0)}
+                                                  </div>
+                                                )}
+                                                <span>{t.assigneeName}</span>
+                                              </div>
                                             </div>
                                           </li>
                                         ))}
@@ -1052,12 +1108,59 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                           </span>
                         )}
                       </div>
-                      <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Deadline: {project.targetDeadline || 'No deadline'} • Team:{' '}
-                        {assignedMembers.length > 0
-                          ? assignedMembers.map((m) => m.name).join(', ')
-                          : 'Unassigned'}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-2xs text-slate-500 dark:text-slate-400">
+                          Deadline: {project.targetDeadline || 'No deadline'}
+                        </span>
+                        {assignedMembers.length > 0 ? (
+                          <>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex items-center -space-x-1.5 shrink-0">
+                                {assignedMembers.slice(0, 4).map((m) =>
+                                  m.avatar ? (
+                                    <img
+                                      key={m.id}
+                                      src={m.avatar}
+                                      alt={m.name}
+                                      title={`${m.name} (${m.role})`}
+                                      className="w-5 h-5 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover shrink-0 shadow-2xs"
+                                    />
+                                  ) : (
+                                    <div
+                                      key={m.id}
+                                      title={`${m.name} (${m.role})`}
+                                      style={{ backgroundColor: m.color || '#2563eb' }}
+                                      className="w-5 h-5 rounded-full text-white text-3xs font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs shrink-0"
+                                    >
+                                      {m.name.charAt(0).toUpperCase()}
+                                    </div>
+                                  )
+                                )}
+                                {assignedMembers.length > 4 && (
+                                  <span
+                                    className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-3xs font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shrink-0 shadow-2xs"
+                                    title={assignedMembers.slice(4).map((m) => m.name).join(', ')}
+                                  >
+                                    +{assignedMembers.length - 4}
+                                  </span>
+                                )}
+                              </div>
+                              <span
+                                className="text-2xs text-slate-700 dark:text-slate-300 font-medium truncate max-w-[180px]"
+                                title={assignedMembers.map((m) => m.name).join(', ')}
+                              >
+                                {assignedMembers.map((m) => m.name).join(', ')}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span className="text-2xs text-slate-400 italic">Unassigned</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1112,9 +1215,23 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                             <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
                               ✓ {t.title}
                             </span>
-                            <span className="text-2xs text-slate-500 dark:text-slate-400 shrink-0 font-medium">
-                              {t.assigneeName}
-                            </span>
+                            <div className="flex items-center gap-1 text-2xs text-slate-500 dark:text-slate-400 shrink-0 font-medium">
+                              {t.assigneeAvatar ? (
+                                <img
+                                  src={t.assigneeAvatar}
+                                  alt={t.assigneeName}
+                                  className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                                />
+                              ) : (
+                                <div
+                                  style={{ backgroundColor: t.assigneeColor || '#2563eb' }}
+                                  className="w-3.5 h-3.5 rounded-full text-white text-4xs font-bold flex items-center justify-center shrink-0"
+                                >
+                                  {t.assigneeName.charAt(0)}
+                                </div>
+                              )}
+                              <span>{t.assigneeName}</span>
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -1145,9 +1262,23 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                             </span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <StatusBadge status={t.status} size="xs" />
-                              <span className="text-3xs text-slate-500 dark:text-slate-400">
-                                {t.assigneeName}
-                              </span>
+                              <div className="flex items-center gap-1 text-3xs text-slate-500 dark:text-slate-400">
+                                {t.assigneeAvatar ? (
+                                  <img
+                                    src={t.assigneeAvatar}
+                                    alt={t.assigneeName}
+                                    className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                                  />
+                                ) : (
+                                  <div
+                                    style={{ backgroundColor: t.assigneeColor || '#2563eb' }}
+                                    className="w-3.5 h-3.5 rounded-full text-white text-4xs font-bold flex items-center justify-center shrink-0"
+                                  >
+                                    {t.assigneeName.charAt(0)}
+                                  </div>
+                                )}
+                                <span>{t.assigneeName}</span>
+                              </div>
                             </div>
                           </li>
                         ))}
