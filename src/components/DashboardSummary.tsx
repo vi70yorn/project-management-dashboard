@@ -675,12 +675,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                             <div
                               className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${
                                 isToday
-                                  ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-bold ring-1 ring-rose-400/80 shadow-2xs'
+                                  ? 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300/90 border-rose-300 dark:border-rose-500/30 font-bold ring-1 ring-rose-400/50 shadow-2xs'
                                   : isOverdue
-                                  ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800 font-semibold'
+                                  ? 'bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300/90 border-rose-300 dark:border-rose-500/30 font-semibold'
                                   : item.diffDays <= 3
-                                  ? 'bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                                  : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                                  ? 'bg-amber-50/70 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300/90 border-amber-200 dark:border-amber-500/25'
+                                  : 'bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300/90 border-slate-200 dark:border-slate-700/50'
                               }`}
                             >
                               {isToday ? (

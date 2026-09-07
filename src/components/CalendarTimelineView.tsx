@@ -204,16 +204,16 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
   const getStatusPillClass = (status: StatusType | string) => {
     switch (status) {
       case 'Completed':
-        return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
+        return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300/90 border-emerald-300 dark:border-emerald-500/25';
       case 'In Progress':
-        return 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800';
+        return 'bg-blue-500/15 text-blue-700 dark:text-blue-300/90 border-blue-300 dark:border-blue-500/25';
       case 'Ready Review':
       case 'Pending':
-        return 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800';
+        return 'bg-amber-500/15 text-amber-700 dark:text-amber-300/90 border-amber-300 dark:border-amber-500/25';
       case 'Blocked':
-        return 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800';
+        return 'bg-rose-500/15 text-rose-700 dark:text-rose-300/90 border-rose-300 dark:border-rose-500/25';
       default:
-        return 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-800';
+        return 'bg-slate-500/15 text-slate-700 dark:text-slate-300/90 border-slate-300 dark:border-slate-700/50';
     }
   };
 

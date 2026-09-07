@@ -20,16 +20,16 @@ export const getStatusBadgeClass = (
 
   switch (status) {
     case 'In Progress':
-      return `${base} bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800`;
+      return `${base} bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300/90 border-blue-200 dark:border-blue-500/25`;
     case 'Ready Review':
     case 'Pending':
-      return `${base} bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800`;
+      return `${base} bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300/90 border-amber-200 dark:border-amber-500/25`;
     case 'Blocked':
-      return `${base} bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800`;
+      return `${base} bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300/90 border-rose-200 dark:border-rose-500/25`;
     case 'Completed':
-      return `${base} bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800`;
+      return `${base} bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300/90 border-emerald-200 dark:border-emerald-500/25`;
     default:
-      return `${base} bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700`;
+      return `${base} bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300/90 border-slate-200 dark:border-slate-700/50`;
   }
 };
 
@@ -52,15 +52,15 @@ export const getPriorityBadgeClass = (
 
   switch (priority) {
     case 'Urgent':
-      return `${base} bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800`;
+      return `${base} bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300/90 border-rose-200 dark:border-rose-500/25`;
     case 'High':
-      return `${base} bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800`;
+      return `${base} bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-300/90 border-orange-200 dark:border-orange-500/25`;
     case 'Medium':
-      return `${base} bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800`;
+      return `${base} bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300/90 border-amber-200 dark:border-amber-500/25`;
     case 'Low':
-      return `${base} bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700`;
+      return `${base} bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/50`;
     default:
-      return `${base} bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700`;
+      return `${base} bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700/50`;
   }
 };
 
