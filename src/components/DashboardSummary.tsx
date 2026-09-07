@@ -77,7 +77,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   // Deadlines Section Filter & Pagination State
   const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Ready Review' | 'Blocked'>('all');
   const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>('all');
-  const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(6);
+  const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(10);
   const [deadlineCurrentPage, setDeadlineCurrentPage] = useState<number>(1);
 
   const safeProjects = Array.isArray(projects) ? projects : [];
@@ -739,7 +739,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                   {/* View mode switcher */}
                   <div className="flex items-center gap-1 text-2xs">
                     <span className="text-slate-400 mr-0.5">Show:</span>
-                    {[6, 12, 'all'].map((size) => (
+                    {[10, 20, 'all'].map((size) => (
                       <button
                         key={size}
                         onClick={() => {

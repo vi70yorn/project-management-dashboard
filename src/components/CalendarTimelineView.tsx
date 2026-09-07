@@ -447,13 +447,13 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
       {/* Top Header & View Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
         <div>
-          <button
+         {/*  <button
             onClick={onBackToDashboard}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors mb-2 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Dashboard
-          </button>
+          </button> */}
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
               <CalendarIcon className="w-5 h-5" />
