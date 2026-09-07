@@ -99,6 +99,18 @@ export async function runMigrationsAndSeed(): Promise<void> {
   const client: PoolClient = await currentPool.connect();
 
   try {
+    // Pre-migration: ensure deleted_at columns exist on any pre-existing projects/tasks tables
+    await client.query(`
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'projects') THEN
+          ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+        END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tasks') THEN
+          ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+        END IF;
+      END $$;
+    `).catch(() => {});
+
     console.log('[PostgreSQL] Executing database/init.sql schema and seed data...');
     await client.query(sql);
 
@@ -174,6 +186,12 @@ export async function runMigrationsAndSeed(): Promise<void> {
           ('act-2', 'mem-1788624380119', 'David', 'update_task_status', 'task', 'task-1788624689153', 'Home', 'proj-1788624651745', 'Merchant 5.0', '{"fromStatus": "Pending", "toStatus": "In Progress"}', '2026-09-06T05:42:02.918Z'),
           ('act-3', 'mem-1788624319284', 'Y.VICHET', 'create_project', 'project', 'proj-1788624651745', 'Merchant 5.0', 'proj-1788624651745', 'Merchant 5.0', '{"status": "In Progress"}', '2026-09-05T16:10:52.120Z')
       ON CONFLICT (id) DO NOTHING;
+
+      -- Recycle Bin migrations: soft-delete columns and indexes
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+      CREATE INDEX IF NOT EXISTS idx_projects_deleted_at ON projects(deleted_at);
+      CREATE INDEX IF NOT EXISTS idx_tasks_deleted_at ON tasks(deleted_at);
     `);
 
     console.log('[PostgreSQL] Database schema, credentials & initial seeds verified successfully.');

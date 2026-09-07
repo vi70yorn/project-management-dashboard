@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS projects (
     manager_id VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     tags TEXT[] DEFAULT '{}',
     color VARCHAR(32) DEFAULT '#2563eb',
+    deleted_at TIMESTAMPTZ DEFAULT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     start_date VARCHAR(32),
     due_date VARCHAR(32),
+    deleted_at TIMESTAMPTZ DEFAULT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -156,3 +158,8 @@ VALUES
     ('act-3', 'mem-1788624319284', 'Y.VICHET', 'create_project', 'project', 'proj-1788624651745', 'Merchant 5.0', 'proj-1788624651745', 'Merchant 5.0', '{"status": "In Progress"}', '2026-09-05T16:10:52.120Z')
 ON CONFLICT (id) DO NOTHING;
 
+-- Recycle Bin migrations & indexes
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+CREATE INDEX IF NOT EXISTS idx_projects_deleted_at ON projects(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_tasks_deleted_at ON tasks(deleted_at);

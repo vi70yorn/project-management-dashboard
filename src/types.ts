@@ -34,6 +34,7 @@ export interface TeamMember {
 export interface Task {
   id: string;
   projectId: string;
+  projectName?: string;
   title: string;
   description: string;
   status: StatusType;
@@ -44,6 +45,9 @@ export interface Task {
   dueDate: string;
   createdAt: string;
   updatedAt?: string;
+  deletedAt?: string;
+  expiresAt?: string;
+  daysLeft?: number;
 }
 
 export interface Project {
@@ -59,4 +63,14 @@ export interface Project {
   tags: string[];
   color: string;
   createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string;
+  expiresAt?: string;
+  daysLeft?: number;
+}
+
+export interface RecycleBinData {
+  projects: Project[];
+  tasks: Task[];
+  totalCount: number;
 }

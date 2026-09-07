@@ -14,6 +14,7 @@ import {
   Sun,
   Moon,
   FileSpreadsheet,
+  Trash2,
 } from 'lucide-react';
 import { Project, AuthUser } from '../types';
 
@@ -36,6 +37,8 @@ interface NavbarProps {
   onOpenDbModal?: () => void;
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
+  recycleBinCount?: number;
+  onOpenRecycleBin?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -57,6 +60,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenDbModal,
   theme = 'light',
   onToggleTheme,
+  recycleBinCount = 0,
+  onOpenRecycleBin,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
 
@@ -233,6 +238,27 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Sun className="w-4 h-4 text-amber-400" />
               ) : (
                 <Moon className="w-4 h-4 text-slate-600" />
+              )}
+            </button>
+          )}
+
+          {/* Recycle Bin Button */}
+          {onOpenRecycleBin && (
+            <button
+              id="navbar-recycle-bin-btn"
+              onClick={onOpenRecycleBin}
+              title={`Recycle Bin (Retention: 7 days)${recycleBinCount ? ` • ${recycleBinCount} items` : ''}`}
+              className="relative p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/40 transition-all cursor-pointer border border-transparent hover:border-rose-200 dark:hover:border-rose-800/60"
+              aria-label="Open Recycle Bin"
+            >
+              <Trash2 className="w-4 h-4" />
+              {recycleBinCount > 0 && (
+                <span
+                  id="navbar-recycle-bin-badge"
+                  className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs leading-none"
+                >
+                  {recycleBinCount > 99 ? '99+' : recycleBinCount}
+                </span>
               )}
             </button>
           )}

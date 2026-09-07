@@ -36,8 +36,8 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   try {
     const pool = getPool();
     const [projCount, taskCount, memberCount] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM projects'),
-      pool.query('SELECT COUNT(*) FROM tasks'),
+      pool.query('SELECT COUNT(*) FROM projects WHERE deleted_at IS NULL'),
+      pool.query('SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL'),
       pool.query('SELECT COUNT(*) FROM team_members'),
     ]);
 
@@ -232,6 +232,7 @@ app.get('/api/projects', async (_req: Request, res: Response) => {
           '{}'
         ) AS "memberIds"
       FROM projects p
+      WHERE p.deleted_at IS NULL
       ORDER BY p.created_at DESC;
     `;
     const result = await pool.query(query);
@@ -476,14 +477,30 @@ app.patch('/api/projects/:id/members', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE project
+// DELETE project (Soft delete / Move to Recycle Bin)
 app.delete('/api/projects/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
+  const pool = getPool();
+  const dbClient = await pool.connect();
   try {
-    const pool = getPool();
-    const result = await pool.query(`DELETE FROM projects WHERE id = $1 RETURNING id, name`, [id]);
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Project not found' });
+    await dbClient.query('BEGIN');
+    const result = await dbClient.query(
+      `UPDATE projects SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL RETURNING id, name`,
+      [id]
+    );
+    if (result.rowCount === 0) {
+      await dbClient.query('ROLLBACK');
+      return res.status(404).json({ error: 'Project not found or already in Recycle Bin' });
+    }
     const deletedProj = result.rows[0];
+
+    // Cascade soft-delete active tasks belonging to this project
+    await dbClient.query(
+      `UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE project_id = $1 AND deleted_at IS NULL`,
+      [id]
+    );
+
+    await dbClient.query('COMMIT');
 
     recordActivity(pool, {
       actionType: 'delete_project',
@@ -494,9 +511,12 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
       projectName: deletedProj.name,
     }, req);
 
-    res.json({ message: 'Project deleted successfully', id });
+    res.json({ message: 'Project moved to Recycle Bin', id });
   } catch (err: any) {
+    await dbClient.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    dbClient.release();
   }
 });
 
@@ -523,6 +543,7 @@ app.get('/api/tasks', async (_req: Request, res: Response) => {
         t.created_at AS "createdAt",
         t.updated_at AS "updatedAt"
       FROM tasks t
+      WHERE t.deleted_at IS NULL
       ORDER BY t.created_at DESC;
     `;
     const result = await pool.query(query);
@@ -548,7 +569,7 @@ async function syncProjectStatus(pool: any, projectId: string) {
          COUNT(*) FILTER (WHERE status = 'Completed') AS completed,
          COUNT(*) FILTER (WHERE status = 'Blocked') AS blocked
        FROM tasks 
-       WHERE project_id = $1`,
+       WHERE project_id = $1 AND deleted_at IS NULL`,
       [projectId]
     );
     if (res.rowCount === 0) return;
@@ -769,13 +790,16 @@ app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE task
+// DELETE task (Soft delete / Move to Recycle Bin)
 app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const pool = getPool();
-    const result = await pool.query(`DELETE FROM tasks WHERE id = $1 RETURNING id, title, project_id AS "projectId"`, [id]);
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found' });
+    const result = await pool.query(
+      `UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL RETURNING id, title, project_id AS "projectId"`,
+      [id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Task not found or already in Recycle Bin' });
     const deletedTask = result.rows[0];
     if (deletedTask?.projectId) {
       await syncProjectStatus(pool, deletedTask.projectId);
@@ -789,8 +813,200 @@ app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
       projectId: deletedTask.projectId,
     }, req);
 
-    res.json({ message: 'Task deleted', id });
+    res.json({ message: 'Task moved to Recycle Bin', id });
   } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// Recycle Bin Endpoints
+// ==========================================
+
+// GET all items in the recycle bin
+app.get('/api/recycle-bin', async (_req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const [projectsRes, tasksRes] = await Promise.all([
+      pool.query(`
+        SELECT 
+          p.id,
+          p.name,
+          p.description,
+          p.client,
+          p.status,
+          p.start_date AS "startDate",
+          p.target_deadline AS "targetDeadline",
+          p.manager_id AS "managerId",
+          p.tags,
+          p.color,
+          p.created_at AS "createdAt",
+          p.updated_at AS "updatedAt",
+          p.deleted_at AS "deletedAt",
+          (p.deleted_at + INTERVAL '7 days') AS "expiresAt",
+          GREATEST(0, CEIL(EXTRACT(EPOCH FROM ((p.deleted_at + INTERVAL '7 days') - CURRENT_TIMESTAMP)) / 86400))::int AS "daysLeft",
+          COALESCE(
+            (SELECT array_agg(pm.member_id) FROM project_members pm WHERE pm.project_id = p.id),
+            '{}'
+          ) AS "memberIds"
+        FROM projects p
+        WHERE p.deleted_at IS NOT NULL
+        ORDER BY p.deleted_at DESC
+      `),
+      pool.query(`
+        SELECT 
+          t.id,
+          t.project_id AS "projectId",
+          p.name AS "projectName",
+          t.title,
+          t.description,
+          t.status,
+          t.priority,
+          t.assignee_id AS "assigneeId",
+          t.created_by AS "createdBy",
+          t.start_date AS "startDate",
+          t.due_date AS "dueDate",
+          t.created_at AS "createdAt",
+          t.updated_at AS "updatedAt",
+          t.deleted_at AS "deletedAt",
+          (t.deleted_at + INTERVAL '7 days') AS "expiresAt",
+          GREATEST(0, CEIL(EXTRACT(EPOCH FROM ((t.deleted_at + INTERVAL '7 days') - CURRENT_TIMESTAMP)) / 86400))::int AS "daysLeft"
+        FROM tasks t
+        LEFT JOIN projects p ON p.id = t.project_id
+        WHERE t.deleted_at IS NOT NULL
+        ORDER BY t.deleted_at DESC
+      `),
+    ]);
+
+    res.json({
+      projects: projectsRes.rows,
+      tasks: tasksRes.rows,
+      totalCount: projectsRes.rows.length + tasksRes.rows.length,
+    });
+  } catch (err: any) {
+    console.error('Error fetching recycle bin items:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST restore item from recycle bin
+app.post('/api/recycle-bin/restore', async (req: Request, res: Response) => {
+  const { type, id } = req.body;
+  if (!type || !id) {
+    return res.status(400).json({ error: 'Type (project or task) and id are required' });
+  }
+
+  const pool = getPool();
+  try {
+    if (type === 'project') {
+      const result = await pool.query(
+        `UPDATE projects SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id, name`,
+        [id]
+      );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Project not found in Recycle Bin' });
+      }
+      const restoredProj = result.rows[0];
+
+      // Restore associated tasks for this project
+      await pool.query(
+        `UPDATE tasks SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE project_id = $1`,
+        [id]
+      );
+
+      recordActivity(pool, {
+        actionType: 'restore_project',
+        entityType: 'project',
+        entityId: id,
+        entityName: restoredProj.name,
+        projectId: id,
+        projectName: restoredProj.name,
+      }, req);
+
+      return res.json({ success: true, message: 'Project and associated tasks restored', id, type });
+    } else if (type === 'task') {
+      const result = await pool.query(
+        `UPDATE tasks SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL RETURNING id, title, project_id AS "projectId"`,
+        [id]
+      );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Task not found in Recycle Bin' });
+      }
+      const restoredTask = result.rows[0];
+
+      // Ensure parent project is restored if it was soft-deleted
+      if (restoredTask.projectId) {
+        await pool.query(
+          `UPDATE projects SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL`,
+          [restoredTask.projectId]
+        );
+        await syncProjectStatus(pool, restoredTask.projectId);
+      }
+
+      recordActivity(pool, {
+        actionType: 'restore_task',
+        entityType: 'task',
+        entityId: id,
+        entityName: restoredTask.title,
+        projectId: restoredTask.projectId,
+      }, req);
+
+      return res.json({ success: true, message: 'Task restored successfully', id, type });
+    } else {
+      return res.status(400).json({ error: 'Invalid item type. Must be "project" or "task"' });
+    }
+  } catch (err: any) {
+    console.error('Error restoring recycle bin item:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE permanently delete a single item from recycle bin
+app.delete('/api/recycle-bin/:type/:id', async (req: Request, res: Response) => {
+  const { type, id } = req.params;
+  const pool = getPool();
+
+  try {
+    if (type === 'project') {
+      const result = await pool.query(
+        `DELETE FROM projects WHERE id = $1 RETURNING id, name`,
+        [id]
+      );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+      return res.json({ success: true, message: 'Project permanently deleted', id, type });
+    } else if (type === 'task') {
+      const result = await pool.query(
+        `DELETE FROM tasks WHERE id = $1 RETURNING id, title, project_id AS "projectId"`,
+        [id]
+      );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      const deletedTask = result.rows[0];
+      if (deletedTask?.projectId) {
+        await syncProjectStatus(pool, deletedTask.projectId);
+      }
+      return res.json({ success: true, message: 'Task permanently deleted', id, type });
+    } else {
+      return res.status(400).json({ error: 'Invalid type parameter' });
+    }
+  } catch (err: any) {
+    console.error('Error permanently deleting item:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE empty entire recycle bin
+app.delete('/api/recycle-bin', async (_req: Request, res: Response) => {
+  const pool = getPool();
+  try {
+    await pool.query(`DELETE FROM tasks WHERE deleted_at IS NOT NULL`);
+    await pool.query(`DELETE FROM projects WHERE deleted_at IS NOT NULL`);
+    res.json({ success: true, message: 'Recycle bin emptied permanently' });
+  } catch (err: any) {
+    console.error('Error emptying recycle bin:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -1148,8 +1364,8 @@ async function sendTelegramMessage(botToken: string, chatId: string, text: strin
 
 async function generateTelegramWeeklyReport(pool: any): Promise<string> {
   const [projectsRes, tasksRes, membersRes] = await Promise.all([
-    pool.query('SELECT * FROM projects ORDER BY created_at ASC'),
-    pool.query('SELECT * FROM tasks ORDER BY created_at ASC'),
+    pool.query('SELECT * FROM projects WHERE deleted_at IS NULL ORDER BY created_at ASC'),
+    pool.query('SELECT * FROM tasks WHERE deleted_at IS NULL ORDER BY created_at ASC'),
     pool.query('SELECT * FROM team_members ORDER BY name ASC'),
   ]);
 
@@ -1403,6 +1619,42 @@ function startTelegramWeeklyScheduler() {
 }
 
 // ==========================================
+// Recycle Bin 7-Day Auto-Purge Scheduler
+// ==========================================
+
+async function purgeExpiredRecycleBinItems(pool: any): Promise<void> {
+  try {
+    const tasksRes = await pool.query(`
+      DELETE FROM tasks 
+      WHERE deleted_at IS NOT NULL AND deleted_at < CURRENT_TIMESTAMP - INTERVAL '7 days'
+      RETURNING id, title
+    `);
+    const projectsRes = await pool.query(`
+      DELETE FROM projects 
+      WHERE deleted_at IS NOT NULL AND deleted_at < CURRENT_TIMESTAMP - INTERVAL '7 days'
+      RETURNING id, name
+    `);
+    const totalPurged = (tasksRes.rowCount || 0) + (projectsRes.rowCount || 0);
+    if (totalPurged > 0) {
+      console.log(`[Recycle Bin Auto-Purge] Permanently deleted ${tasksRes.rowCount || 0} tasks and ${projectsRes.rowCount || 0} projects older than 7 days.`);
+    }
+  } catch (err: any) {
+    console.error('[Recycle Bin Auto-Purge Error]:', err.message);
+  }
+}
+
+function startRecycleBinPurgeScheduler() {
+  const pool = getPool();
+  // Run once on startup
+  purgeExpiredRecycleBinItems(pool);
+  // Run every 1 hour (3600000 ms)
+  setInterval(() => {
+    purgeExpiredRecycleBinItems(pool);
+  }, 3600000);
+  console.log('[Recycle Bin Auto-Purge] 7-day retention scheduler registered (checks every 1 hour).');
+}
+
+// ==========================================
 // Serve Static Frontend (Single-Service Deployment)
 // ==========================================
 
@@ -1428,8 +1680,9 @@ async function startServer() {
     await runMigrationsAndSeed();
     console.log('[Server] Database initialization completed successfully.');
 
-    // Start background Telegram automated weekly scheduler
+    // Start background schedulers
     startTelegramWeeklyScheduler();
+    startRecycleBinPurgeScheduler();
   } catch (err: any) {
     console.error('[Server] Warning: Failed to auto-initialize database on startup:', err.message);
     console.error('[Server] If PostgreSQL credentials are needed, please verify your .env file.');

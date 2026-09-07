@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Project, Task, TeamMember, StatusType, AuthUser } from './types';
+import { Project, Task, TeamMember, StatusType, AuthUser, RecycleBinData } from './types';
 import {
   loadProjects,
   saveProjects,
@@ -28,6 +28,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { DatabaseStatusModal } from './components/DatabaseStatusModal';
 import { ProjectWeeklyReport } from './components/ProjectWeeklyReport';
+import { RecycleBinModal } from './components/RecycleBinModal';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import {
   checkDatabaseHealth,
@@ -46,6 +47,10 @@ import {
   createMemberApi,
   updateMemberApi,
   deleteMemberApi,
+  fetchRecycleBinApi,
+  restoreRecycleBinItemApi,
+  permanentlyDeleteItemApi,
+  emptyRecycleBinApi,
   DatabaseHealthResponse,
 } from './services/api';
 
@@ -129,6 +134,29 @@ export default function App() {
   const [activityTrigger, setActivityTrigger] = useState<number>(0);
   const triggerActivityRefresh = () => setActivityTrigger((prev) => prev + 1);
 
+  // Recycle Bin State
+  const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
+  const [recycleBinData, setRecycleBinData] = useState<RecycleBinData>({
+    projects: [],
+    tasks: [],
+    totalCount: 0,
+  });
+  const [isLoadingRecycleBin, setIsLoadingRecycleBin] = useState(false);
+
+  const refreshRecycleBin = async () => {
+    try {
+      setIsLoadingRecycleBin(true);
+      const data = await fetchRecycleBinApi();
+      if (data && typeof data.totalCount === 'number') {
+        setRecycleBinData(data);
+      }
+    } catch (err: any) {
+      console.warn('[Recycle Bin Sync] Could not fetch recycle bin:', err.message);
+    } finally {
+      setIsLoadingRecycleBin(false);
+    }
+  };
+
   // Database Connection State (PostgreSQL + DBeaver)
   const [dbHealth, setDbHealth] = useState<DatabaseHealthResponse | null>(null);
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
@@ -143,10 +171,11 @@ export default function App() {
       if (health.connected) {
         const activeRole = roleOverride !== undefined ? roleOverride : currentUser?.role;
         // Fetch fresh data directly from PostgreSQL
-        const [remoteProjects, remoteTasks, remoteMembers] = await Promise.all([
+        const [remoteProjects, remoteTasks, remoteMembers, remoteRecycleBin] = await Promise.all([
           fetchProjectsApi().catch(() => null),
           fetchTasksApi().catch(() => null),
           fetchMembersApi(activeRole).catch(() => null),
+          fetchRecycleBinApi().catch(() => null),
         ]);
 
         if (Array.isArray(remoteProjects)) {
@@ -157,6 +186,9 @@ export default function App() {
         }
         if (Array.isArray(remoteMembers)) {
           setTeamMembers(remoteMembers);
+        }
+        if (remoteRecycleBin && typeof remoteRecycleBin.totalCount === 'number') {
+          setRecycleBinData(remoteRecycleBin);
         }
 
         if (!silent) {
@@ -333,22 +365,27 @@ export default function App() {
 
     setConfirmationModal({
       isOpen: true,
-      title: `Delete Project: ${project.name}`,
-      message: `Are you sure you want to permanently delete project "${project.name}"? This action cannot be undone.`,
+      title: `Move Project to Recycle Bin`,
+      message: `Are you sure you want to move project "${project.name}" to the Recycle Bin?`,
       details: [
         `Project Name: ${project.name}`,
         `Associated Tasks: ${projectTasks.length} task(s)`,
-        'All tasks and boards in this project will be permanently deleted.',
+        'Items in the Recycle Bin are kept for 1 week (7 days) before permanent removal.',
+        'You can restore this project and its tasks anytime within 7 days.',
       ],
-      confirmLabel: 'Delete Project',
+      confirmLabel: 'Move to Recycle Bin',
       isDestructive: true,
+      iconType: 'trash',
       onConfirm: () => {
         setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
         setProjects((prev) => prev.filter((p) => p.id !== project.id));
         setTasks((prev) => prev.filter((t) => t.projectId !== project.id));
 
         deleteProjectApi(project.id, currentUser)
-          .then(() => triggerActivityRefresh())
+          .then(() => {
+            triggerActivityRefresh();
+            refreshRecycleBin();
+          })
           .catch((err) => console.warn('[PostgreSQL Sync] Delete project error:', err));
 
         if (activeProjectId === project.id) {
@@ -356,7 +393,7 @@ export default function App() {
           setCurrentView('dashboard');
         }
 
-        showToast('info', `Project "${project.name}" and its tasks deleted.`);
+        showToast('info', `Project "${project.name}" moved to Recycle Bin (kept for 7 days).`);
       },
     });
   };
@@ -584,11 +621,17 @@ export default function App() {
 
     setConfirmationModal({
       isOpen: true,
-      title: 'Delete Task Deliverable',
-      message: `Are you sure you want to permanently delete "${task.title}"?`,
-      details: [`Task: ${task.title}`, `Status: ${task.status}`],
-      confirmLabel: 'Delete Task',
+      title: 'Move Task to Recycle Bin',
+      message: `Are you sure you want to move "${task.title}" to the Recycle Bin?`,
+      details: [
+        `Task: ${task.title}`,
+        `Status: ${task.status}`,
+        'Kept safely for 1 week (7 days) before permanent removal.',
+        'Can be restored anytime from the Recycle Bin.',
+      ],
+      confirmLabel: 'Move to Recycle Bin',
       isDestructive: true,
+      iconType: 'trash',
       onConfirm: () => {
         setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
         const nextTasks = tasks.filter((t) => t.id !== task.id);
@@ -597,11 +640,48 @@ export default function App() {
           syncProjectStatusForTasks(task.projectId, nextTasks, projects);
         }
         deleteTaskApi(task.id, currentUser)
-          .then(() => triggerActivityRefresh())
+          .then(() => {
+            triggerActivityRefresh();
+            refreshRecycleBin();
+          })
           .catch((err) => console.warn('[PostgreSQL Sync] Delete task error:', err));
-        showToast('info', `Task "${task.title}" deleted.`);
+        showToast('info', `Task "${task.title}" moved to Recycle Bin (kept for 7 days).`);
       },
     });
+  };
+
+  // Recycle Bin handlers
+  const handleRestoreRecycleBinItem = async (type: 'project' | 'task', id: string) => {
+    try {
+      const result = await restoreRecycleBinItemApi(type, id, currentUser);
+      showToast('success', result.message || `${type === 'project' ? 'Project' : 'Task'} restored successfully.`);
+      await Promise.all([refreshRecycleBin(), refreshDatabase(true)]);
+      triggerActivityRefresh();
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to restore item.');
+    }
+  };
+
+  const handlePermanentDeleteRecycleBinItem = async (type: 'project' | 'task', id: string) => {
+    try {
+      const result = await permanentlyDeleteItemApi(type, id);
+      showToast('success', result.message || 'Item permanently deleted.');
+      await refreshRecycleBin();
+      triggerActivityRefresh();
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to permanently delete item.');
+    }
+  };
+
+  const handleEmptyRecycleBin = async () => {
+    try {
+      const result = await emptyRecycleBinApi();
+      showToast('success', result.message || 'Recycle Bin emptied successfully.');
+      await refreshRecycleBin();
+      triggerActivityRefresh();
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to empty Recycle Bin.');
+    }
   };
 
   // Team Member management handlers
@@ -877,6 +957,11 @@ export default function App() {
         onOpenDbModal={() => setIsDbModalOpen(true)}
         theme={theme}
         onToggleTheme={toggleTheme}
+        recycleBinCount={recycleBinData.totalCount}
+        onOpenRecycleBin={() => {
+          refreshRecycleBin();
+          setIsRecycleBinOpen(true);
+        }}
       />
 
       {/* Main Content Area */}
@@ -1022,6 +1107,17 @@ export default function App() {
         health={dbHealth}
         onRefresh={() => refreshDatabase(false)}
         isRefreshing={isCheckingDb}
+      />
+
+      {/* Recycle Bin Modal */}
+      <RecycleBinModal
+        isOpen={isRecycleBinOpen}
+        onClose={() => setIsRecycleBinOpen(false)}
+        recycleBinData={recycleBinData}
+        isLoading={isLoadingRecycleBin}
+        onRestoreItem={handleRestoreRecycleBinItem}
+        onPermanentDeleteItem={handlePermanentDeleteRecycleBinItem}
+        onEmptyRecycleBin={handleEmptyRecycleBin}
       />
 
       {/* Toast Notification */}

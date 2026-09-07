@@ -1,4 +1,4 @@
-import { Project, Task, TeamMember, StatusType } from '../types';
+import { Project, Task, TeamMember, StatusType, RecycleBinData } from '../types';
 import { loadAuthUser } from './storage';
 
 const API_BASE = '/api';
@@ -414,6 +414,52 @@ export async function fetchActivitiesApi(limit: number = 50): Promise<ActivityLo
   const res = await fetch(`${API_BASE}/activities?limit=${limit}`);
   if (!res.ok) throw new Error(`Failed to fetch activities (${res.status})`);
   return res.json();
+}
+
+// -------------------------------------------------------------
+// Recycle Bin API
+// -------------------------------------------------------------
+
+export async function fetchRecycleBinApi(): Promise<RecycleBinData> {
+  const res = await fetch(`${API_BASE}/recycle-bin`);
+  if (!res.ok) throw new Error(`Failed to fetch recycle bin (${res.status})`);
+  return res.json();
+}
+
+export async function restoreRecycleBinItemApi(
+  type: 'project' | 'task',
+  id: string,
+  currentUser?: { memberId?: string; name?: string } | null
+): Promise<{ success: boolean; message: string; id: string; type: string }> {
+  const res = await fetch(`${API_BASE}/recycle-bin/restore`, {
+    method: 'POST',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify({ type, id }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to restore item from recycle bin');
+  return data;
+}
+
+export async function permanentlyDeleteItemApi(
+  type: 'project' | 'task',
+  id: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/recycle-bin/${type}/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to permanently delete item');
+  return data;
+}
+
+export async function emptyRecycleBinApi(): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/recycle-bin`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to empty recycle bin');
+  return data;
 }
 
 
