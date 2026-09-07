@@ -87,16 +87,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div
             id="brand-logo-btn"
             onClick={onGoToDashboard}
-            className="flex items-center gap-2.5 cursor-pointer group"
+            className="flex items-center gap-2.5 cursor-pointer group select-none"
           >
-            <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors shrink-0">
               <Layers className="w-5 h-5" />
             </div>
-            <div>
-              <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-none">
+            <div className="h-9 flex flex-col justify-center -translate-y-0.5">
+              <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-none">
                 UX/UI
-              </h1>
-              <span className="text-2xs text-slate-500 dark:text-slate-400 font-medium leading-none">
+              </span>
+              <span className="text-2xs text-slate-500 dark:text-slate-400 font-medium leading-none mt-1">
                 Management
               </span>
             </div>
