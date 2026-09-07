@@ -1110,6 +1110,7 @@ export default function App() {
             onOpenNewProject={handleOpenCreateProject}
             onUpdateProjectStatus={handleUpdateProjectStatus}
             onUpdateTaskStatus={handleUpdateTaskStatus}
+            onOpenTaskModal={handleOpenTaskModal}
             onNavigateToTeam={handleGoToTeam}
             onOpenAddMember={handleOpenAddMember}
             currentUser={currentUser}
@@ -1210,8 +1211,8 @@ export default function App() {
         }}
         onSave={handleSaveTask}
         initialTask={editingTask}
-        projectId={activeProject?.id || activeProjectId || projects[0]?.id || ''}
-        projectName={activeProject?.name || projects[0]?.name || 'Project'}
+        projectId={editingTask?.projectId || activeProject?.id || activeProjectId || projects[0]?.id || ''}
+        projectName={projects.find((p) => p.id === (editingTask?.projectId || activeProjectId))?.name || activeProject?.name || projects[0]?.name || 'Project'}
         projectMembers={teamMembers}
         projects={projects}
         teamMembers={teamMembers}

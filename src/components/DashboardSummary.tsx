@@ -40,6 +40,7 @@ interface DashboardSummaryProps {
   onOpenNewProject: () => void;
   onUpdateProjectStatus: (projectId: string, newStatus: StatusType) => void;
   onUpdateTaskStatus?: (taskId: string, newStatus: StatusType) => void;
+  onOpenTaskModal?: (task?: Task | null, defaultStatus?: StatusType) => void;
   onNavigateToTeam?: () => void;
   onOpenAddMember?: () => void;
   currentUser?: AuthUser | null;
@@ -58,6 +59,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   onOpenNewProject,
   onUpdateProjectStatus,
   onUpdateTaskStatus,
+  onOpenTaskModal,
   onNavigateToTeam,
   onOpenAddMember,
   currentUser,
@@ -133,6 +135,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         );
         return {
           id: t.id,
+          task: t,
           title: t.title,
           projectName: proj?.name || 'Unknown Project',
           projectColor: proj?.color || '#2563eb',
@@ -148,6 +151,22 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       })
       .sort((a, b) => a.diffDays - b.diffDays);
   }, [safeTasks, safeProjects, safeMembers]);
+
+  // Handler to open Edit Task Deliverable modal directly
+  const handleOpenTask = (
+    e: React.MouseEvent,
+    item: { task?: Task; id: string; projectId: string }
+  ) => {
+    e.stopPropagation();
+    if (onOpenTaskModal) {
+      const targetTask = item.task || safeTasks.find((t) => t.id === item.id);
+      if (targetTask) {
+        onOpenTaskModal(targetTask);
+        return;
+      }
+    }
+    onSelectProject(item.projectId);
+  };
 
   // Check if current user can modify task status
   const canModifyTask = (taskItem: { assigneeId?: string; createdBy?: string }) => {
@@ -594,8 +613,9 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                       return (
                         <tr
                           key={item.id}
-                          onClick={() => onSelectProject(item.projectId)}
+                          onClick={(e) => handleOpenTask(e, item)}
                           className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group"
+                          title="Click to view/edit task deliverable"
                         >
                           {/* # Row Index */}
                           <td className="py-3.5 pl-6 pr-3 text-center">
@@ -618,9 +638,17 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                                 className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
                                 style={{ backgroundColor: item.projectColor }}
                               />
-                              <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[150px]">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSelectProject(item.projectId);
+                                }}
+                                className="font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate max-w-[150px] text-left cursor-pointer transition-colors"
+                                title={`Go to ${item.projectName} project`}
+                              >
                                 {item.projectName}
-                              </span>
+                              </button>
                             </div>
                           </td>
 
@@ -703,10 +731,15 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                           {/* Action */}
                           <td className="py-3.5 pr-6 pl-3 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <span className="text-2xs font-semibold text-blue-600 dark:text-blue-400 group-hover:underline flex items-center gap-0.5">
-                                View
+                              <button
+                                type="button"
+                                onClick={(e) => handleOpenTask(e, item)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-2xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 transition-colors cursor-pointer"
+                                title="Edit Task Deliverable"
+                              >
+                                <span>View</span>
                                 <ArrowUpRight className="w-3 h-3" />
-                              </span>
+                              </button>
                             </div>
                           </td>
                         </tr>
