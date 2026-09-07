@@ -620,10 +620,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           {/* Projects Directory & Summary Cards */}
       <div className="space-y-4">
         {/* Row 1: Filter by Status + Search */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mr-1">Filter by Status:</span>
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Filter by Status:</span>
+            <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
               {[
                 { label: 'All Projects', value: 'all', count: projectStatusCounts.all },
                 { label: 'In Progress', value: 'In Progress', count: projectStatusCounts.inProgress },
@@ -642,7 +642,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 >
                   <span>{st.label}</span>
                   <span
-                    className={`text-3xs px-1.5 py-0.2 rounded-full font-semibold ${
+                    className={`text-3xs px-1.5 py-0.5 rounded-full font-semibold ${
                       statusFilter === st.value
                         ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
                         : st.value === 'Blocked' && st.count > 0
