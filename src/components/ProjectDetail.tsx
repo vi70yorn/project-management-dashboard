@@ -764,43 +764,42 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
                         {/* Assignee & Due Date */}
                         <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-2xs text-slate-500 dark:text-slate-400 gap-1.5">
-                          {/* Assignee pill / dropdown */}
+                          {/* Assignee display (avatar & name) */}
                           <div className="relative flex-1 min-w-0">
-                            {isAdmin ? (
-                              <>
-                                <select
-                                  value={task.assigneeId}
-                                  onChange={(e) => onReassignTask(task.id, e.target.value)}
-                                  title="Change assignee (Admin only)"
-                                  className="appearance-none w-full text-2xs py-1 pl-2 pr-5 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium cursor-pointer truncate shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenTaskModal(task);
+                              }}
+                              title={
+                                canModifyTask
+                                  ? `Assigned to: ${assignee?.name || 'Unassigned'} • Click to edit`
+                                  : `Assigned to: ${assignee?.name || 'Unassigned'}`
+                              }
+                              className="inline-flex items-center gap-1.5 py-0.5 max-w-full text-2xs font-medium cursor-pointer hover:opacity-85 transition-opacity group/assignee"
+                            >
+                              {assignee?.avatar ? (
+                                <img
+                                  src={assignee.avatar}
+                                  alt={assignee.name}
+                                  className="w-5 h-5 rounded-full object-cover shrink-0 ring-1 ring-slate-200/80 dark:ring-slate-700/80"
+                                />
+                              ) : assignee ? (
+                                <span
+                                  style={{ backgroundColor: assignee.color || '#2563eb' }}
+                                  className="w-5 h-5 rounded-full text-white text-3xs font-bold flex items-center justify-center shrink-0 shadow-2xs"
                                 >
-                                  {teamMembers.map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                      {m.name.split(' ')[0]} ({m.role.split(' ')[0]})
-                                    </option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="w-3 h-3 text-slate-400 dark:text-slate-500 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                              </>
-                            ) : (
-                              <div className="flex items-center gap-1.5 py-0.5 text-2xs text-slate-700 dark:text-slate-200 font-medium truncate">
-                                {assignee?.avatar ? (
-                                  <img
-                                    src={assignee.avatar}
-                                    alt={assignee.name}
-                                    className="w-4 h-4 rounded-full object-cover shrink-0"
-                                  />
-                                ) : (
-                                  <span
-                                    style={{ backgroundColor: assignee?.color || '#2563eb' }}
-                                    className="w-4 h-4 rounded-full text-white text-3xs font-bold flex items-center justify-center shrink-0"
-                                  >
-                                    {getInitials(assignee?.name || '?')}
-                                  </span>
-                                )}
-                                <span className="truncate">{assignee?.name || 'Unassigned'}</span>
-                              </div>
-                            )}
+                                  {getInitials(assignee.name)}
+                                </span>
+                              ) : (
+                                <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 text-3xs font-semibold flex items-center justify-center shrink-0">
+                                  ?
+                                </span>
+                              )}
+                              <span className="truncate text-slate-700 dark:text-slate-200 group-hover/assignee:text-blue-600 dark:group-hover/assignee:text-blue-400 transition-colors">
+                                {assignee?.name || 'Unassigned'}
+                              </span>
+                            </div>
                           </div>
 
                           {(() => {
