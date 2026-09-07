@@ -366,33 +366,33 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
         {/* Active Projects */}
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div className="p-4 bg-blue-50/70 dark:bg-blue-950/25 rounded-xl border border-blue-200/80 dark:border-blue-900/40 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300">
               Active Projects
             </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-blue-100/80 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <FolderKanban className="w-4 h-4" />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{metrics.activeProjects}</p>
-          <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-2xs text-blue-600/80 dark:text-blue-300/80 mt-1">
             {metrics.completedProjects} completed • {metrics.totalProjects} total
           </p>
         </div>
 
         {/* In Progress Tasks */}
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div className="p-4 bg-sky-50/70 dark:bg-sky-950/25 rounded-xl border border-sky-200/80 dark:border-sky-900/40 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
               In Progress Tasks
             </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-sky-100/80 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{metrics.inProgressTasks}</p>
-          <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-2xs text-sky-600/80 dark:text-sky-300/80 mt-1">
             {metrics.readyReviewTasks} ready review
           </p>
         </div>
@@ -401,14 +401,14 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         <div
           className={`p-4 rounded-xl border shadow-2xs ${
             metrics.blockedTasks > 0
-              ? 'bg-rose-50/50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+              ? 'bg-rose-100/70 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900/60'
+              : 'bg-rose-50/60 dark:bg-rose-950/25 border-rose-200/70 dark:border-rose-900/40'
           }`}
         >
           <div className="flex items-center justify-between">
             <span
               className={`text-2xs font-semibold uppercase tracking-wider ${
-                metrics.blockedTasks > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'
+                metrics.blockedTasks > 0 ? 'text-rose-800 dark:text-rose-300' : 'text-rose-700/90 dark:text-rose-300/90'
               }`}
             >
               Blocked Tasks
@@ -416,8 +416,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             <div
               className={`w-7 h-7 rounded-lg flex items-center justify-center ${
                 metrics.blockedTasks > 0
-                  ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  ? 'bg-rose-200/80 dark:bg-rose-900/80 text-rose-700 dark:text-rose-200'
+                  : 'bg-rose-100/80 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
               }`}
             >
               <AlertOctagon className="w-4 h-4" />
@@ -425,14 +425,14 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           </div>
           <p
             className={`text-2xl font-bold mt-2 ${
-              metrics.blockedTasks > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-900 dark:text-white'
+              metrics.blockedTasks > 0 ? 'text-rose-700 dark:text-rose-300' : 'text-slate-900 dark:text-white'
             }`}
           >
             {metrics.blockedTasks}
           </p>
           <p
             className={`text-2xs mt-1 ${
-              metrics.blockedTasks > 0 ? 'text-rose-600 dark:text-rose-300 font-medium' : 'text-slate-500 dark:text-slate-400'
+              metrics.blockedTasks > 0 ? 'text-rose-600 dark:text-rose-300 font-medium' : 'text-rose-600/80 dark:text-rose-300/80'
             }`}
           >
             {metrics.blockedProjects} project(s) affected
@@ -440,39 +440,39 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         </div>
 
         {/* Completed Deliverables */}
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/25 rounded-xl border border-emerald-200/80 dark:border-emerald-900/40 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
               Completed Tasks
             </span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{metrics.completedTasks}</p>
-          <p className="text-2xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-2xs text-emerald-600/80 dark:text-emerald-300/80 mt-1">
             Out of {metrics.totalTasks} total tasks
           </p>
         </div>
 
         {/* Team & Velocity */}
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs col-span-2 lg:col-span-1">
+        <div className="p-4 bg-indigo-50/70 dark:bg-indigo-950/25 rounded-xl border border-indigo-200/80 dark:border-indigo-900/40 shadow-2xs col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between">
-            <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
               Team Members
             </span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-indigo-100/80 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{teamMembers.length}</p>
-          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+          <div className="w-full bg-indigo-100/80 dark:bg-indigo-900/40 rounded-full h-1.5 mt-2 overflow-hidden">
             <div
-              className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all"
+              className="bg-indigo-600 dark:bg-indigo-400 h-full rounded-full transition-all"
               style={{ width: `${metrics.overallCompletionRate}%` }}
             />
           </div>
-          <p className="text-3xs text-slate-400 dark:text-slate-500 mt-1">
+          <p className="text-3xs text-indigo-600/80 dark:text-indigo-300/80 mt-1">
             Overall {metrics.overallCompletionRate}% complete
           </p>
         </div>
