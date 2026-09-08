@@ -507,8 +507,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                   <Calendar className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 id="deadlines-heading" className="text-base font-semibold text-slate-900 dark:text-white">
-                    Upcoming Deadlines & Milestones
+                  <h3 id="deadlines-heading" className="text-base font-bold uppercase text-slate-900 dark:text-white">
+                    Team Upcoming Tasks
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     Sorted by nearest target due date across all projects

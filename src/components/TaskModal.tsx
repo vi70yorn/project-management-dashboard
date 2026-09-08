@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   Check,
+  Copy,
   Calendar,
   AlertTriangle,
   User,
@@ -104,7 +105,79 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     return bInProject - aInProject;
   });
 
+  const [copied, setCopied] = useState(false);
+
+  // Format task details cleanly as text for team communication apps (Slack, Telegram, Teams, WhatsApp, etc.)
+  const formatTaskText = () => {
+    const taskTitle = title.trim() || initialTask?.title || 'Untitled Deliverable';
+    const proj = safeProjects.find(
+      (p) => p.id === (selectedProjectId || initialTask?.projectId)
+    );
+    const projName = proj
+      ? `${proj.name}${proj.client ? ` (Client: ${proj.client})` : ''}`
+      : projectName || 'Project';
+
+    const currentAssigneeId = assigneeId || initialTask?.assigneeId;
+    const assigned = safeMembers.find((m) => m.id === currentAssigneeId);
+    const assigneeName = assigned ? assigned.name : 'Unassigned';
+
+    const taskStatus = status || initialTask?.status || 'In Progress';
+    const taskPriority = priority || initialTask?.priority || 'Medium';
+    const start = startDate || initialTask?.startDate;
+    const due = dueDate || initialTask?.dueDate;
+
+    let dateText = 'Not set';
+    if (start && due && start !== due) {
+      dateText = `${start} → ${due}`;
+    } else if (due) {
+      dateText = due;
+    } else if (start) {
+      dateText = `Starts ${start}`;
+    }
+
+    const desc = (description || initialTask?.description || '').trim();
+
+    const lines = [
+      `📋 Task: ${taskTitle}`,
+      `📁 Project: ${projName}`,
+      `👤 Assignee: ${assigneeName}`,
+      `⚡ Priority: ${taskPriority}`,
+      `🔄 Status: ${taskStatus}`,
+      `📅 Due Date: ${dateText}`,
+    ];
+
+    if (desc) {
+      lines.push('', `📝 Description:`, desc);
+    }
+
+    return lines.join('\n');
+  };
+
+  const handleCopyTask = async () => {
+    const text = formatTaskText();
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn('Failed to copy task:', err);
+    }
+  };
+
   useEffect(() => {
+    setCopied(false);
     if (initialTask) {
       setSelectedProjectId(initialTask.projectId);
       setTitle(initialTask.title);
@@ -192,13 +265,38 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </div>
             </div>
 
-            <button
-              id="close-task-modal-btn"
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                id="copy-readonly-task-btn"
+                type="button"
+                onClick={handleCopyTask}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                  copied
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs'
+                }`}
+                title="Copy task details to clipboard for team chat"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <span>Copy Task</span>
+                  </>
+                )}
+              </button>
+              <button
+                id="close-task-modal-btn"
+                onClick={onClose}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Read-Only Details Body */}
@@ -342,14 +440,38 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               <Lock className="w-3.5 h-3.5 text-slate-400" />
               Staff can view details of tasks created by other members
             </span>
-            <button
-              id="close-view-task-btn"
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg shadow-2xs transition-colors cursor-pointer"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCopyTask}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold transition-all cursor-pointer border rounded-lg shadow-2xs ${
+                  copied
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+                title="Copy task details to clipboard"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <span>Copy Task</span>
+                  </>
+                )}
+              </button>
+              <button
+                id="close-view-task-btn"
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg shadow-2xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -382,13 +504,38 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 : 'Create Task Deliverable'}
             </h2>
           </div>
-          <button
-            id="close-task-modal-btn"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              id="copy-task-modal-btn"
+              type="button"
+              onClick={handleCopyTask}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                copied
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs'
+              }`}
+              title="Copy task formatted as text for communication apps (Telegram, Slack, Teams, etc.)"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  <span>Copy Task</span>
+                </>
+              )}
+            </button>
+            <button
+              id="close-task-modal-btn"
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Form Body */}
@@ -690,23 +837,46 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
           {/* Footer */}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-            {initialTask && onDelete && canDeleteTask ? (
+            <div className="flex items-center gap-2">
+              {initialTask && onDelete && canDeleteTask && (
+                <button
+                  id="delete-task-modal-btn"
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onDelete(initialTask);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/80 rounded-lg transition-colors cursor-pointer"
+                  title="Move task to Recycle Bin (kept for 7 days)"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Task</span>
+                </button>
+              )}
               <button
-                id="delete-task-modal-btn"
+                id="copy-task-footer-btn"
                 type="button"
-                onClick={() => {
-                  onClose();
-                  onDelete(initialTask);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/80 rounded-lg transition-colors cursor-pointer"
-                title="Move task to Recycle Bin (kept for 7 days)"
+                onClick={handleCopyTask}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-all cursor-pointer border rounded-lg ${
+                  copied
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+                title="Copy task formatted as text for communication apps"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete Task</span>
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <span>Copy Text</span>
+                  </>
+                )}
               </button>
-            ) : (
-              <div />
-            )}
+            </div>
             <div className="flex items-center gap-3">
               <button
                 id="cancel-task-modal-btn"
