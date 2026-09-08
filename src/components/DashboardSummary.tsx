@@ -25,6 +25,7 @@ import {
   LayoutGrid,
   User,
   FileEdit,
+  Layers,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
@@ -80,6 +81,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   // Deadlines Section Filter & Pagination State
   const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'Draft' | 'In Progress' | 'Ready Review' | 'Blocked'>('all');
   const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>('all');
+  const [deadlineGroupBy, setDeadlineGroupBy] = useState<'none' | 'assignee' | 'priority' | 'status'>('none');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(10);
   const [deadlineCurrentPage, setDeadlineCurrentPage] = useState<number>(1);
 
@@ -324,6 +327,304 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
+  interface DeadlineGroup {
+    key: string;
+    title: string;
+    count: number;
+    overdueCount: number;
+    badge?: React.ReactNode;
+    items: typeof filteredDeadlines;
+  }
+
+  const groupedDeadlines = useMemo<DeadlineGroup[]>(() => {
+    if (deadlineGroupBy === 'none') return [];
+
+    if (deadlineGroupBy === 'assignee') {
+      const groups: DeadlineGroup[] = [];
+
+      // Group for each team member who has tasks in filteredDeadlines
+      safeMembers.forEach((m) => {
+        const memberItems = filteredDeadlines.filter((d) => d.assigneeId === m.id);
+        if (memberItems.length > 0) {
+          const overdueCount = memberItems.filter((d) => d.diffDays < 0).length;
+          groups.push({
+            key: `assignee-${m.id}`,
+            title: m.name,
+            count: memberItems.length,
+            overdueCount,
+            badge: m.avatar ? (
+              <img src={m.avatar} alt={m.name} className="w-5 h-5 rounded-full object-cover shrink-0" />
+            ) : (
+              <div
+                style={{ backgroundColor: m.color || '#2563eb' }}
+                className="w-5 h-5 rounded-full text-white text-3xs flex items-center justify-center font-bold shrink-0"
+              >
+                {getInitials(m.name)}
+              </div>
+            ),
+            items: memberItems,
+          });
+        }
+      });
+
+      // Also check unassigned
+      const unassignedItems = filteredDeadlines.filter((d) => !d.assigneeId);
+      if (unassignedItems.length > 0) {
+        const overdueCount = unassignedItems.filter((d) => d.diffDays < 0).length;
+        groups.push({
+          key: 'assignee-unassigned',
+          title: 'Unassigned',
+          count: unassignedItems.length,
+          overdueCount,
+          badge: (
+            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-3xs flex items-center justify-center font-bold shrink-0">
+              ?
+            </div>
+          ),
+          items: unassignedItems,
+        });
+      }
+
+      return groups;
+    }
+
+    if (deadlineGroupBy === 'priority') {
+      const PRIORITY_ORDER: ('Urgent' | 'High' | 'Medium' | 'Low')[] = ['Urgent', 'High', 'Medium', 'Low'];
+      const groups: DeadlineGroup[] = [];
+
+      PRIORITY_ORDER.forEach((prio) => {
+        const prioItems = filteredDeadlines.filter((d) => d.priority === prio);
+        if (prioItems.length > 0) {
+          const overdueCount = prioItems.filter((d) => d.diffDays < 0).length;
+          groups.push({
+            key: `priority-${prio}`,
+            title: prio,
+            count: prioItems.length,
+            overdueCount,
+            badge: <PriorityBadge priority={prio} size="sm" />,
+            items: prioItems,
+          });
+        }
+      });
+
+      return groups;
+    }
+
+    if (deadlineGroupBy === 'status') {
+      const STATUS_ORDER: StatusType[] = ['Draft', 'In Progress', 'Ready Review', 'Blocked', 'Completed'];
+      const groups: DeadlineGroup[] = [];
+
+      STATUS_ORDER.forEach((st) => {
+        const stItems = filteredDeadlines.filter((d) => {
+          if (st === 'Ready Review') return d.status === 'Ready Review' || d.status === 'Pending';
+          return d.status === st;
+        });
+        if (stItems.length > 0) {
+          const overdueCount = stItems.filter((d) => d.diffDays < 0).length;
+          groups.push({
+            key: `status-${st}`,
+            title: st,
+            count: stItems.length,
+            overdueCount,
+            badge: <StatusBadge status={st} size="sm" />,
+            items: stItems,
+          });
+        }
+      });
+
+      return groups;
+    }
+
+    return [];
+  }, [deadlineGroupBy, filteredDeadlines, safeMembers]);
+
+  const toggleGroupCollapse = (key: string) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const isAllGroupsCollapsed = useMemo(() => {
+    if (groupedDeadlines.length === 0) return false;
+    return groupedDeadlines.every((g) => collapsedGroups[g.key]);
+  }, [groupedDeadlines, collapsedGroups]);
+
+  const toggleAllGroupsCollapse = () => {
+    if (isAllGroupsCollapsed) {
+      setCollapsedGroups({});
+    } else {
+      const next: Record<string, boolean> = {};
+      groupedDeadlines.forEach((g) => {
+        next[g.key] = true;
+      });
+      setCollapsedGroups(next);
+    }
+  };
+
+  const deadlineGroupByOptions: CustomSelectOption[] = [
+    { value: 'none', label: 'Group: None' },
+    { value: 'assignee', label: 'Group by Assignee' },
+    { value: 'priority', label: 'Group by Priority' },
+    { value: 'status', label: 'Group by Status' },
+  ];
+
+  const renderDeadlineTaskRow = (
+    item: (typeof allActiveDeadlines)[0],
+    rowNumber: number | string,
+    isGroupedItem: boolean = false
+  ) => {
+    const isOverdue = item.diffDays < 0;
+    const isToday = item.diffDays === 0;
+
+    return (
+      <tr
+        key={item.id}
+        onClick={(e) => handleOpenTask(e, item)}
+        className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group ${
+          isGroupedItem ? 'bg-slate-50/30 dark:bg-slate-900/30' : ''
+        }`}
+        title="Click to view/edit task deliverable"
+      >
+        {/* # Row Index */}
+        <td className="py-3.5 pl-6 pr-3 text-center">
+          <span className="text-3xs font-bold text-slate-400 dark:text-slate-500">
+            {rowNumber}
+          </span>
+        </td>
+
+        {/* Task / Deliverable Title & Description */}
+        <td className="py-3.5 px-4 min-w-[220px]">
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+              {item.title}
+            </span>
+            {item.description && (
+              <p
+                className="text-2xs text-slate-500 dark:text-slate-400 line-clamp-1 leading-snug mt-0.5"
+                title={item.description}
+              >
+                {item.description}
+              </p>
+            )}
+          </div>
+        </td>
+
+        {/* Project Name with Color Dot */}
+        <td className="py-3.5 px-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
+              style={{ backgroundColor: item.projectColor }}
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectProject(item.projectId);
+              }}
+              className="font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate max-w-[150px] text-left cursor-pointer transition-colors"
+              title={`Go to ${item.projectName} project`}
+            >
+              {item.projectName}
+            </button>
+          </div>
+        </td>
+
+        {/* Assignee */}
+        <td className="py-3.5 px-4">
+          {item.assignee ? (
+            <div className="flex items-center gap-2">
+              {item.assignee.avatar ? (
+                <img
+                  src={item.assignee.avatar}
+                  alt={item.assignee.name}
+                  className="w-5 h-5 rounded-full object-cover shrink-0"
+                />
+              ) : (
+                <div
+                  style={{ backgroundColor: item.assignee.color || '#2563eb' }}
+                  className="w-5 h-5 rounded-full text-white text-3xs flex items-center justify-center font-bold shrink-0"
+                >
+                  {getInitials(item.assignee.name)}
+                </div>
+              )}
+              <span className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate max-w-[110px]">
+                {item.assignee.name}
+              </span>
+            </div>
+          ) : (
+            <span className="text-2xs text-slate-400 italic">Unassigned</span>
+          )}
+        </td>
+
+        {/* Priority */}
+        <td className="py-3.5 px-3">
+          <PriorityBadge priority={item.priority} size="sm" />
+        </td>
+
+        {/* Status */}
+        <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
+          {canModifyTask(item) ? (
+            <StatusDropdown
+              id={`deadline-task-status-${item.id}`}
+              status={item.status}
+              onChange={(newStatus) => onUpdateTaskStatus?.(item.id, newStatus)}
+              size="sm"
+            />
+          ) : (
+            <StatusBadge status={item.status} size="sm" />
+          )}
+        </td>
+
+        {/* Deadline countdown badge */}
+        <td className="py-3.5 px-4">
+          <div
+            className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${
+              isToday
+                ? 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300/90 border-rose-300 dark:border-rose-500/30 font-bold ring-1 ring-rose-400/50 shadow-2xs'
+                : isOverdue
+                ? 'bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300/90 border-rose-300 dark:border-rose-500/30 font-semibold'
+                : item.diffDays <= 3
+                ? 'bg-amber-50/70 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300/90 border-amber-200 dark:border-amber-500/25'
+                : 'bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300/90 border-slate-200 dark:border-slate-700/50'
+            }`}
+          >
+            {isToday ? (
+              <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse shrink-0" />
+            ) : isOverdue ? (
+              <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+            ) : (
+              <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+            )}
+            <span>
+              {isToday
+                ? 'Due Today!'
+                : isOverdue
+                ? `Overdue by ${Math.abs(item.diffDays)}d`
+                : `${item.diffDays} days (${item.dueDate})`}
+            </span>
+          </div>
+        </td>
+
+        {/* Action */}
+        <td className="py-3.5 pr-6 pl-3 text-right">
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={(e) => handleOpenTask(e, item)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-2xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 transition-colors cursor-pointer"
+              title="Edit Task Deliverable"
+            >
+              <span>View</span>
+              <ArrowUpRight className="w-3 h-3" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
   return (
     <div id="dashboard-summary-view" className="space-y-8 pb-16">
       {/* Page Header */}
@@ -524,10 +825,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 </div>
               </div>
 
-              {/* Filters: Team Member Select + Status Tabs */}
+              {/* Filters: Team Member Select + Group By + Status Tabs */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                 {/* Team Member Filter */}
-                <div className="w-full sm:w-auto min-w-[170px]">
+                <div className="w-full sm:w-auto min-w-[160px]">
                   <CustomSelect
                     id="deadline-member-filter-select"
                     value={deadlineMemberFilter}
@@ -538,6 +839,31 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                     placeholder="Filter by Member"
                   />
                 </div>
+
+                {/* Group By Selector */}
+                <div className="w-full sm:w-auto min-w-[155px]">
+                  <CustomSelect
+                    id="deadline-group-by-select"
+                    value={deadlineGroupBy}
+                    onChange={(val) => setDeadlineGroupBy(val as any)}
+                    size="sm"
+                    icon={<Layers className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />}
+                    options={deadlineGroupByOptions}
+                    placeholder="Group By"
+                  />
+                </div>
+
+                {/* Expand / Collapse All when grouped */}
+                {deadlineGroupBy !== 'none' && groupedDeadlines.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={toggleAllGroupsCollapse}
+                    className="px-2.5 py-1.5 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer shadow-2xs flex items-center gap-1 shrink-0"
+                    title={isAllGroupsCollapsed ? 'Expand All Groups' : 'Collapse All Groups'}
+                  >
+                    <span>{isAllGroupsCollapsed ? 'Expand All' : 'Collapse All'}</span>
+                  </button>
+                )}
 
                 {/* Status Filter Tabs */}
                 <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
@@ -582,16 +908,17 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                     ? 'No pending task deadlines. All current tasks completed!'
                     : `No tasks found matching the selected filters.`}
                 </p>
-                {(deadlineStatusFilter !== 'all' || deadlineMemberFilter !== 'all') && (
+                {(deadlineStatusFilter !== 'all' || deadlineMemberFilter !== 'all' || deadlineGroupBy !== 'none') && (
                   <button
                     onClick={() => {
                       setDeadlineStatusFilter('all');
                       setDeadlineMemberFilter('all');
+                      setDeadlineGroupBy('none');
                       setDeadlineCurrentPage(1);
                     }}
                     className="mt-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                   >
-                    Reset filters
+                    Reset filters & grouping
                   </button>
                 )}
               </div>
@@ -603,167 +930,129 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                       <th className="py-3 pl-6 pr-3 text-center w-14">#</th>
                       <th className="py-3 px-4 min-w-[240px]">Task / Deliverable</th>
                       <th className="py-3 px-4 min-w-[150px]">Project</th>
-                      <th className="py-3 px-4 min-w-[140px]">Assignee</th>
-                      <th className="py-3 px-3 min-w-[95px]">Priority</th>
-                      <th className="py-3 px-4 min-w-[140px]">Status</th>
+                      <th className="py-3 px-4 min-w-[150px]">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span>Assignee</span>
+                          <button
+                            type="button"
+                            onClick={() => setDeadlineGroupBy((prev) => (prev === 'assignee' ? 'none' : 'assignee'))}
+                            className={`p-1 rounded-md transition-all cursor-pointer flex items-center justify-center ${
+                              deadlineGroupBy === 'assignee'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 ring-1 ring-blue-500/40 shadow-2xs font-bold'
+                                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                            }`}
+                            title={deadlineGroupBy === 'assignee' ? 'Grouped by Assignee (click to clear)' : 'Group by Assignee'}
+                          >
+                            <Layers className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </th>
+                      <th className="py-3 px-3 min-w-[110px]">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span>Priority</span>
+                          <button
+                            type="button"
+                            onClick={() => setDeadlineGroupBy((prev) => (prev === 'priority' ? 'none' : 'priority'))}
+                            className={`p-1 rounded-md transition-all cursor-pointer flex items-center justify-center ${
+                              deadlineGroupBy === 'priority'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 ring-1 ring-blue-500/40 shadow-2xs font-bold'
+                                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                            }`}
+                            title={deadlineGroupBy === 'priority' ? 'Grouped by Priority (click to clear)' : 'Group by Priority'}
+                          >
+                            <Layers className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 min-w-[150px]">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span>Status</span>
+                          <button
+                            type="button"
+                            onClick={() => setDeadlineGroupBy((prev) => (prev === 'status' ? 'none' : 'status'))}
+                            className={`p-1 rounded-md transition-all cursor-pointer flex items-center justify-center ${
+                              deadlineGroupBy === 'status'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300 ring-1 ring-blue-500/40 shadow-2xs font-bold'
+                                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                            }`}
+                            title={deadlineGroupBy === 'status' ? 'Grouped by Status (click to clear)' : 'Group by Status'}
+                          >
+                            <Layers className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </th>
                       <th className="py-3 px-4 min-w-[200px]">Deadline</th>
                       <th className="py-3 pr-6 pl-3 text-right w-24">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {displayedDeadlines.map((item, idx) => {
-                      const isOverdue = item.diffDays < 0;
-                      const isToday = item.diffDays === 0;
-                      const rowNumber =
-                        deadlinePageSize === 'all'
-                          ? idx + 1
-                          : (safeCurrentPage - 1) * (deadlinePageSize as number) + idx + 1;
-
-                      return (
-                        <tr
-                          key={item.id}
-                          onClick={(e) => handleOpenTask(e, item)}
-                          className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group"
-                          title="Click to view/edit task deliverable"
-                        >
-                          {/* # Row Index */}
-                          <td className="py-3.5 pl-6 pr-3 text-center">
-                            <span className="text-3xs font-bold text-slate-400 dark:text-slate-500">
-                              {rowNumber}
-                            </span>
-                          </td>
-
-                          {/* Task / Deliverable Title & Description */}
-                          <td className="py-3.5 px-4 min-w-[220px]">
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
-                                {item.title}
-                              </span>
-                              {item.description && (
-                                <p
-                                  className="text-2xs text-slate-500 dark:text-slate-400 line-clamp-1 leading-snug mt-0.5"
-                                  title={item.description}
-                                >
-                                  {item.description}
-                                </p>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Project Name with Color Dot */}
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span
-                                className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
-                                style={{ backgroundColor: item.projectColor }}
-                              />
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onSelectProject(item.projectId);
-                                }}
-                                className="font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate max-w-[150px] text-left cursor-pointer transition-colors"
-                                title={`Go to ${item.projectName} project`}
-                              >
-                                {item.projectName}
-                              </button>
-                            </div>
-                          </td>
-
-                          {/* Assignee */}
-                          <td className="py-3.5 px-4">
-                            {item.assignee ? (
-                              <div className="flex items-center gap-2">
-                                {item.assignee.avatar ? (
-                                  <img
-                                    src={item.assignee.avatar}
-                                    alt={item.assignee.name}
-                                    className="w-5 h-5 rounded-full object-cover shrink-0"
-                                  />
-                                ) : (
-                                  <div
-                                    style={{ backgroundColor: item.assignee.color || '#2563eb' }}
-                                    className="w-5 h-5 rounded-full text-white text-3xs flex items-center justify-center font-bold shrink-0"
-                                  >
-                                    {getInitials(item.assignee.name)}
-                                  </div>
-                                )}
-                                <span className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate max-w-[110px]">
-                                  {item.assignee.name}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-2xs text-slate-400 italic">Unassigned</span>
-                            )}
-                          </td>
-
-                          {/* Priority */}
-                          <td className="py-3.5 px-3">
-                            <PriorityBadge priority={item.priority} size="sm" />
-                          </td>
-
-                          {/* Status */}
-                          <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
-                            {canModifyTask(item) ? (
-                              <StatusDropdown
-                                id={`deadline-task-status-${item.id}`}
-                                status={item.status}
-                                onChange={(newStatus) => onUpdateTaskStatus?.(item.id, newStatus)}
-                                size="sm"
-                              />
-                            ) : (
-                              <StatusBadge status={item.status} size="sm" />
-                            )}
-                          </td>
-
-                          {/* Deadline countdown badge */}
-                          <td className="py-3.5 px-4">
-                            <div
-                              className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${
-                                isToday
-                                  ? 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300/90 border-rose-300 dark:border-rose-500/30 font-bold ring-1 ring-rose-400/50 shadow-2xs'
-                                  : isOverdue
-                                  ? 'bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-300/90 border-rose-300 dark:border-rose-500/30 font-semibold'
-                                  : item.diffDays <= 3
-                                  ? 'bg-amber-50/70 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300/90 border-amber-200 dark:border-amber-500/25'
-                                  : 'bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300/90 border-slate-200 dark:border-slate-700/50'
-                              }`}
+                    {deadlineGroupBy === 'none' ? (
+                      displayedDeadlines.map((item, idx) => {
+                        const rowNumber =
+                          deadlinePageSize === 'all'
+                            ? idx + 1
+                            : (safeCurrentPage - 1) * (deadlinePageSize as number) + idx + 1;
+                        return renderDeadlineTaskRow(item, rowNumber, false);
+                      })
+                    ) : (
+                      groupedDeadlines.map((group) => {
+                        const isCollapsed = !!collapsedGroups[group.key];
+                        return (
+                          <React.Fragment key={group.key}>
+                            {/* Group Header Row */}
+                            <tr
+                              onClick={() => toggleGroupCollapse(group.key)}
+                              className="bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 cursor-pointer border-y border-slate-200 dark:border-slate-700 select-none transition-colors"
                             >
-                              {isToday ? (
-                                <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 animate-pulse shrink-0" />
-                              ) : isOverdue ? (
-                                <AlertOctagon className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
-                              ) : (
-                                <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-                              )}
-                              <span>
-                                {isToday
-                                  ? 'Due Today!'
-                                  : isOverdue
-                                  ? `Overdue by ${Math.abs(item.diffDays)}d`
-                                  : `${item.diffDays} days (${item.dueDate})`}
-                              </span>
-                            </div>
-                          </td>
+                              <td colSpan={8} className="py-2.5 px-4 pl-6">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2.5 flex-wrap">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleGroupCollapse(group.key);
+                                      }}
+                                      className="p-1 rounded-md text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                                      title={isCollapsed ? 'Expand group' : 'Collapse group'}
+                                    >
+                                      {isCollapsed ? (
+                                        <ChevronRight className="w-4 h-4" />
+                                      ) : (
+                                        <ChevronDown className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                    {group.badge}
+                                    <span className="font-bold text-xs text-slate-900 dark:text-white">
+                                      {group.title}
+                                    </span>
+                                    <span className="text-3xs px-2 py-0.5 rounded-full font-bold bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 shadow-2xs">
+                                      {group.count} {group.count === 1 ? 'task' : 'tasks'}
+                                    </span>
+                                    {group.overdueCount > 0 && (
+                                      <span className="text-3xs px-2 py-0.5 rounded-full font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 flex items-center gap-1">
+                                        <AlertCircle className="w-2.5 h-2.5" />
+                                        {group.overdueCount} overdue
+                                      </span>
+                                    )}
+                                  </div>
 
-                          {/* Action */}
-                          <td className="py-3.5 pr-6 pl-3 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={(e) => handleOpenTask(e, item)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-2xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 transition-colors cursor-pointer"
-                                title="Edit Task Deliverable"
-                              >
-                                <span>View</span>
-                                <ArrowUpRight className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                  <div className="flex items-center gap-2 text-3xs font-medium text-slate-400 dark:text-slate-500">
+                                    <span>{isCollapsed ? 'Click to expand' : 'Click to collapse'}</span>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* Group Task Rows */}
+                            {!isCollapsed &&
+                              group.items.map((item, itemIdx) =>
+                                renderDeadlineTaskRow(item, itemIdx + 1, true)
+                              )}
+                          </React.Fragment>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -772,66 +1061,95 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             {/* Footer Pagination & View Controls */}
             {totalDeadlineItems > 0 && (
               <div className="pt-3.5 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
-                <div className="flex items-center gap-1.5">
-                  <span>
-                    Showing{' '}
-                    <strong className="text-slate-700 dark:text-slate-200">
-                      {deadlinePageSize === 'all'
-                        ? totalDeadlineItems
-                        : `${(safeCurrentPage - 1) * (deadlinePageSize as number) + 1}–${Math.min(
-                            safeCurrentPage * (deadlinePageSize as number),
-                            totalDeadlineItems
-                          )}`}
-                    </strong>{' '}
-                    of <strong className="text-slate-700 dark:text-slate-200">{totalDeadlineItems}</strong> tasks
-                  </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {deadlineGroupBy === 'none' ? (
+                    <span>
+                      Showing{' '}
+                      <strong className="text-slate-700 dark:text-slate-200">
+                        {deadlinePageSize === 'all'
+                          ? totalDeadlineItems
+                          : `${(safeCurrentPage - 1) * (deadlinePageSize as number) + 1}–${Math.min(
+                              safeCurrentPage * (deadlinePageSize as number),
+                              totalDeadlineItems
+                            )}`}
+                      </strong>{' '}
+                      of <strong className="text-slate-700 dark:text-slate-200">{totalDeadlineItems}</strong> tasks
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>
+                        Showing all <strong className="text-slate-700 dark:text-slate-200">{filteredDeadlines.length}</strong> tasks across{' '}
+                        <strong className="text-slate-700 dark:text-slate-200">{groupedDeadlines.length}</strong> groups (by{' '}
+                        <span className="capitalize font-semibold text-blue-600 dark:text-blue-400">{deadlineGroupBy}</span>)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDeadlineGroupBy('none')}
+                        className="text-2xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer font-semibold ml-1"
+                      >
+                        Reset Grouping
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {/* View mode switcher */}
-                  <div className="flex items-center gap-1 text-2xs">
-                    <span className="text-slate-400 mr-0.5">Show:</span>
-                    {[10, 20, 'all'].map((size) => (
-                      <button
-                        key={size}
-                        onClick={() => {
-                          setDeadlinePageSize(size as any);
-                          setDeadlineCurrentPage(1);
-                        }}
-                        className={`px-2 py-0.5 rounded cursor-pointer font-medium transition-colors ${
-                          deadlinePageSize === size
-                            ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                        }`}
-                      >
-                        {size === 'all' ? 'All' : size}
-                      </button>
-                    ))}
-                  </div>
+                  {deadlineGroupBy === 'none' ? (
+                    <>
+                      {/* View mode switcher */}
+                      <div className="flex items-center gap-1 text-2xs">
+                        <span className="text-slate-400 mr-0.5">Show:</span>
+                        {[10, 20, 'all'].map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => {
+                              setDeadlinePageSize(size as any);
+                              setDeadlineCurrentPage(1);
+                            }}
+                            className={`px-2 py-0.5 rounded cursor-pointer font-medium transition-colors ${
+                              deadlinePageSize === size
+                                ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {size === 'all' ? 'All' : size}
+                          </button>
+                        ))}
+                      </div>
 
-                  {/* Pagination Buttons (when not viewing 'all' and more than 1 page) */}
-                  {deadlinePageSize !== 'all' && totalDeadlinePages > 1 && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        disabled={safeCurrentPage <= 1}
-                        onClick={() => setDeadlineCurrentPage((p) => Math.max(1, p - 1))}
-                        className="p-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                        title="Previous page"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-2xs font-semibold px-1 text-slate-600 dark:text-slate-300">
-                        {safeCurrentPage} / {totalDeadlinePages}
-                      </span>
-                      <button
-                        disabled={safeCurrentPage >= totalDeadlinePages}
-                        onClick={() => setDeadlineCurrentPage((p) => Math.min(totalDeadlinePages, p + 1))}
-                        className="p-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                        title="Next page"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                      {/* Pagination Buttons (when not viewing 'all' and more than 1 page) */}
+                      {deadlinePageSize !== 'all' && totalDeadlinePages > 1 && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            disabled={safeCurrentPage <= 1}
+                            onClick={() => setDeadlineCurrentPage((p) => Math.max(1, p - 1))}
+                            className="p-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                            title="Previous page"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-2xs font-semibold px-1 text-slate-600 dark:text-slate-300">
+                            {safeCurrentPage} / {totalDeadlinePages}
+                          </span>
+                          <button
+                            disabled={safeCurrentPage >= totalDeadlinePages}
+                            onClick={() => setDeadlineCurrentPage((p) => Math.min(totalDeadlinePages, p + 1))}
+                            className="p-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                            title="Next page"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={toggleAllGroupsCollapse}
+                      className="px-2.5 py-1 text-2xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                    >
+                      {isAllGroupsCollapsed ? 'Expand All Groups' : 'Collapse All Groups'}
+                    </button>
                   )}
                 </div>
               </div>
