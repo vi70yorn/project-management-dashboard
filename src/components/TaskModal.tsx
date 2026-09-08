@@ -599,36 +599,38 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
                     {/* Comment Bubble */}
                     <div className="flex-1 bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 rounded-xl p-3 shadow-2xs text-xs">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 text-2xs">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 text-2xs truncate">
                             {item.userName}
                           </span>
                           {item.userRole && (
-                            <span className="px-1.5 py-0.5 rounded text-3xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                            <span className="px-1.5 py-0.5 rounded text-3xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
                               {item.userRole}
                             </span>
                           )}
-                          {/* <span className="text-3xs text-slate-400 dark:text-slate-500 font-medium">
-                            • {formatDateTime(item.createdAt)}
-                          </span> */}
                         </div>
 
-                        {canDelete && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteComment(item.id)}
-                            disabled={deletingCommentId === item.id}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
-                            title="Delete comment"
-                          >
-                            {deletingCommentId === item.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin text-rose-500" />
-                            ) : (
-                              <Trash2 className="w-3 h-3" />
-                            )}
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-3xs text-slate-400 dark:text-slate-500 font-medium tabular-nums">
+                            {formatDateTime(item.createdAt)}
+                          </span>
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteComment(item.id)}
+                              disabled={deletingCommentId === item.id}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                              title="Delete comment"
+                            >
+                              {deletingCommentId === item.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin text-rose-500" />
+                              ) : (
+                                <Trash2 className="w-3 h-3" />
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <div className="text-slate-700 dark:text-slate-200 text-xs leading-relaxed break-words">
@@ -674,31 +676,36 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   </div>
 
                   {/* Node content */}
-                  <div className="flex-1 min-h-[28px] text-2xs text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2 bg-slate-50/85 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors px-3 py-1 rounded-lg border border-slate-200/75 dark:border-slate-700/60 shadow-2xs">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="flex-1 text-2xs text-slate-600 dark:text-slate-300 bg-slate-50/85 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors px-3 py-2 rounded-lg border border-slate-200/75 dark:border-slate-700/60 shadow-2xs space-y-1">
+                    {/* Top Row: User Name aligned with Timestamp */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                         {item.userName}
                       </span>
+                      <span className="text-3xs text-slate-400 dark:text-slate-500 shrink-0 font-medium tabular-nums">
+                        {formatDateTime(item.createdAt)}
+                      </span>
+                    </div>
+
+                    {/* Bottom Row: Action Details & Status Badges */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {isStatusChange && toStatus ? (
-                        <span className="inline-flex items-center gap-1">
+                        <div className="inline-flex items-center gap-1.5 flex-wrap">
                           <span className="text-slate-500 dark:text-slate-400">changed status</span>
                           {fromStatus && (
                             <>
                               <StatusBadge status={fromStatus} size="xs" />
-                              <ArrowRight className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500" />
+                              <ArrowRight className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500 shrink-0" />
                             </>
                           )}
                           <StatusBadge status={toStatus} size="xs" />
-                        </span>
+                        </div>
                       ) : item.actionType === 'create_task' ? (
                         <span className="text-slate-500 dark:text-slate-400">created this deliverable</span>
                       ) : (
                         <span className="text-slate-500 dark:text-slate-400">updated deliverable details</span>
                       )}
                     </div>
-                    <span className="text-3xs text-slate-400 dark:text-slate-500 shrink-0 font-medium tabular-nums">
-                      {formatDateTime(item.createdAt)}
-                    </span>
                   </div>
                 </div>
               );
