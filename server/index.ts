@@ -5,6 +5,8 @@ import path from 'path';
 import fs from 'fs';
 import { getPool, ensureDatabaseExists, runMigrationsAndSeed, checkConnection, dbConfig } from './db';
 
+// Force system and runtime timezone to UTC+7 (Asia/Bangkok, Indochina Time)
+process.env.TZ = 'Asia/Bangkok';
 dotenv.config();
 
 const app = express();
@@ -2046,6 +2048,72 @@ app.delete('/api/members/:id', async (req: Request, res: Response) => {
 // Telegram Automated Weekly Report Endpoints
 // ==========================================
 
+/**
+ * Utility to get current date and time strictly in UTC+7 (Asia/Bangkok, Phnom Penh, Indochina Time)
+ * regardless of host machine, Docker container, or cloud server OS timezone (e.g. UTC on production).
+ */
+export function getNowInUtcPlus7(baseDate = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+    weekday: 'long',
+  });
+
+  const parts = formatter.formatToParts(baseDate);
+  const partMap: Record<string, string> = {};
+  for (const part of parts) {
+    partMap[part.type] = part.value;
+  }
+
+  const year = parseInt(partMap.year, 10);
+  const month = parseInt(partMap.month, 10);
+  const day = parseInt(partMap.day, 10);
+  const hour = parseInt(partMap.hour, 10);
+  const minute = parseInt(partMap.minute, 10);
+  const second = parseInt(partMap.second, 10);
+  const dayName = partMap.weekday; // e.g. "Monday", "Tuesday", etc.
+
+  const dayMap: Record<string, number> = {
+    Sunday: 0,
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+  };
+  const dayOfWeek = dayMap[dayName] ?? 0;
+
+  const hoursStr = String(hour).padStart(2, '0');
+  const minutesStr = String(minute).padStart(2, '0');
+  const secondsStr = String(second).padStart(2, '0');
+  const monthStr = String(month).padStart(2, '0');
+  const dayStr = String(day).padStart(2, '0');
+
+  const timeStr = `${hoursStr}:${minutesStr}`;
+  const dateStr = `${year}-${monthStr}-${dayStr}`;
+
+  return {
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+    dayOfWeek,
+    dayName,
+    timeStr,
+    dateStr,
+    formattedIsoLike: `${dateStr}T${hoursStr}:${minutesStr}:${secondsStr}+07:00`,
+  };
+}
+
 function escapeTelegramHtml(str: string): string {
   if (!str) return '';
   return String(str)
@@ -2123,15 +2191,17 @@ async function generateTelegramWeeklyReport(pool: any): Promise<string> {
   const tasks = tasksRes.rows;
   const members = membersRes.rows;
 
-  const now = new Date();
-  const day = now.getDay();
-  const isoDay = day === 0 ? 7 : day;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - (isoDay - 1) - 7);
+  const utc7 = getNowInUtcPlus7();
+  const dayIndexMap: Record<string, number> = {
+    Sunday: 7, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6
+  };
+  const isoDay = dayIndexMap[utc7.dayName] || 1;
+  const monday = new Date(Date.UTC(utc7.year, utc7.month - 1, utc7.day));
+  monday.setUTCDate(monday.getUTCDate() - (isoDay - 1) - 7);
   const friday = new Date(monday);
-  friday.setDate(monday.getDate() + 4);
+  friday.setUTCDate(monday.getUTCDate() + 4);
 
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
   const periodLabel = `${fmt(monday)} – ${fmt(friday)}`;
 
   const totalTasks = tasks.length;
@@ -2141,6 +2211,7 @@ async function generateTelegramWeeklyReport(pool: any): Promise<string> {
 
   let text = `📊 <b>WEEKLY PROJECT STATUS REPORT</b>\n`;
   text += `📅 <b>Working Week:</b> ${periodLabel} (Mon – Fri)\n`;
+  text += `⏰ <b>Generated:</b> ${utc7.dateStr} ${utc7.timeStr} (UTC+7)\n`;
   text += `📈 <b>Overall Completion:</b> ${overallRate}% (${completedTasks}/${totalTasks} Tasks)\n`;
   if (blockedTasks > 0) {
     text += `⚠️ <b>Blocked Items:</b> ${blockedTasks} (Attention Needed)\n`;
@@ -2236,10 +2307,10 @@ app.get('/api/telegram/settings', async (_req: Request, res: Response) => {
   try {
     const pool = getPool();
     const result = await pool.query('SELECT * FROM telegram_settings WHERE id = $1', ['default']);
-    const now = new Date();
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const serverCurrentDay = dayNames[now.getDay()];
-    const serverCurrentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const utc7 = getNowInUtcPlus7();
+    const serverCurrentDay = utc7.dayName;
+    const serverCurrentTime = utc7.timeStr;
+    const serverTimezone = 'UTC+7 (Asia/Bangkok)';
 
     if (result.rowCount === 0) {
       return res.json({
@@ -2253,6 +2324,7 @@ app.get('/api/telegram/settings', async (_req: Request, res: Response) => {
         lastAutoSentDate: null,
         serverCurrentDay,
         serverCurrentTime,
+        serverTimezone,
       });
     }
     const row = result.rows[0];
@@ -2272,6 +2344,7 @@ app.get('/api/telegram/settings', async (_req: Request, res: Response) => {
       lastAutoSentDate: row.last_auto_sent_date || null,
       serverCurrentDay,
       serverCurrentTime,
+      serverTimezone,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -2388,7 +2461,7 @@ app.post('/api/telegram/send-report', async (req: Request, res: Response) => {
 
 // Background Automated Telegram Scheduler
 function startTelegramWeeklyScheduler() {
-  console.log('[Telegram Scheduler] Automated Telegram weekly report scheduler initialized.');
+  console.log('[Telegram Scheduler] Automated Telegram weekly report scheduler initialized (Timezone: UTC+7 / Asia/Bangkok).');
 
   setInterval(async () => {
     try {
@@ -2399,9 +2472,8 @@ function startTelegramWeeklyScheduler() {
       const settings = res.rows[0];
       if (!settings.enabled || !settings.bot_token || !settings.chat_id) return;
 
-      const now = new Date();
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const currentDayName = dayNames[now.getDay()]; // e.g. "Monday"
+      const utc7 = getNowInUtcPlus7();
+      const currentDayName = utc7.dayName; // e.g. "Monday"
       const targetDay = settings.send_day || 'Monday';
 
       // Day check: matches if Daily/Everyday OR if day name matches (case-insensitive)
@@ -2409,19 +2481,14 @@ function startTelegramWeeklyScheduler() {
       const isScheduledDay = isDaily || currentDayName.toLowerCase() === targetDay.toLowerCase();
       if (!isScheduledDay) return;
 
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const d = String(now.getDate()).padStart(2, '0');
-      const todayDateStr = `${y}-${m}-${d}`; // e.g. "2026-09-07"
+      const todayDateStr = utc7.dateStr; // e.g. "2026-09-08"
 
-      // Avoid duplicate auto-send if already sent on this calendar date
+      // Avoid duplicate auto-send if already sent on this calendar date in UTC+7
       if (settings.last_auto_sent_date === todayDateStr) {
         return;
       }
 
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const currentTime = `${hours}:${minutes}`;
+      const currentTime = utc7.timeStr; // "HH:MM" in UTC+7
       const targetTime = settings.send_time || '08:00';
 
       // Check if current time has reached or passed the target time
@@ -2437,21 +2504,21 @@ function startTelegramWeeklyScheduler() {
         return;
       }
 
-      console.log(`[Telegram Scheduler] Scheduled trigger: ${currentDayName} ${currentTime} (Target: ${targetDay} ${targetTime}). Dispatching automated report...`);
+      console.log(`[Telegram Scheduler UTC+7] Scheduled trigger matched: ${currentDayName} ${currentTime} (Target: ${targetDay} ${targetTime}, diff: ${diffMinutes}m). Dispatching automated report...`);
       const reportText = await generateTelegramWeeklyReport(pool);
       const sendRes = await sendTelegramMessage(settings.bot_token, settings.chat_id, reportText);
 
       if (sendRes.ok) {
-        console.log(`[Telegram Scheduler] Auto-report sent successfully to Telegram chat ${settings.chat_id}.`);
+        console.log(`[Telegram Scheduler UTC+7] Auto-report sent successfully to Telegram chat ${settings.chat_id}.`);
         await pool.query(
           'UPDATE telegram_settings SET last_sent_at = CURRENT_TIMESTAMP, last_auto_sent_date = $1 WHERE id = $2',
           [todayDateStr, 'default']
         );
       } else {
-        console.error('[Telegram Scheduler] Failed to send report to Telegram:', sendRes.message);
+        console.error('[Telegram Scheduler UTC+7] Failed to send report to Telegram:', sendRes.message);
       }
     } catch (err: any) {
-      console.error('[Telegram Scheduler Exception]:', err.message);
+      console.error('[Telegram Scheduler UTC+7 Exception]:', err.message);
     }
   }, 15000);
 }

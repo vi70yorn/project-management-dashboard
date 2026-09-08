@@ -370,6 +370,7 @@ export interface TelegramSettings {
   lastAutoSentDate?: string | null;
   serverCurrentDay?: string;
   serverCurrentTime?: string;
+  serverTimezone?: string;
 }
 
 export async function fetchTelegramSettingsApi(): Promise<TelegramSettings> {

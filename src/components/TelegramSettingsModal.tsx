@@ -132,7 +132,7 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
                 Telegram Weekly Auto-Report
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Receive Project Weekly Summary every Monday morning
+                Receive Project Weekly Summary every Monday morning (UTC+7)
               </p>
             </div>
           </div>
@@ -163,14 +163,14 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
               <span>
                 {settings?.hasToken && settings?.chatId
                   ? settings.enabled
-                    ? `Active • Sends every Monday at ${settings.sendTime}`
+                    ? `Active • Sends every ${settings.sendDay || 'Monday'} at ${settings.sendTime} (UTC+7)`
                     : 'Telegram connected • Auto-send is currently disabled'
                   : 'Not fully configured. Add your Bot Token & Chat ID below.'}
               </span>
             </div>
             {settings?.lastSentAt && (
               <span className="text-3xs text-slate-500 dark:text-slate-400 shrink-0">
-                Last sent: {new Date(settings.lastSentAt).toLocaleDateString()}
+                Last sent: {new Date(settings.lastSentAt).toLocaleDateString('en-US', { timeZone: 'Asia/Bangkok' })} (UTC+7)
               </span>
             )}
           </div>
@@ -278,7 +278,7 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
                 </h4>
                 {settings?.serverCurrentTime && (
                   <span className="text-3xs font-medium text-slate-400 dark:text-slate-500">
-                    Server: {settings.serverCurrentDay} {settings.serverCurrentTime}
+                    Server Time: {settings.serverCurrentDay} {settings.serverCurrentTime} (UTC+7)
                   </span>
                 )}
               </div>
@@ -331,18 +331,23 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                      Delivery Time
+                      Delivery Time (UTC+7)
                     </label>
                     <button
                       type="button"
                       onClick={() => {
-                        const now = new Date();
-                        now.setMinutes(now.getMinutes() + 2);
-                        const h = String(now.getHours()).padStart(2, '0');
-                        const m = String(now.getMinutes()).padStart(2, '0');
-                        setSendTime(`${h}:${m}`);
-                        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                        setSendDay(dayNames[now.getDay()]);
+                        const targetMs = Date.now() + 2 * 60 * 1000;
+                        const parts = new Intl.DateTimeFormat('en-US', {
+                          timeZone: 'Asia/Bangkok',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hourCycle: 'h23',
+                          weekday: 'long',
+                        }).formatToParts(new Date(targetMs));
+                        const m: Record<string, string> = {};
+                        for (const p of parts) m[p.type] = p.value;
+                        setSendTime(`${m.hour}:${m.minute}`);
+                        setSendDay(m.weekday);
                         setEnabled(true);
                       }}
                       className="text-3xs text-sky-600 dark:text-sky-400 hover:underline font-semibold cursor-pointer"
@@ -369,11 +374,11 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
                   </div>
                   <p className="text-2xs text-sky-800 dark:text-sky-300">
                     Will automatically dispatch to Telegram chat <b>{chatId || settings?.chatId}</b> every{' '}
-                    <b>{sendDay}</b> at <b>{sendTime}</b>.
+                    <b>{sendDay}</b> at <b>{sendTime} (UTC+7)</b>.
                   </p>
                   {settings?.lastSentAt && (
                     <p className="text-3xs text-slate-500 dark:text-slate-400">
-                      Last Message Sent: {new Date(settings.lastSentAt).toLocaleString()}
+                      Last Message Sent: {new Date(settings.lastSentAt).toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })} (UTC+7)
                     </p>
                   )}
                 </div>

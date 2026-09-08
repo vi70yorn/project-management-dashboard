@@ -39,6 +39,12 @@ export function getPool(): Pool {
       });
     }
 
+    pool.on('connect', (client) => {
+      client.query("SET TIME ZONE 'Asia/Bangkok'").catch((err) => {
+        console.warn('[PostgreSQL Pool Warning] Failed to set timezone Asia/Bangkok:', err.message);
+      });
+    });
+
     pool.on('error', (err) => {
       console.error('[PostgreSQL Pool Error]:', err.message);
     });
