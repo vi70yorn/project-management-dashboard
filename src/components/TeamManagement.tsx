@@ -251,37 +251,37 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
                           {member.name}
                         </h3>
                         {/* System Role Badge */}
                         <span
-                          className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 text-3xs font-semibold rounded-md border ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 text-2xs font-semibold rounded-md border ${
                             member.systemRole === 'admin'
                               ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400'
                               : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                           }`}
                         >
                           {member.systemRole === 'admin' ? (
-                            <ShieldCheck className="w-2.5 h-2.5" />
+                            <ShieldCheck className="w-3 h-3" />
                           ) : (
-                            <UserCheck className="w-2.5 h-2.5" />
+                            <UserCheck className="w-3 h-3" />
                           )}
                           {member.systemRole === 'admin' ? 'Admin' : 'Staff'}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex items-center gap-1 mt-0.5">
-                        <Briefcase className="w-3 h-3 text-slate-400 shrink-0" />
+                      <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 truncate flex items-center gap-1.5 mt-0.5">
+                        <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span className="truncate">{member.role}</span>
                       </p>
-                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         {member.username && (
-                          <span className="inline-block px-1.5 py-0.2 rounded-sm text-3xs font-mono font-medium bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          <span className="inline-block px-2 py-0.5 rounded-md text-2xs font-mono font-medium bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             @{member.username}
                           </span>
                         )}
                         {member.department && (
-                          <span className="inline-block px-1.5 py-0.2 rounded-sm text-2xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          <span className="inline-block px-2 py-0.5 rounded-md text-2xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                             {member.department}
                           </span>
                         )}
@@ -315,15 +315,15 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
 
                 {/* Email line */}
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-2xs text-slate-500 dark:text-slate-400">
+                <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                   <span className="flex items-center gap-1.5 truncate">
-                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <a href={`mailto:${member.email}`} className="hover:text-blue-600 dark:hover:text-blue-400 truncate">
+                    <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                    <a href={`mailto:${member.email}`} className="hover:text-blue-600 dark:hover:text-blue-400 font-medium truncate">
                       {member.email}
                     </a>
                   </span>
                   <span
-                    className={`px-2 py-0.5 rounded-full capitalize font-medium ${
+                    className={`px-2.5 py-0.5 rounded-full capitalize text-xs font-semibold ${
                       member.status === 'active'
                         ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400'
                         : member.status === 'busy'
@@ -336,16 +336,16 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
 
                 {/* Assigned Projects Section */}
-                <div className="mt-3 space-y-1.5">
-                  <div className="flex items-center justify-between text-2xs font-semibold text-slate-600 dark:text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <FolderKanban className="w-3 h-3 text-slate-400" />
+                <div className="mt-3.5 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <FolderKanban className="w-3.5 h-3.5 text-slate-400" />
                       Projects ({assignedProjects.length})
                     </span>
                     {isAdmin && (
                       <button
                         onClick={() => openProjectManager(member)}
-                        className="text-blue-600 dark:text-blue-400 hover:underline text-2xs cursor-pointer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline text-xs font-semibold cursor-pointer"
                       >
                         Manage Projects
                       </button>
@@ -358,17 +358,17 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                         <button
                           key={p.id}
                           onClick={() => onSelectProject(p.id)}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-2xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
                         >
                           <span
-                            className="w-1.5 h-1.5 rounded-full"
+                            className="w-2 h-2 rounded-full shrink-0"
                             style={{ backgroundColor: p.color }}
                           />
-                          <span className="truncate max-w-[120px]">{p.name}</span>
+                          <span className="truncate max-w-[140px]">{p.name}</span>
                         </button>
                       ))
                     ) : (
-                      <span className="text-2xs text-slate-400 dark:text-slate-500 italic">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 italic">
                         Not assigned to any project
                       </span>
                     )}
@@ -376,43 +376,43 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                 </div>
 
                 {/* Workload / Task distribution */}
-                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between text-2xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+                <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
                     <span>Task Workload</span>
                     <button
                       onClick={() => setInspectingMemberTasks(member)}
-                      className="text-blue-600 dark:text-blue-400 hover:underline text-2xs cursor-pointer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline text-xs font-semibold cursor-pointer"
                     >
                       {memberTasks.length} {memberTasks.length === 1 ? 'task' : 'tasks'}
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-1.5 text-center text-2xs">
-                    <div className="p-1.5 bg-blue-50/60 dark:bg-blue-950/40 rounded-md border border-blue-100 dark:border-blue-900/50">
-                      <span className="block font-bold text-blue-700 dark:text-blue-400">{activeTasks.length}</span>
-                      <span className="text-slate-500 dark:text-slate-400 text-3xs">In Progress</span>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="py-2 px-1.5 bg-blue-50/70 dark:bg-blue-950/40 rounded-lg border border-blue-100 dark:border-blue-900/50">
+                      <span className="block text-lg font-bold text-blue-700 dark:text-blue-400">{activeTasks.length}</span>
+                      <span className="text-slate-600 dark:text-slate-400 text-2xs font-medium">In Progress</span>
                     </div>
-                    <div className="p-1.5 bg-amber-50/60 dark:bg-amber-950/40 rounded-md border border-amber-100 dark:border-amber-900/50">
-                      <span className="block font-bold text-amber-700 dark:text-amber-400">{blockedTasks.length}</span>
-                      <span className="text-slate-500 dark:text-slate-400 text-3xs">Blocked</span>
+                    <div className="py-2 px-1.5 bg-amber-50/70 dark:bg-amber-950/40 rounded-lg border border-amber-100 dark:border-amber-900/50">
+                      <span className="block text-lg font-bold text-amber-700 dark:text-amber-400">{blockedTasks.length}</span>
+                      <span className="text-slate-600 dark:text-slate-400 text-2xs font-medium">Blocked</span>
                     </div>
-                    <div className="p-1.5 bg-emerald-50/60 dark:bg-emerald-950/40 rounded-md border border-emerald-100 dark:border-emerald-900/50">
-                      <span className="block font-bold text-emerald-700 dark:text-emerald-400">{completedTasks.length}</span>
-                      <span className="text-slate-500 dark:text-slate-400 text-3xs">Completed</span>
+                    <div className="py-2 px-1.5 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-lg border border-emerald-100 dark:border-emerald-900/50">
+                      <span className="block text-lg font-bold text-emerald-700 dark:text-emerald-400">{completedTasks.length}</span>
+                      <span className="text-slate-600 dark:text-slate-400 text-2xs font-medium">Completed</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Card Footer Quick Action */}
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
                 <button
                   onClick={() => openProjectManager(member)}
-                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer truncate"
                 >
                   Assign to Projects &rarr;
                 </button>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   {(isAdmin || currentUser?.memberId === member.id) && (
                     <button
                       onClick={() => onEditMember(member)}
@@ -423,7 +423,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                   )}
                   <button
                     onClick={() => setInspectingMemberTasks(member)}
-                    className="text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                    className="text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer"
                   >
                     View Tasks
                   </button>
