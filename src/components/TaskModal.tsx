@@ -948,38 +948,32 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </div>
             </div>
 
-            {/* Subtasks & Deliverable Checklists (Definition of Done) */}
+            {/* Subtasks & Deliverable Checklists */}
             {totalSubtasks > 0 && (
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/80 dark:border-slate-700 space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
-                      isAllChecklistDone
-                        ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400'
-                        : 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
-                    }`}>
-                      {isAllChecklistDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : <ListTodo className="w-3.5 h-3.5" />}
-                    </div>
-                    <h4 className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                      Checklist & Definition of Done
-                      <span className={`px-1.5 py-0.2 rounded-full text-3xs font-semibold ${
-                        isAllChecklistDone
-                          ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300'
-                          : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}>
-                        {completedSubtasks}/{totalSubtasks}
-                      </span>
+                    <ListTodo className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Checklist
                     </h4>
+                    <span className={`px-2 py-0.5 rounded-full text-3xs font-semibold ${
+                      isAllChecklistDone
+                        ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                    }`}>
+                      {completedSubtasks}/{totalSubtasks}
+                    </span>
                   </div>
-                  <span className={`text-xs font-bold ${
-                    isAllChecklistDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'
+                  <span className={`text-2xs font-bold ${
+                    isAllChecklistDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
                   }`}>
                     {progressPercent}%
                   </span>
                 </div>
 
-                {/* Visual Progress Bar */}
-                <div className="w-full bg-slate-200 dark:bg-slate-700/60 rounded-full h-1.5 overflow-hidden">
+                {/* Sleek Progress Bar */}
+                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
                   <div
                     className={`h-full transition-all duration-300 rounded-full ${
                       isAllChecklistDone ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'
@@ -988,19 +982,20 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   />
                 </div>
 
-                <div className="space-y-1 pt-1">
+                {/* Checklist Items */}
+                <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800/80 bg-slate-50/40 dark:bg-slate-900/40 overflow-hidden shadow-2xs">
                   {subtasks.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-xs"
+                      className="flex items-center gap-2.5 px-3 py-2 hover:bg-white dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <input
                         type="checkbox"
                         checked={item.completed}
                         onChange={() => handleToggleSubtask(item.id, item.completed)}
-                        className="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 dark:border-slate-600 focus:ring-emerald-500 cursor-pointer"
+                        className="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
                       />
-                      <span className={`truncate text-xs ${
+                      <span className={`text-xs truncate ${
                         item.completed
                           ? 'line-through text-slate-400 dark:text-slate-500'
                           : 'text-slate-700 dark:text-slate-200'
@@ -1377,126 +1372,110 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
 
-          {/* Subtasks & Deliverable Checklists (Definition of Done) */}
-          <div id="task-subtasks-checklist-section" className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-3">
-            {/* Header & Progress Stats */}
-            <div className="flex items-center justify-between gap-2">
+          {/* Subtasks & Deliverable Checklists */}
+          <div id="task-subtasks-checklist-section" className="space-y-2">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                  isAllChecklistDone
-                    ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
-                    : 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800'
-                }`}>
-                  {isAllChecklistDone ? <CheckCircle2 className="w-4 h-4" /> : <ListTodo className="w-4 h-4" />}
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    Definition of Done & Checkpoints
-                    {totalSubtasks > 0 && (
-                      <span className={`px-2 py-0.5 rounded-full text-3xs font-semibold ${
-                        isAllChecklistDone
-                          ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300'
-                          : 'bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}>
-                        {completedSubtasks}/{totalSubtasks} completed
-                      </span>
-                    )}
-                  </h4>
-                  <span className="text-3xs text-slate-400 dark:text-slate-500 block">
-                    Deliverable quality checkpoints and requirements
+                <ListTodo className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Checklist
+                </h4>
+                {totalSubtasks > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-3xs font-semibold ${
+                    isAllChecklistDone
+                      ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                  }`}>
+                    {completedSubtasks}/{totalSubtasks}
                   </span>
-                </div>
+                )}
               </div>
 
               {totalSubtasks > 0 && (
-                <span className={`text-xs font-bold ${
-                  isAllChecklistDone
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-slate-600 dark:text-slate-300'
+                <span className={`text-2xs font-bold ${
+                  isAllChecklistDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
                 }`}>
                   {progressPercent}%
                 </span>
               )}
             </div>
 
-            {/* Visual Progress Bar */}
+            {/* Sleek Progress Bar */}
             {totalSubtasks > 0 && (
-              <div className="w-full bg-slate-200 dark:bg-slate-700/60 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
                 <div
                   className={`h-full transition-all duration-300 rounded-full ${
-                    isAllChecklistDone
-                      ? 'bg-emerald-500 dark:bg-emerald-400'
-                      : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                    isAllChecklistDone ? 'bg-emerald-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'
                   }`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
             )}
 
-            {/* Checkpoints Items List */}
-            {totalSubtasks > 0 && (
-              <div className="space-y-1.5 pt-1">
-                {subtasks.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+            {/* Unified Checklist Card Container */}
+            <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800/80 bg-slate-50/40 dark:bg-slate-900/40 overflow-hidden shadow-2xs">
+              {subtasks.map((item) => (
+                <div
+                  key={item.id}
+                  className="group flex items-center justify-between gap-2.5 px-3 py-2 hover:bg-white dark:hover:bg-slate-800/60 transition-colors"
+                >
+                  <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={item.completed}
+                      onChange={() => handleToggleSubtask(item.id, item.completed)}
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer transition-colors"
+                    />
+                    <span className={`text-xs transition-all truncate ${
+                      item.completed
+                        ? 'line-through text-slate-400 dark:text-slate-500'
+                        : 'text-slate-700 dark:text-slate-200 font-medium'
+                    }`}>
+                      {item.title}
+                    </span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSubtask(item.id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    title="Delete checkpoint"
                   >
-                    <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={item.completed}
-                        onChange={() => handleToggleSubtask(item.id, item.completed)}
-                        className="w-4 h-4 text-emerald-600 rounded border-slate-300 dark:border-slate-600 focus:ring-emerald-500 dark:focus:ring-emerald-400 cursor-pointer transition-colors"
-                      />
-                      <span className={`text-xs transition-all truncate ${
-                        item.completed
-                          ? 'line-through text-slate-400 dark:text-slate-500'
-                          : 'text-slate-800 dark:text-slate-200 font-medium'
-                      }`}>
-                        {item.title}
-                      </span>
-                    </label>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
 
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSubtask(item.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                      title="Delete checkpoint"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+              {/* Inline Add Checkpoint Input Row */}
+              <div className="flex items-center gap-2.5 px-3 py-2 bg-white dark:bg-slate-900/80 focus-within:bg-blue-50/20 dark:focus-within:bg-blue-950/20 transition-colors">
+                <Plus className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                <input
+                  id="new-subtask-input"
+                  type="text"
+                  value={newSubtaskTitle}
+                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSubtask();
+                    }
+                  }}
+                  placeholder="Add a checklist item... (press Enter)"
+                  className="flex-1 text-xs bg-transparent border-none text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
+                  disabled={isAddingSubtask}
+                />
+                {newSubtaskTitle.trim() && (
+                  <button
+                    id="add-subtask-btn"
+                    type="button"
+                    onClick={handleAddSubtask}
+                    disabled={isAddingSubtask}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-2xs transition-colors cursor-pointer shrink-0"
+                  >
+                    Add
+                  </button>
+                )}
               </div>
-            )}
-
-            {/* Add Checkpoint Input Row */}
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                id="new-subtask-input"
-                type="text"
-                value={newSubtaskTitle}
-                onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddSubtask();
-                  }
-                }}
-                placeholder="Add deliverable checkpoint (e.g. Wireframes, Client Sign-off)..."
-                className="flex-1 text-xs px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all"
-                disabled={isAddingSubtask}
-              />
-              <button
-                id="add-subtask-btn"
-                type="button"
-                onClick={handleAddSubtask}
-                disabled={!newSubtaskTitle.trim() || isAddingSubtask}
-                className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-2xs transition-colors cursor-pointer shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add</span>
-              </button>
             </div>
           </div>
         </div>
