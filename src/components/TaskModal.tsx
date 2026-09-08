@@ -1284,14 +1284,22 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <div className="relative pl-3 space-y-3 before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
-                    {filteredTimeline.map((item) => {
+                  <div className="relative space-y-3 py-1 px-1">
+                    {filteredTimeline.map((item, index) => {
                       if (item.type === 'comment') {
                         const canDelete =
                           currentUser?.role === 'admin' ||
                           (currentUser?.memberId && item.userId === currentUser.memberId);
                         return (
                           <div key={item.id} className="relative flex items-start gap-3 group">
+                            {/* Vertical connector line */}
+                            {index < filteredTimeline.length - 1 && (
+                              <span
+                                aria-hidden="true"
+                                className="absolute left-[13px] top-[26px] bottom-[-14px] w-[2px] bg-slate-200 dark:bg-slate-700/70 pointer-events-none"
+                              />
+                            )}
+
                             {/* Avatar */}
                             <div className="relative z-10 shrink-0">
                               {item.userAvatar ? (
@@ -1301,7 +1309,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                                   className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-slate-900 shadow-2xs"
                                 />
                               ) : (
-                                <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-3xs flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold text-3xs flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
                                   {(item.userName || 'U').charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -1319,7 +1327,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                                       {item.userRole}
                                     </span>
                                   )}
-                                  <span className="text-3xs text-slate-400 dark:text-slate-500">
+                                  <span className="text-3xs text-slate-400 dark:text-slate-500 font-medium">
                                     • {formatDateTime(item.createdAt)}
                                   </span>
                                 </div>
@@ -1355,42 +1363,58 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                       const toStatus = (item.details?.toStatus || item.details?.newStatus) as StatusType;
 
                       return (
-                        <div key={item.id} className="relative flex items-center gap-3">
+                        <div key={item.id} className="relative flex items-start gap-3">
+                          {/* Vertical connector line */}
+                          {index < filteredTimeline.length - 1 && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-[13px] top-[26px] bottom-[-14px] w-[2px] bg-slate-200 dark:bg-slate-700/70 pointer-events-none"
+                            />
+                          )}
+
                           {/* Node icon */}
-                          <div className="relative z-10 w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
+                          <div
+                            className={`relative z-10 w-7 h-7 rounded-full flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-900 shadow-2xs border ${
+                              isStatusChange
+                                ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/80'
+                                : item.actionType === 'create_task'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/80'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                            }`}
+                          >
                             {isStatusChange ? (
-                              <Clock className="w-3.5 h-3.5 text-blue-500" />
+                              <Clock className="w-3.5 h-3.5" />
                             ) : item.actionType === 'create_task' ? (
-                              <Plus className="w-3.5 h-3.5 text-emerald-500" />
+                              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                             ) : (
-                              <History className="w-3.5 h-3.5 text-slate-400" />
+                              <History className="w-3.5 h-3.5" />
                             )}
                           </div>
 
                           {/* Node content */}
-                          <div className="flex-1 text-2xs text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2 bg-slate-50/70 dark:bg-slate-800/40 px-2.5 py-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                          <div className="flex-1 min-h-[28px] text-2xs text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2 bg-slate-50/85 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors px-3 py-1 rounded-lg border border-slate-200/75 dark:border-slate-700/60 shadow-2xs">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                              <span className="font-semibold text-slate-900 dark:text-slate-100">
                                 {item.userName}
                               </span>
                               {isStatusChange && toStatus ? (
                                 <span className="inline-flex items-center gap-1">
-                                  <span>changed status</span>
+                                  <span className="text-slate-500 dark:text-slate-400">changed status</span>
                                   {fromStatus && (
                                     <>
                                       <StatusBadge status={fromStatus} size="xs" />
-                                      <ArrowRight className="w-2.5 h-2.5 text-slate-400" />
+                                      <ArrowRight className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500" />
                                     </>
                                   )}
                                   <StatusBadge status={toStatus} size="xs" />
                                 </span>
                               ) : item.actionType === 'create_task' ? (
-                                <span>created this deliverable</span>
+                                <span className="text-slate-500 dark:text-slate-400">created this deliverable</span>
                               ) : (
-                                <span>updated deliverable details</span>
+                                <span className="text-slate-500 dark:text-slate-400">updated deliverable details</span>
                               )}
                             </div>
-                            <span className="text-3xs text-slate-400 dark:text-slate-500 shrink-0">
+                            <span className="text-3xs text-slate-400 dark:text-slate-500 shrink-0 font-medium tabular-nums">
                               {formatDateTime(item.createdAt)}
                             </span>
                           </div>
