@@ -34,6 +34,7 @@ import { ProjectWeeklyReport } from './components/ProjectWeeklyReport';
 import { RecycleBinModal } from './components/RecycleBinModal';
 import { RecycleBinView } from './components/RecycleBinView';
 import { CalendarTimelineView } from './components/CalendarTimelineView';
+import { CommandPalette } from './components/CommandPalette';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import {
   checkDatabaseHealth,
@@ -142,6 +143,23 @@ export default function App() {
 
   // Team Activities slide-over drawer state
   const [isTeamActivitiesOpen, setIsTeamActivitiesOpen] = useState(false);
+
+  // Command Palette State (Ctrl + K / Cmd + K)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [dashboardMemberFilter, setDashboardMemberFilter] = useState<string>('all');
+
+  // Global Keyboard Shortcut: Ctrl + K or Cmd + K opens Command Palette
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Recycle Bin State
   const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
@@ -291,6 +309,19 @@ export default function App() {
 
   const handleGoToDashboard = () => {
     setCurrentView('dashboard');
+    setActiveProjectId('');
+  };
+
+  const handleViewMyTasks = () => {
+    if (currentUser?.memberId) {
+      setDashboardMemberFilter(currentUser.memberId);
+      const myCount = tasks.filter((t) => t.assigneeId === currentUser.memberId).length;
+      showToast('info', `Filtered to tasks assigned to you (${myCount} task${myCount === 1 ? '' : 's'})`);
+    } else {
+      showToast('info', 'Please log in to filter by your assigned tasks.');
+    }
+    setCurrentView('dashboard');
+    setActiveProjectId('');
   };
 
   const handleGoToTeam = () => {
@@ -1122,6 +1153,7 @@ export default function App() {
         onOpenRecycleBin={handleGoToRecycleBin}
         onOpenTeamActivities={() => setIsTeamActivitiesOpen(true)}
         isTeamActivitiesOpen={isTeamActivitiesOpen}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -1144,6 +1176,7 @@ export default function App() {
             refreshTrigger={activityTrigger}
             recycleBinCount={recycleBinData.totalCount}
             onOpenRecycleBin={handleGoToRecycleBin}
+            initialDeadlineMemberFilter={dashboardMemberFilter}
           />
         ) : currentView === 'team' ? (
           <TeamManagement
@@ -1328,6 +1361,36 @@ export default function App() {
         onRestoreItem={handleRestoreRecycleBinItem}
         onPermanentDeleteItem={handlePermanentDeleteRecycleBinItem}
         onEmptyRecycleBin={handleEmptyRecycleBin}
+      />
+
+      {/* Global Command Palette (Cmd + K / Ctrl + K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        projects={projects}
+        tasks={tasks}
+        teamMembers={teamMembers}
+        currentUser={currentUser}
+        currentView={currentView}
+        activeProjectId={activeProjectId}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onSelectProject={handleSelectProject}
+        onOpenTask={(task) => handleOpenTaskModal(task)}
+        onOpenCreateTask={(projectId) => {
+          if (projectId) setActiveProjectId(projectId);
+          handleOpenTaskModal(null);
+        }}
+        onOpenCreateProject={handleOpenCreateProject}
+        onNavigate={(view) => {
+          if (view === 'dashboard') handleGoToDashboard();
+          else if (view === 'calendar') handleGoToCalendar();
+          else if (view === 'team') handleGoToTeam();
+          else if (view === 'summary') handleGoToSummary();
+          else if (view === 'recycle-bin') handleGoToRecycleBin();
+        }}
+        onViewMyTasks={handleViewMyTasks}
+        onOpenTeamActivities={() => setIsTeamActivitiesOpen(true)}
       />
 
       {/* Team Activities Slide-over Drawer */}

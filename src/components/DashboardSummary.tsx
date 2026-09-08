@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   FolderKanban,
   CheckCircle2,
@@ -52,6 +52,7 @@ interface DashboardSummaryProps {
   refreshTrigger?: number;
   recycleBinCount?: number;
   onOpenRecycleBin?: () => void;
+  initialDeadlineMemberFilter?: string;
 }
 
 export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
@@ -71,6 +72,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   refreshTrigger,
   recycleBinCount = 0,
   onOpenRecycleBin,
+  initialDeadlineMemberFilter,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -81,11 +83,18 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
   // Deadlines Section Filter & Pagination State
   const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'Draft' | 'In Progress' | 'Ready Review' | 'Blocked'>('all');
-  const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>('all');
+  const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>(initialDeadlineMemberFilter || 'all');
   const [deadlineGroupBy, setDeadlineGroupBy] = useState<'none' | 'assignee' | 'priority' | 'status'>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(10);
   const [deadlineCurrentPage, setDeadlineCurrentPage] = useState<number>(1);
+
+  // Sync deadlineMemberFilter when initialDeadlineMemberFilter prop changes
+  useEffect(() => {
+    if (initialDeadlineMemberFilter !== undefined) {
+      setDeadlineMemberFilter(initialDeadlineMemberFilter);
+    }
+  }, [initialDeadlineMemberFilter]);
 
   const safeProjects = Array.isArray(projects) ? projects : [];
   const safeTasks = Array.isArray(tasks) ? tasks : [];

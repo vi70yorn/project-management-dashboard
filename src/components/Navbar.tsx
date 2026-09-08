@@ -16,6 +16,7 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   Activity,
+  Search,
 } from 'lucide-react';
 import { Project, AuthUser, ViewType } from '../types';
 
@@ -44,6 +45,7 @@ interface NavbarProps {
   onOpenRecycleBin?: () => void;
   onOpenTeamActivities?: () => void;
   isTeamActivitiesOpen?: boolean;
+  onOpenCommandPalette?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -71,6 +73,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenRecycleBin,
   onOpenTeamActivities,
   isTeamActivitiesOpen = false,
+  onOpenCommandPalette,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const handleRecycleBinAction = onGoToRecycleBin || onOpenRecycleBin;
@@ -168,10 +171,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
                     : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                 }`}
-                title="Project Weekly Summary (Mon - Fri) for Project Manager"
+                title="Project Weekly Summary & Reports"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
-                Summary
+                Weekly Summary
               </button>
             )}
 
@@ -206,6 +209,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Mobile view quick switcher */}
           <div className="flex md:hidden items-center gap-1">
+            {onOpenCommandPalette && (
+              <button
+                onClick={onOpenCommandPalette}
+                className="p-1.5 rounded-lg text-xs transition-colors text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 cursor-pointer"
+                title="Search / Command Palette (Ctrl+K)"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={onGoToDashboard}
               className={`p-1.5 rounded-lg text-xs transition-colors ${
@@ -291,6 +303,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
           </div>
+
+          {/* Quick Command Palette (Cmd + K / Ctrl + K) Button */}
+          {onOpenCommandPalette && (
+            <button
+              id="navbar-command-palette-btn"
+              onClick={onOpenCommandPalette}
+              title="Quick Command Palette (Ctrl+K or Cmd+K)"
+              className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-blue-800/60 dark:bg-slate-800/70 hover:bg-blue-600 dark:hover:bg-slate-700 text-blue-100 hover:text-white dark:text-slate-300 dark:hover:text-white text-xs font-medium border border-blue-600/50 dark:border-slate-700 transition-all cursor-pointer shadow-2xs group"
+              aria-label="Open Command Palette"
+            >
+              <Search className="w-3.5 h-3.5 text-blue-200 dark:text-slate-400 group-hover:text-white transition-colors" />
+              <span className="hidden lg:inline text-2xs text-blue-200 dark:text-slate-400 group-hover:text-white font-normal">
+                Quick search...
+              </span>
+              <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-3xs font-mono font-bold bg-blue-900/80 dark:bg-slate-900/90 text-blue-200 dark:text-slate-400 rounded border border-blue-500/40 dark:border-slate-700 shadow-2xs">
+                <span>⌘</span>K
+              </kbd>
+            </button>
+          )}
 
           {/* Light / Dark Mode Toggle Button */}
           {onToggleTheme && (

@@ -143,8 +143,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   };
 
-  const lineCount = value ? value.split('\n').length : 0;
-
   return (
     <div
       className={`w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/90 shadow-2xs overflow-hidden focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all ${className}`}
@@ -260,16 +258,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             />
           </div>
         )}
-      </div>
-
-      {/* Helper Footer Strip */}
-      <div className="flex items-center justify-between px-3 py-1 bg-slate-50/70 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700/60 text-2xs text-slate-400 dark:text-slate-500 select-none">
-        <span className="truncate mr-2">
-          Markdown: <b>**bold**</b>, <i>*italic*</i>, <u>&lt;u&gt;underline&lt;/u&gt;</u>, <del>~~strike~~</del>, &gt; quote, <code className="font-mono text-2xs">`code`</code>
-        </span>
-        <span className="shrink-0 font-medium">
-          {lineCount} {lineCount === 1 ? 'line' : 'lines'} (scrolls after 10)
-        </span>
       </div>
     </div>
   );
