@@ -26,6 +26,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   MessageSquare,
+  CheckSquare,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
@@ -817,6 +818,33 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" title="Staff: View detail mode" />
                             )}
                             <PriorityBadge priority={task.priority} size="xs" />
+                            {Boolean(task.subtasks && task.subtasks.length > 0) && (() => {
+                              const total = task.subtasks!.length;
+                              const completed = task.subtasks!.filter((s) => s.completed).length;
+                              const isDone = completed === total;
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenTaskModal(task);
+                                  }}
+                                  title={`Checklist: ${completed} of ${total} completed (${Math.round((completed / total) * 100)}%) • Click to view`}
+                                  className={`inline-flex items-center gap-1 text-3xs font-semibold px-1.5 py-0.5 rounded-full border transition-colors cursor-pointer ${
+                                    isDone
+                                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-400'
+                                  }`}
+                                >
+                                  {isDone ? (
+                                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                  ) : (
+                                    <CheckSquare className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400 shrink-0" />
+                                  )}
+                                  <span>{completed}/{total}</span>
+                                </button>
+                              );
+                            })()}
                             {Boolean(task.commentCount && task.commentCount > 0) && (
                               <button
                                 type="button"

@@ -1,4 +1,4 @@
-import { Project, Task, TeamMember, StatusType, RecycleBinData, TaskComment, TaskTimelineResponse } from '../types';
+import { Project, Task, TeamMember, StatusType, RecycleBinData, TaskComment, TaskTimelineResponse, TaskSubtask } from '../types';
 import { loadAuthUser } from './storage';
 
 const API_BASE = '/api';
@@ -526,6 +526,62 @@ export async function deleteTaskCommentApi(
   if (!res.ok) throw new Error(data.error || 'Failed to delete comment');
   return data;
 }
+
+// -------------------------------------------------------------
+// Task Subtasks & Deliverable Checklists API
+// -------------------------------------------------------------
+
+export async function fetchTaskSubtasksApi(taskId: string): Promise<TaskSubtask[]> {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/subtasks`);
+  if (!res.ok) throw new Error(`Failed to fetch subtasks (${res.status})`);
+  return res.json();
+}
+
+export async function addTaskSubtaskApi(
+  taskId: string,
+  title: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<TaskSubtask> {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/subtasks`, {
+    method: 'POST',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify({ title }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to add subtask');
+  return data;
+}
+
+export async function updateTaskSubtaskApi(
+  taskId: string,
+  subtaskId: string,
+  updates: Partial<TaskSubtask>,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<TaskSubtask> {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/subtasks/${subtaskId}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify(updates),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to update subtask');
+  return data;
+}
+
+export async function deleteTaskSubtaskApi(
+  taskId: string,
+  subtaskId: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ id: string }> {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/subtasks/${subtaskId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(currentUser),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to delete subtask');
+  return data;
+}
+
 
 
 

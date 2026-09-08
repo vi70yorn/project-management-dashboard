@@ -59,7 +59,19 @@ export interface Task {
   expiresAt?: string;
   daysLeft?: number;
   commentCount?: number;
+  subtasks?: TaskSubtask[];
 }
+
+export interface TaskSubtask {
+  id: string;
+  taskId: string;
+  title: string;
+  completed: boolean;
+  position: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 
 export interface TaskComment {
   id: string;

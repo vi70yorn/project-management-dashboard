@@ -1264,6 +1264,12 @@ export default function App() {
             setEditingTask((prev) => (prev ? { ...prev, commentCount: count } : prev));
           }
         }}
+        onSubtasksChange={(taskId, updatedSubtasks) => {
+          setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t)));
+          if (editingTask && editingTask.id === taskId) {
+            setEditingTask((prev) => (prev ? { ...prev, subtasks: updatedSubtasks } : prev));
+          }
+        }}
       />
 
       {/* Team Member Modal */}

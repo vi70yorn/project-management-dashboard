@@ -268,7 +268,25 @@ async function getTaskById(pool: any, id: string) {
       t.due_date AS "dueDate",
       t.created_at AS "createdAt",
       t.updated_at AS "updatedAt",
-      (SELECT COUNT(*)::int FROM task_comments WHERE task_id = t.id) AS "commentCount"
+      (SELECT COUNT(*)::int FROM task_comments WHERE task_id = t.id) AS "commentCount",
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'id', s.id,
+              'taskId', s.task_id,
+              'title', s.title,
+              'completed', s.completed,
+              'position', s.position,
+              'createdAt', s.created_at,
+              'updatedAt', s.updated_at
+            ) ORDER BY s.position ASC, s.created_at ASC
+          )
+          FROM task_subtasks s
+          WHERE s.task_id = t.id
+        ),
+        '[]'::json
+      ) AS subtasks
     FROM tasks t
     LEFT JOIN projects p ON p.id = t.project_id
     LEFT JOIN team_members cb_m ON cb_m.id = t.created_by
@@ -659,7 +677,25 @@ app.get('/api/tasks', async (_req: Request, res: Response) => {
         t.due_date AS "dueDate",
         t.created_at AS "createdAt",
         t.updated_at AS "updatedAt",
-        (SELECT COUNT(*)::int FROM task_comments WHERE task_id = t.id) AS "commentCount"
+        (SELECT COUNT(*)::int FROM task_comments WHERE task_id = t.id) AS "commentCount",
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', s.id,
+                'taskId', s.task_id,
+                'title', s.title,
+                'completed', s.completed,
+                'position', s.position,
+                'createdAt', s.created_at,
+                'updatedAt', s.updated_at
+              ) ORDER BY s.position ASC, s.created_at ASC
+            )
+            FROM task_subtasks s
+            WHERE s.task_id = t.id
+          ),
+          '[]'::json
+        ) AS subtasks
       FROM tasks t
       LEFT JOIN projects p ON p.id = t.project_id
       LEFT JOIN team_members cb_m ON cb_m.id = t.created_by
@@ -772,6 +808,20 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
       startDate || null,
       dueDate,
     ]);
+
+    if (Array.isArray(req.body.subtasks) && req.body.subtasks.length > 0) {
+      for (let i = 0; i < req.body.subtasks.length; i++) {
+        const s = req.body.subtasks[i];
+        const sTitle = typeof s === 'string' ? s : s.title;
+        if (sTitle && sTitle.trim()) {
+          const subId = s.id || `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+          await pool.query(
+            'INSERT INTO task_subtasks (id, task_id, title, completed, position) VALUES ($1, $2, $3, $4, $5)',
+            [subId, taskId, sTitle.trim(), Boolean(s.completed), i]
+          );
+        }
+      }
+    }
 
     const createdTask = await getTaskById(pool, taskId);
     if (createdTask?.projectId) {
@@ -1167,6 +1217,134 @@ app.delete('/api/tasks/:id/comments/:commentId', async (req: Request, res: Respo
     });
   } catch (err: any) {
     console.error('Error deleting task comment:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// Task Subtasks & Deliverable Checklists Endpoints
+// ==========================================
+
+// GET all subtasks for a task
+app.get('/api/tasks/:id/subtasks', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const pool = getPool();
+    const query = `
+      SELECT 
+        id, 
+        task_id AS "taskId", 
+        title, 
+        completed, 
+        position, 
+        created_at AS "createdAt", 
+        updated_at AS "updatedAt"
+      FROM task_subtasks
+      WHERE task_id = $1
+      ORDER BY position ASC, created_at ASC;
+    `;
+    const result = await pool.query(query, [id]);
+    res.json(result.rows);
+  } catch (err: any) {
+    console.error('Error fetching subtasks:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST add new subtask to a task
+app.post('/api/tasks/:id/subtasks', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { title } = req.body;
+
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'Subtask title cannot be empty' });
+  }
+
+  try {
+    const pool = getPool();
+    // Get next position index
+    const posRes = await pool.query(
+      'SELECT COALESCE(MAX(position), -1) + 1 AS next_pos FROM task_subtasks WHERE task_id = $1',
+      [id]
+    );
+    const nextPos = parseInt(posRes.rows[0].next_pos, 10);
+    const subId = `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    const insertQuery = `
+      INSERT INTO task_subtasks (id, task_id, title, completed, position, created_at, updated_at)
+      VALUES ($1, $2, $3, FALSE, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      RETURNING 
+        id, 
+        task_id AS "taskId", 
+        title, 
+        completed, 
+        position, 
+        created_at AS "createdAt", 
+        updated_at AS "updatedAt";
+    `;
+    const result = await pool.query(insertQuery, [subId, id, title.trim(), nextPos]);
+    res.status(201).json(result.rows[0]);
+  } catch (err: any) {
+    console.error('Error adding subtask:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH update subtask (toggle completed or edit title)
+app.patch('/api/tasks/:id/subtasks/:subtaskId', async (req: Request, res: Response) => {
+  const { id, subtaskId } = req.params;
+  const { title, completed, position } = req.body;
+
+  try {
+    const pool = getPool();
+    const updateQuery = `
+      UPDATE task_subtasks
+      SET 
+        title = COALESCE($1, title),
+        completed = COALESCE($2, completed),
+        position = COALESCE($3, position),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $4 AND task_id = $5
+      RETURNING 
+        id, 
+        task_id AS "taskId", 
+        title, 
+        completed, 
+        position, 
+        created_at AS "createdAt", 
+        updated_at AS "updatedAt";
+    `;
+    const result = await pool.query(updateQuery, [
+      title !== undefined ? title.trim() : null,
+      completed !== undefined ? Boolean(completed) : null,
+      position !== undefined ? parseInt(position, 10) : null,
+      subtaskId,
+      id,
+    ]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Subtask not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    console.error('Error updating subtask:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE subtask
+app.delete('/api/tasks/:id/subtasks/:subtaskId', async (req: Request, res: Response) => {
+  const { id, subtaskId } = req.params;
+  try {
+    const pool = getPool();
+    const result = await pool.query('DELETE FROM task_subtasks WHERE id = $1 AND task_id = $2', [subtaskId, id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Subtask not found' });
+    }
+    res.json({ message: 'Subtask deleted', id: subtaskId });
+  } catch (err: any) {
+    console.error('Error deleting subtask:', err);
     res.status(500).json({ error: err.message });
   }
 });
