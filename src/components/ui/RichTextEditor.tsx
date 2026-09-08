@@ -8,11 +8,8 @@ import {
   Code,
   Eye,
   PenLine,
-  Sparkles,
-  Loader2,
 } from 'lucide-react';
 import { FormattedText } from './FormattedText';
-import { generateCriteriaApi } from '../../services/aiApi';
 
 interface RichTextEditorProps {
   id?: string;
@@ -22,10 +19,6 @@ interface RichTextEditorProps {
   rows?: number;
   className?: string;
   disabled?: boolean;
-  contextTitle?: string;
-  contextProject?: string;
-  contextType?: 'task' | 'project';
-  onShowToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -35,14 +28,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   placeholder = 'Write formatted text...',
   className = '',
   disabled = false,
-  contextTitle,
-  contextProject,
-  contextType = 'task',
-  onShowToast,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write');
-  const [isAILoading, setIsAILoading] = useState(false);
 
   const applyFormat = (
     formatType: 'bold' | 'italic' | 'underline' | 'strikethrough' | 'quote' | 'code'
@@ -155,48 +143,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   };
 
-  const handleAIClick = async () => {
-    if (disabled || isAILoading) return;
-    const titleToUse = (contextTitle || '').trim();
-    if (!titleToUse && !value.trim()) {
-      if (onShowToast) {
-        onShowToast('info', 'Please enter a title first so Gemini AI has context to draft criteria.');
-      }
-      return;
-    }
-
-    setIsAILoading(true);
-    try {
-      const mode = value.trim() ? 'polish' : 'draft';
-      const result = await generateCriteriaApi({
-        title: titleToUse || (contextType === 'project' ? 'Project' : 'Task Deliverable'),
-        projectName: contextProject,
-        existingText: value.trim(),
-        mode,
-        type: contextType === 'project' ? 'project' : 'task',
-      });
-
-      if (result) {
-        onChange(result);
-        setActiveTab('write');
-        if (onShowToast) {
-          onShowToast(
-            'success',
-            mode === 'polish'
-              ? '✨ Text polished with Gemini AI!'
-              : '✨ Acceptance criteria drafted with Gemini AI!'
-          );
-        }
-      }
-    } catch (err: any) {
-      if (onShowToast) {
-        onShowToast('error', 'AI Generation failed: ' + err.message);
-      }
-    } finally {
-      setIsAILoading(false);
-    }
-  };
-
   const lineCount = value ? value.split('\n').length : 0;
 
   return (
@@ -263,36 +209,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </button>
         </div>
 
-        {/* AI Action Button & View Toggle Tabs */}
-        <div className="flex items-center gap-2">
-          {contextTitle !== undefined && (
-            <button
-              type="button"
-              onClick={handleAIClick}
-              disabled={disabled || isAILoading}
-              title={
-                value.trim()
-                  ? 'Polish and structure existing text with Google Gemini AI'
-                  : 'Draft professional acceptance criteria from title with Google Gemini AI'
-              }
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-semibold bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/80 dark:border-indigo-800 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {isAILoading ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin text-indigo-600 dark:text-indigo-400" />
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
-                  <span>{value.trim() ? 'AI Polish' : 'AI Draft'}</span>
-                </>
-              )}
-            </button>
-          )}
-
-          {/* View Toggle Tabs */}
-          <div className="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-700/60 p-0.5 rounded-md text-2xs font-semibold">
+        {/* View Toggle Tabs */}
+        <div className="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-700/60 p-0.5 rounded-md text-2xs font-semibold">
           <button
             type="button"
             onClick={() => setActiveTab('write')}
@@ -319,7 +237,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </button>
         </div>
       </div>
-    </div>
 
       {/* Editor Body - Exactly 10 lines height (~240px) with vertical scroll beyond 10 lines */}
       <div className="relative">

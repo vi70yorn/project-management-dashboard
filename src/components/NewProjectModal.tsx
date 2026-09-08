@@ -15,7 +15,6 @@ interface NewProjectModalProps {
   initialProject?: Project | null;
   teamMembers: TeamMember[];
   onOpenAddMember?: () => void;
-  onShowToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 const COLOR_OPTIONS = [
@@ -34,7 +33,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   initialProject,
   teamMembers,
   onOpenAddMember,
-  onShowToast,
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -178,10 +176,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
               value={description}
               onChange={setDescription}
               placeholder="Key project goals, deliverables, and scope..."
-              contextTitle={name}
-              contextProject={name}
-              contextType="project"
-              onShowToast={onShowToast}
             />
           </div>
 

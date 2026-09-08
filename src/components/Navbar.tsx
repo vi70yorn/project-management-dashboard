@@ -16,8 +16,6 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   Activity,
-  Sparkles,
-  Bot,
 } from 'lucide-react';
 import { Project, AuthUser, ViewType } from '../types';
 
@@ -46,8 +44,6 @@ interface NavbarProps {
   onOpenRecycleBin?: () => void;
   onOpenTeamActivities?: () => void;
   isTeamActivitiesOpen?: boolean;
-  onOpenAICopilot?: () => void;
-  onOpenAISettings?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -75,8 +71,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenRecycleBin,
   onOpenTeamActivities,
   isTeamActivitiesOpen = false,
-  onOpenAICopilot,
-  onOpenAISettings,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const handleRecycleBinAction = onGoToRecycleBin || onOpenRecycleBin;
@@ -353,19 +347,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* AI Copilot Button */}
-          {onOpenAICopilot && (
-            <button
-              id="navbar-ai-copilot-btn"
-              onClick={onOpenAICopilot}
-              title="Open UX/UI Copilot (Gemini AI Assistant)"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500/40 to-purple-500/40 hover:from-indigo-500/60 hover:to-purple-500/60 border border-indigo-300/40 dark:border-indigo-500/40 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer group"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 group-hover:rotate-12 transition-transform" />
-              <span className="hidden sm:inline">AI Copilot</span>
-            </button>
-          )}
-
           {/* Current Logged In User Pill */}
           {currentUser && (
             <div 
@@ -433,17 +414,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </p>
                 </div>
               </button>
-
-              {isAdmin && onOpenAISettings && (
-                <button
-                  id="navbar-ai-settings-btn"
-                  onClick={onOpenAISettings}
-                  title="Google Gemini AI Settings & API Key"
-                  className="p-1.5 text-blue-100 hover:text-white hover:bg-indigo-600/70 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Bot className="w-4 h-4 text-indigo-200 dark:text-indigo-400" />
-                </button>
-              )}
 
               {onOpenResetPassword && (
                 <button

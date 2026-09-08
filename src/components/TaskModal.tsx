@@ -41,7 +41,6 @@ interface TaskModalProps {
   teamMembers?: TeamMember[];
   onOpenAddMember?: () => void;
   currentUser?: AuthUser | null;
-  onShowToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 const getStatusBadge = (status: StatusType) => getStatusBadgeClass(status, 'sm');
@@ -60,7 +59,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   teamMembers = [],
   onOpenAddMember,
   currentUser,
-  onShowToast,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const isStaff = currentUser?.role === 'staff';
@@ -573,10 +571,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               value={description}
               onChange={setDescription}
               placeholder="Deliverables, scope, notes..."
-              contextTitle={title}
-              contextProject={currentProject?.name}
-              contextType="task"
-              onShowToast={onShowToast}
             />
           </div>
 

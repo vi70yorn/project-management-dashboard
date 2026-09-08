@@ -34,9 +34,7 @@ import { ProjectWeeklyReport } from './components/ProjectWeeklyReport';
 import { RecycleBinModal } from './components/RecycleBinModal';
 import { RecycleBinView } from './components/RecycleBinView';
 import { CalendarTimelineView } from './components/CalendarTimelineView';
-import { AICopilotDrawer } from './components/AICopilotDrawer';
-import { AISettingsModal } from './components/AISettingsModal';
-import { CheckCircle2, AlertCircle, X, Sparkles } from 'lucide-react';
+import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import {
   checkDatabaseHealth,
   fetchProjectsApi,
@@ -144,10 +142,6 @@ export default function App() {
 
   // Team Activities slide-over drawer state
   const [isTeamActivitiesOpen, setIsTeamActivitiesOpen] = useState(false);
-
-  // Google Gemini AI Copilot & Settings States
-  const [isAICopilotOpen, setIsAICopilotOpen] = useState(false);
-  const [isAISettingsOpen, setIsAISettingsOpen] = useState(false);
 
   // Recycle Bin State
   const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
@@ -1128,8 +1122,6 @@ export default function App() {
         onOpenRecycleBin={handleGoToRecycleBin}
         onOpenTeamActivities={() => setIsTeamActivitiesOpen(true)}
         isTeamActivitiesOpen={isTeamActivitiesOpen}
-        onOpenAICopilot={() => setIsAICopilotOpen(true)}
-        onOpenAISettings={() => setIsAISettingsOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -1152,7 +1144,6 @@ export default function App() {
             refreshTrigger={activityTrigger}
             recycleBinCount={recycleBinData.totalCount}
             onOpenRecycleBin={handleGoToRecycleBin}
-            onShowToast={showToast}
           />
         ) : currentView === 'team' ? (
           <TeamManagement
@@ -1248,7 +1239,6 @@ export default function App() {
         initialProject={editingProject}
         teamMembers={teamMembers}
         onOpenAddMember={handleOpenAddMember}
-        onShowToast={showToast}
       />
 
       {/* Task Modal */}
@@ -1268,7 +1258,6 @@ export default function App() {
         onOpenAddMember={handleOpenAddMember}
         currentUser={currentUser}
         onDelete={handleDeleteTaskRequest}
-        onShowToast={showToast}
       />
 
       {/* Team Member Modal */}
@@ -1336,38 +1325,6 @@ export default function App() {
         onSelectProject={handleSelectProject}
         refreshTrigger={activityTrigger}
       />
-
-      {/* AI Copilot Slide-over Drawer */}
-      <AICopilotDrawer
-        isOpen={isAICopilotOpen}
-        onClose={() => setIsAICopilotOpen(false)}
-        projects={projects}
-        tasks={tasks}
-        teamMembers={teamMembers}
-        currentUser={currentUser}
-        onOpenAISettings={() => setIsAISettingsOpen(true)}
-        onShowToast={showToast}
-      />
-
-      {/* AI Settings Modal (Admin) */}
-      <AISettingsModal
-        isOpen={isAISettingsOpen}
-        onClose={() => setIsAISettingsOpen(false)}
-        onShowToast={showToast}
-      />
-
-      {/* Floating Quick Access AI Copilot Button */}
-      {!isAICopilotOpen && (
-        <button
-          id="floating-ai-copilot-btn"
-          onClick={() => setIsAICopilotOpen(true)}
-          title="Open UX/UI Copilot (Google Gemini AI)"
-          className="fixed bottom-5 right-5 z-30 flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold text-xs shadow-xl hover:shadow-2xl hover:scale-105 transition-all cursor-pointer border border-indigo-300/40 group"
-        >
-          <Sparkles className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform" />
-          <span className="hidden sm:inline">UX/UI Copilot</span>
-        </button>
-      )}
 
       {/* Toast Notification */}
       {toast && (

@@ -33,7 +33,6 @@ import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect, CustomSelectOption } from './ui/CustomSelect';
-import { AIRiskRadarCard } from './AIRiskRadarCard';
 
 interface DashboardSummaryProps {
   projects: Project[];
@@ -52,7 +51,6 @@ interface DashboardSummaryProps {
   refreshTrigger?: number;
   recycleBinCount?: number;
   onOpenRecycleBin?: () => void;
-  onShowToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
@@ -72,7 +70,6 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   refreshTrigger,
   recycleBinCount = 0,
   onOpenRecycleBin,
-  onShowToast,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -808,16 +805,6 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           </p>
         </div>
       </div>
-
-      {/* AI Risk & Workload Bottleneck Radar */}
-      <AIRiskRadarCard
-        projects={safeProjects}
-        tasks={safeTasks}
-        teamMembers={safeMembers}
-        onSelectProject={onSelectProject}
-        onOpenTaskModal={onOpenTaskModal}
-        onShowToast={onShowToast}
-      />
 
       {/* Deadlines & Projects Directory */}
       <div className="space-y-8 min-w-0">

@@ -20,15 +20,10 @@ import {
   LayoutGrid,
   Search,
   X,
-  Loader2,
-  RefreshCw,
-  MessageSquare,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType } from '../types';
 import { TelegramSettingsModal } from './TelegramSettingsModal';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
-import { FormattedText } from './ui/FormattedText';
-import { generateWeeklyBriefingApi } from '../services/aiApi';
 
 interface ProjectWeeklyReportProps {
   projects: Project[];
@@ -52,12 +47,6 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
   const [expandedProjectIds, setExpandedProjectIds] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [aiBriefing, setAiBriefing] = useState<string>('');
-  const [telegramSnippet, setTelegramSnippet] = useState<string>('');
-  const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false);
-  const [copiedAIBriefing, setCopiedAIBriefing] = useState<boolean>(false);
-  const [copiedTelegramSnippet, setCopiedTelegramSnippet] = useState<boolean>(false);
-  const [isBriefingExpanded, setIsBriefingExpanded] = useState<boolean>(true);
 
   // Calculate Monday to Friday working week bounds
   const weekRange = useMemo(() => {
@@ -401,74 +390,6 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
     }
   };
 
-  const handleGenerateAIBriefing = async () => {
-    setIsGeneratingAI(true);
-    try {
-      const topTasks = tasks
-        .filter((t) => t.status === 'Completed' || t.status === 'Blocked' || t.priority === 'Urgent')
-        .slice(0, 20)
-        .map((t) => ({
-          title: t.title,
-          projectName: projects.find((p) => p.id === t.projectId)?.name || 'Project',
-          status: t.status,
-          assigneeName: teamMembers.find((m) => m.id === t.assigneeId)?.name,
-        }));
-
-      const res = await generateWeeklyBriefingApi({
-        weekLabel: weekRange.label,
-        metrics: {
-          totalProjects: overallMetrics.totalProjects,
-          completedProjects: overallMetrics.completedProjects,
-          totalTasks: overallMetrics.totalTasks,
-          completedTasks: overallMetrics.totalCompleted,
-          blockedTasks: overallMetrics.totalBlocked,
-          overallRate: overallMetrics.overallRate,
-        },
-        projects: projectSummaries.map((ps) => ({
-          name: ps.project.name,
-          client: ps.project.client || 'Internal',
-          status: ps.project.status,
-          completedTasks: ps.completedCount,
-          totalTasks: ps.totalTasks,
-        })),
-        highlightTasks: topTasks,
-      });
-
-      setAiBriefing(res.briefing);
-      setTelegramSnippet(res.telegramSnippet);
-      setIsBriefingExpanded(true);
-      if (onShowToast) onShowToast('success', '✨ AI Executive Briefing generated successfully!');
-    } catch (err: any) {
-      if (onShowToast) onShowToast('error', 'Failed to generate AI briefing: ' + err.message);
-    } finally {
-      setIsGeneratingAI(false);
-    }
-  };
-
-  const handleCopyAIBriefing = async () => {
-    if (!aiBriefing) return;
-    try {
-      await navigator.clipboard.writeText(aiBriefing);
-      setCopiedAIBriefing(true);
-      setTimeout(() => setCopiedAIBriefing(false), 2000);
-      if (onShowToast) onShowToast('success', 'Executive Briefing copied to clipboard!');
-    } catch {
-      if (onShowToast) onShowToast('error', 'Failed to copy to clipboard');
-    }
-  };
-
-  const handleCopyTelegramSnippet = async () => {
-    if (!telegramSnippet) return;
-    try {
-      await navigator.clipboard.writeText(telegramSnippet);
-      setCopiedTelegramSnippet(true);
-      setTimeout(() => setCopiedTelegramSnippet(false), 2000);
-      if (onShowToast) onShowToast('success', 'Telegram snippet copied to clipboard!');
-    } catch {
-      if (onShowToast) onShowToast('error', 'Failed to copy to clipboard');
-    }
-  };
-
   const getStatusBadge = (status: StatusType) => getStatusBadgeClass(status, 'sm');
 
   return (
@@ -706,159 +627,6 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
             {overallMetrics.totalBlocked > 0 ? 'Action required by PM' : 'No blockers reported'}
           </p>
         </div>
-      </div>
-
-      {/* AI Executive Briefing Card */}
-      <div className="bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/40 rounded-2xl border border-indigo-200/70 dark:border-indigo-800/60 p-5 shadow-xs transition-all">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-100 dark:border-indigo-900/50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center shadow-2xs">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                  AI Executive Leadership Briefing
-                </h3>
-                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                  Google Gemini
-                </span>
-              </div>
-              <p className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Instant synthesis of milestone wins, critical blockers, and next week priorities for {weekRange.label}.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={handleGenerateAIBriefing}
-              disabled={isGeneratingAI}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {isGeneratingAI ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Synthesizing with AI...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{aiBriefing ? 'Regenerate Briefing' : 'Generate AI Briefing'}</span>
-                </>
-              )}
-            </button>
-
-            {aiBriefing && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleCopyAIBriefing}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-2xs transition-colors cursor-pointer"
-                  title="Copy formatted executive briefing"
-                >
-                  {copiedAIBriefing ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-emerald-600 dark:text-emerald-400">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Copy Briefing</span>
-                    </>
-                  )}
-                </button>
-
-                {telegramSnippet && (
-                  <button
-                    type="button"
-                    onClick={handleCopyTelegramSnippet}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 shadow-2xs transition-colors cursor-pointer"
-                    title="Copy Telegram mobile broadcast summary"
-                  >
-                    {copiedTelegramSnippet ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Copied Telegram!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                        <span>Copy Telegram Post</span>
-                      </>
-                    )}
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setIsBriefingExpanded(!isBriefingExpanded)}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  title={isBriefingExpanded ? 'Collapse briefing' : 'Expand briefing'}
-                >
-                  {isBriefingExpanded ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Content Area */}
-        {isGeneratingAI ? (
-          <div className="py-8 flex flex-col items-center justify-center text-center space-y-2">
-            <Loader2 className="w-7 h-7 animate-spin text-indigo-600 dark:text-indigo-400" />
-            <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-              Gemini is analyzing {overallMetrics.totalTasks} deliverables across {overallMetrics.totalProjects} projects...
-            </p>
-            <p className="text-3xs text-slate-400 dark:text-slate-500">
-              Synthesizing milestones, blocker bottlenecks, and next sprint priorities.
-            </p>
-          </div>
-        ) : aiBriefing ? (
-          isBriefingExpanded && (
-            <div className="pt-4 space-y-4">
-              <div className="p-4 bg-white/90 dark:bg-slate-800/80 rounded-xl border border-indigo-100/80 dark:border-slate-700 shadow-2xs">
-                <FormattedText
-                  content={aiBriefing}
-                  className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed"
-                />
-              </div>
-
-              {telegramSnippet && (
-                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-200/60 dark:border-blue-800/40 text-xs">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-2xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      Telegram Broadcast Snippet
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleCopyTelegramSnippet}
-                      className="text-3xs font-semibold text-blue-600 hover:text-blue-800 dark:hover:text-blue-200 underline cursor-pointer"
-                    >
-                      {copiedTelegramSnippet ? 'Copied!' : 'Copy snippet'}
-                    </button>
-                  </div>
-                  <pre className="text-2xs text-slate-700 dark:text-slate-300 font-mono whitespace-pre-wrap bg-white/70 dark:bg-slate-900/60 p-2.5 rounded-lg border border-blue-100 dark:border-slate-800">
-                    {telegramSnippet}
-                  </pre>
-                </div>
-              )}
-            </div>
-          )
-        ) : (
-          <div className="pt-3 flex items-center justify-between gap-4 text-xs text-slate-600 dark:text-slate-400">
-            <span>
-              Click <strong>Generate AI Briefing</strong> above to synthesize this week's progress and risks into a leadership briefing.
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Projects Overview Section */}

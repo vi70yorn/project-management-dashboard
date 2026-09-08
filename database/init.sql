@@ -90,34 +90,6 @@ CREATE INDEX IF NOT EXISTS idx_projects_created_by ON projects(created_by);
 CREATE INDEX IF NOT EXISTS idx_projects_updated_by ON projects(updated_by);
 CREATE INDEX IF NOT EXISTS idx_project_members_member_id ON project_members(member_id);
 
--- Telegram Settings Table
-CREATE TABLE IF NOT EXISTS telegram_settings (
-    id VARCHAR(32) PRIMARY KEY DEFAULT 'default',
-    bot_token TEXT,
-    chat_id TEXT,
-    enabled BOOLEAN DEFAULT false,
-    send_day VARCHAR(16) DEFAULT 'Monday',
-    send_time VARCHAR(8) DEFAULT '08:00',
-    last_sent_at TIMESTAMPTZ,
-    last_auto_sent_date VARCHAR(16),
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
--- AI Settings Table (Google Gemini)
-CREATE TABLE IF NOT EXISTS ai_settings (
-    id VARCHAR(32) PRIMARY KEY DEFAULT 'default',
-    api_key TEXT,
-    model VARCHAR(64) DEFAULT 'gemini-3.6-flash',
-    enabled BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
-INSERT INTO ai_settings (id, model, enabled)
-VALUES ('default', 'gemini-3.6-flash', true)
-ON CONFLICT (id) DO NOTHING;
-
 -- ==========================================================
 -- Initial Production Seed Data (Preserving existing team & projects)
 -- ==========================================================
