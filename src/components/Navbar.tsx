@@ -310,8 +310,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="navbar-recycle-bin-btn"
               onClick={handleRecycleBinAction}
-              title={`Recycle Bin (Retention: 7 days)${recycleBinCount ? ` • ${recycleBinCount} items` : ''}`}
-              className={`relative p-2 rounded-xl transition-all cursor-pointer border ${
+              title="Recycle Bin (Retention: 7 days)"
+              className={`p-2 rounded-xl transition-all cursor-pointer border ${
                 currentView === 'recycle-bin'
                   ? 'bg-rose-800 text-white border-rose-600 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800 shadow-2xs'
                   : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/40 border-transparent hover:border-blue-500/40 dark:hover:border-rose-800/60'
@@ -319,14 +319,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               aria-label="Open Recycle Bin"
             >
               <Trash2 className="w-4 h-4" />
-              {recycleBinCount > 0 && (
-                <span
-                  id="navbar-recycle-bin-badge"
-                  className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-2 ring-blue-700 dark:ring-slate-900 shadow-2xs leading-none"
-                >
-                  {recycleBinCount > 99 ? '99+' : recycleBinCount}
-                </span>
-              )}
             </button>
           )}
 
