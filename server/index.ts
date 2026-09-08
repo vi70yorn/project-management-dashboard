@@ -1813,7 +1813,12 @@ app.post('/api/telegram/test', async (req: Request, res: Response) => {
 });
 
 // POST trigger instant weekly report delivery
-app.post('/api/telegram/send-report', async (_req: Request, res: Response) => {
+app.post('/api/telegram/send-report', async (req: Request, res: Response) => {
+  const userRole = req.headers['x-user-role'] as string | undefined;
+  if (userRole && userRole !== 'admin') {
+    return res.status(403).json({ error: 'Access denied: Weekly Summary reporting is restricted to Admins only.' });
+  }
+
   try {
     const pool = getPool();
     const result = await pool.query('SELECT bot_token, chat_id FROM telegram_settings WHERE id = $1', ['default']);

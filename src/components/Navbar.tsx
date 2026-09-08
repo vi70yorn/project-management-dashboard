@@ -158,20 +158,22 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </button>
 
-            {/* Project Weekly Summary tab */}
-            <button
-              id="nav-project-summary-btn"
-              onClick={onGoToSummary}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                currentView === 'summary'
-                  ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
-              }`}
-              title="Project Weekly Summary (Mon - Fri) for Project Manager"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              Summary
-            </button>
+            {/* Project Weekly Summary tab (Admin only) */}
+            {isAdmin && (
+              <button
+                id="nav-project-summary-btn"
+                onClick={onGoToSummary}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  currentView === 'summary'
+                    ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
+                }`}
+                title="Project Weekly Summary (Mon - Fri) for Project Manager"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Summary
+              </button>
+            )}
 
             {/* Recycle Bin tab */}
            {/*  {handleRecycleBinAction && (
@@ -226,17 +228,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Users className="w-4 h-4" />
             </button>
-            <button
-              onClick={onGoToSummary}
-              className={`p-1.5 rounded-lg text-xs transition-colors ${
-                currentView === 'summary'
-                  ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white shadow-xs'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
-              }`}
-              title="Project Weekly Summary"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-            </button>
+            {isAdmin && (
+              <button
+                onClick={onGoToSummary}
+                className={`p-1.5 rounded-lg text-xs transition-colors ${
+                  currentView === 'summary'
+                    ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white shadow-xs'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                }`}
+                title="Project Weekly Summary"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+              </button>
+            )}
             {onGoToCalendar && (
               <button
                 onClick={onGoToCalendar}

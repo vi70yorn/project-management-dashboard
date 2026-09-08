@@ -243,6 +243,13 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Restrict Weekly Summary to Admin role only
+  useEffect(() => {
+    if (currentUser && currentUser.role !== 'admin' && currentView === 'summary') {
+      setCurrentView('dashboard');
+    }
+  }, [currentUser, currentView]);
+
   const showToast = (type: 'success' | 'error' | 'info', message: string) => {
     setToast({ type, message });
     setTimeout(() => {
@@ -290,6 +297,10 @@ export default function App() {
   };
 
   const handleGoToSummary = () => {
+    if (currentUser?.role !== 'admin') {
+      showToast('error', 'Weekly Summary is available for Admin role only.');
+      return;
+    }
     setCurrentView('summary');
   };
 
@@ -1133,13 +1144,27 @@ export default function App() {
             currentUser={currentUser}
           />
         ) : currentView === 'summary' ? (
-          <ProjectWeeklyReport
-            projects={projects}
-            tasks={tasks}
-            teamMembers={teamMembers}
-            onSelectProject={handleSelectProject}
-            onShowToast={showToast}
-          />
+          currentUser?.role === 'admin' ? (
+            <ProjectWeeklyReport
+              projects={projects}
+              tasks={tasks}
+              teamMembers={teamMembers}
+              onSelectProject={handleSelectProject}
+              onShowToast={showToast}
+            />
+          ) : (
+            <div className="py-20 text-center text-slate-500 dark:text-slate-400">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Access restricted: Weekly Summary is available for Admin role only.
+              </p>
+              <button
+                onClick={handleGoToDashboard}
+                className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          )
         ) : currentView === 'recycle-bin' ? (
           <RecycleBinView
             recycleBinData={recycleBinData}
