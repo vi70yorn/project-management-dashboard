@@ -26,6 +26,7 @@ import {
   User,
   FileEdit,
   Layers,
+  CheckSquare,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
@@ -156,6 +157,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           assignee,
           assigneeId: t.assigneeId,
           createdBy: t.createdBy,
+          subtasks: t.subtasks,
         };
       })
       .sort((a, b) => a.diffDays - b.diffDays);
@@ -496,9 +498,34 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         {/* Task / Deliverable Title & Description */}
         <td className="py-3.5 px-4 min-w-[220px]">
           <div className="flex flex-col min-w-0">
-            <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
-              {item.title}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                {item.title}
+              </span>
+              {/* Checklist count badge if task has Checklist */}
+              {Boolean(item.task?.subtasks && item.task.subtasks.length > 0) && (() => {
+                const total = item.task!.subtasks!.length;
+                const completed = item.task!.subtasks!.filter((s) => s.completed).length;
+                const isDone = completed === total;
+                return (
+                  <span
+                    className={`inline-flex items-center gap-1 text-3xs font-semibold px-1.5 py-0.5 rounded-full border transition-colors shrink-0 ${
+                      isDone
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/70'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                    title={`Checklist: ${completed} of ${total} completed (${Math.round((completed / total) * 100)}%)`}
+                  >
+                    {isDone ? (
+                      <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    ) : (
+                      <CheckSquare className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                    )}
+                    <span>{completed}/{total}</span>
+                  </span>
+                );
+              })()}
+            </div>
             {item.description && (
               <p
                 className="text-2xs text-slate-500 dark:text-slate-400 line-clamp-1 leading-snug mt-0.5"
