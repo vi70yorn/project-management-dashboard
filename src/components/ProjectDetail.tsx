@@ -30,6 +30,7 @@ import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect } from './ui/CustomSelect';
+import { FormattedText } from './ui/FormattedText';
 
 interface ProjectDetailProps {
   project: Project;
@@ -323,9 +324,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               {project.name}
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              {project.description}
-            </p>
+            <FormattedText
+              content={project.description}
+              className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed"
+            />
 
             {/* Tags & Manager */}
             <div className="flex items-center gap-2 pt-1 flex-wrap text-2xs">

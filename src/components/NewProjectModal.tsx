@@ -6,6 +6,7 @@ import { FORM_STYLES } from '../utils/formStyles';
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect } from './ui/CustomSelect';
 import { DatePicker } from './ui/DatePicker';
+import { RichTextEditor } from './ui/RichTextEditor';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -170,13 +171,11 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Description & Objectives
             </label>
-            <textarea
+            <RichTextEditor
               id="new-project-description-input"
-              rows={2}
-              placeholder="Key project goals, deliverables, and scope..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={FORM_STYLES.textarea}
+              onChange={setDescription}
+              placeholder="Key project goals, deliverables, and scope..."
             />
           </div>
 

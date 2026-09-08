@@ -25,6 +25,8 @@ import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass 
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect } from './ui/CustomSelect';
 import { DatePicker } from './ui/DatePicker';
+import { FormattedText } from './ui/FormattedText';
+import { RichTextEditor } from './ui/RichTextEditor';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -310,11 +312,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 Description & Scope
               </h4>
               <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                {initialTask.description ? (
-                  <p className="whitespace-pre-wrap">{initialTask.description}</p>
-                ) : (
-                  <p className="text-slate-400 dark:text-slate-500 italic">No description provided for this task deliverable.</p>
-                )}
+                <FormattedText
+                  content={initialTask.description}
+                  placeholder="No description provided for this task deliverable."
+                />
               </div>
             </div>
 
@@ -565,13 +566,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Description & Acceptance Criteria
             </label>
-            <textarea
+            <RichTextEditor
               id="task-description-input"
-              rows={2}
-              placeholder="Deliverables, scope, notes..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={FORM_STYLES.textarea}
+              onChange={setDescription}
+              placeholder="Deliverables, scope, notes..."
             />
           </div>
 
