@@ -23,6 +23,8 @@ import {
   ShieldCheck,
   UserCheck,
   Eye,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
@@ -79,6 +81,24 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(project?.memberIds || []);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<StatusType | null>(null);
+  const [collapsedColumns, setCollapsedColumns] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(`pm_collapsed_columns_${project?.id || 'default'}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleColumnCollapse = (status: StatusType) => {
+    setCollapsedColumns((prev) => {
+      const updated = { ...prev, [status]: !prev[status] };
+      try {
+        localStorage.setItem(`pm_collapsed_columns_${project?.id || 'default'}`, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     const task = safeTasks.find((t) => t.id === taskId);
@@ -626,9 +646,75 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
       {/* VIEW 1: Task Board (Kanban Columns with same status as Project: Draft, In Progress, Ready Review, Blocked, Completed) */}
       {activeTab === 'board' && (
-        <div id="kanban-board-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-start pb-8">
+        <div id="kanban-board-container" className="flex gap-3.5 items-start pb-8 overflow-x-auto min-w-full">
           {KANBAN_STATUSES.map((status) => {
             const columnTasks = filteredTasks.filter((t) => t.status === status);
+            const isCollapsed = Boolean(collapsedColumns[status]);
+
+            if (isCollapsed) {
+              return (
+                <div
+                  key={status}
+                  id={`kanban-column-${status.toLowerCase().replace(/\s+/g, '-')}`}
+                  onDragOver={(e) => handleDragOver(e, status)}
+                  onDragLeave={(e) => handleDragLeave(e, status)}
+                  onDrop={(e) => handleDrop(e, status)}
+                  onClick={() => toggleColumnCollapse(status)}
+                  title={`Click to expand ${status} list (${columnTasks.length} tasks)`}
+                  className={`w-12 shrink-0 min-h-[480px] rounded-xl border p-2 flex flex-col items-center justify-between transition-all duration-200 cursor-pointer select-none group ${
+                    dragOverColumn === status
+                      ? 'border-blue-400 dark:border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 ring-2 ring-blue-300 shadow-xs'
+                      : 'bg-slate-50/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100/70 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  {/* Top Header: Expand Icon on top right & Count Badge */}
+                  <div className="flex flex-col items-center gap-2 pt-1 w-full">
+                    <button
+                      id={`expand-column-${status.toLowerCase().replace(/\s+/g, '-')}`}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleColumnCollapse(status);
+                      }}
+                      title={`Expand ${status} list`}
+                      className="w-7 h-7 rounded-lg text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 hover:bg-white dark:hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <ChevronsRight className="w-4 h-4" />
+                    </button>
+                    <span
+                      className="text-2xs font-bold px-1.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 min-w-[20px] text-center"
+                      title={`${columnTasks.length} tasks`}
+                    >
+                      {columnTasks.length}
+                    </span>
+                  </div>
+
+                  {/* Center: Vertical Status Badge */}
+                  <div className="flex-1 flex items-center justify-center my-4 py-2">
+                    <div className="rotate-180 [writing-mode:vertical-rl] flex items-center justify-center">
+                      <span className={`${getStatusBadgeClass(status, 'xs')} tracking-wide whitespace-nowrap`}>
+                        {status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bottom: Quick Add Task button */}
+                  <div className="pb-1 w-full flex justify-center">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenTaskModal(null, status);
+                      }}
+                      title={`Add ${status} Task`}
+                      className="w-7 h-7 rounded-lg text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <div
@@ -637,7 +723,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 onDragOver={(e) => handleDragOver(e, status)}
                 onDragLeave={(e) => handleDragLeave(e, status)}
                 onDrop={(e) => handleDrop(e, status)}
-                className={`rounded-xl border p-3 flex flex-col gap-3 min-h-[460px] transition-all duration-150 ${
+                className={`flex-1 min-w-[240px] rounded-xl border p-3 flex flex-col gap-3 min-h-[460px] transition-all duration-200 ${
                   dragOverColumn === status
                     ? 'border-blue-400 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-300/40 shadow-xs'
                     : 'bg-slate-50/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
@@ -652,10 +738,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    <span className="text-3xs text-slate-400 dark:text-slate-500 hidden sm:inline">
-                      {isAdmin ? 'Drag & Drop' : 'Deliverables'}
-                    </span>
+                  <div className="flex items-center gap-0.5">
                     <button
                       id={`add-task-to-column-${status}`}
                       onClick={() => onOpenTaskModal(null, status)}
@@ -663,6 +746,14 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
+                    </button>
+                    <button
+                      id={`collapse-column-${status.toLowerCase().replace(/\s+/g, '-')}`}
+                      onClick={() => toggleColumnCollapse(status)}
+                      title={`Collapse ${status} list`}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <ChevronsLeft className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -880,7 +971,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       className="p-5 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-600 rounded-lg text-center text-2xs text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex flex-col items-center justify-center gap-1.5 bg-white/40 dark:bg-slate-800/30 cursor-pointer"
                     >
                       <Plus className="w-4 h-4 text-slate-300 dark:text-slate-600" />
-                      <span>{isAdmin ? 'Drag tasks here or click to add' : `Click to add ${status.toLowerCase()} task`}</span>
+                      <span>{isAdmin ? 'Click to add task' : `Click to add ${status.toLowerCase()} task`}</span>
                     </div>
                   )}
                 </div>
