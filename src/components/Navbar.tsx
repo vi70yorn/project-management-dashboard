@@ -360,24 +360,56 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="Update your user profile & info"
                 className="flex items-center gap-2 p-1 -m-1 sm:px-2 sm:py-1 rounded-xl hover:bg-blue-600/60 dark:hover:bg-slate-800 transition-colors cursor-pointer group text-left"
               >
-                {currentUser.avatar ? (
-                  <img
-                    src={currentUser.avatar}
-                    alt={currentUser.name}
-                    className="w-8 h-8 rounded-full object-cover border border-blue-500/60 dark:border-slate-700 shadow-2xs shrink-0 group-hover:ring-2 group-hover:ring-white/40 transition-all"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-blue-800 dark:bg-slate-800 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 border border-blue-500/60 dark:border-slate-700 group-hover:ring-2 group-hover:ring-white/40 transition-all">
-                    {currentUser.name.slice(0, 2).toUpperCase()}                    
-                  </div>
-                )}
+                <div className="relative shrink-0">
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt={currentUser.name}
+                      className="w-8 h-8 rounded-full object-cover border border-blue-500/60 dark:border-slate-700 shadow-2xs shrink-0 group-hover:ring-2 group-hover:ring-white/40 transition-all"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-blue-800 dark:bg-slate-800 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 border border-blue-500/60 dark:border-slate-700 group-hover:ring-2 group-hover:ring-white/40 transition-all">
+                      {currentUser.name.slice(0, 2).toUpperCase()}                    
+                    </div>
+                  )}
+                  {/* Role indicator badge for compact screens */}
+                  <span
+                    className={`lg:hidden absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-3xs border border-white dark:border-slate-900 shadow-xs ${
+                      currentUser.role === 'admin'
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-emerald-500 text-white'
+                    }`}
+                    title={`Role: ${currentUser.role === 'admin' ? 'Admin' : 'Staff'}`}
+                  >
+                    {currentUser.role === 'admin' ? (
+                      <ShieldCheck className="w-2.5 h-2.5" />
+                    ) : (
+                      <UserCheck className="w-2.5 h-2.5" />
+                    )}
+                  </span>
+                </div>
                 <div className="hidden lg:block text-left min-w-0">
                   <div className="flex items-center gap-1.5">                    
-                    <span className="text-xs font-bold text-white group-hover:text-blue-100 truncate max-w-[120px] transition-colors">
+                    <span className="text-xs font-bold text-white group-hover:text-blue-100 truncate max-w-[105px] transition-colors">
                       {currentUser.name}                     
                     </span>
+                    <span
+                      id="navbar-user-role-badge"
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-3xs font-bold rounded-md border shadow-2xs shrink-0 tracking-wide uppercase ${
+                        currentUser.role === 'admin'
+                          ? 'bg-amber-400/25 text-amber-200 border-amber-300/40 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700/60'
+                          : 'bg-emerald-400/20 text-emerald-200 border-emerald-300/40 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700/60'
+                      }`}
+                    >
+                      {currentUser.role === 'admin' ? (
+                        <ShieldCheck className="w-2.5 h-2.5 text-amber-300 shrink-0" />
+                      ) : (
+                        <UserCheck className="w-2.5 h-2.5 text-emerald-300 shrink-0" />
+                      )}
+                      {currentUser.role === 'admin' ? 'Admin' : 'Staff'}
+                    </span>
                   </div>
-                  <p className="text-3xs text-blue-100/90 dark:text-slate-400 truncate max-w-[130px]">
+                  <p className="text-3xs text-blue-100/90 dark:text-slate-400 truncate max-w-[140px]">
                     {currentUser.username ? `@${currentUser.username}` : currentUser.email}
                   </p>
                 </div>
