@@ -165,7 +165,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
         status,
         color,
         avatar: avatarType === 'photo' && avatarUrl.trim() ? avatarUrl.trim() : undefined,
-        projectIds: selectedProjectIds,
+        projectIds: isAdmin ? selectedProjectIds : (initialMember ? safeProjects.filter((p) => (p.memberIds || []).includes(initialMember.id)).map((p) => p.id) : selectedProjectIds),
       },
       initialMember ? initialMember.id : undefined
     );
@@ -647,40 +647,77 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Assign to Projects
+                  {isAdmin ? 'Assign to Projects' : 'Assigned Projects'}
                 </label>
-                <span className="text-2xs text-slate-400 dark:text-slate-500">
-                  {selectedProjectIds.length} selected
-                </span>
+                {isAdmin ? (
+                  <span className="text-2xs text-slate-400 dark:text-slate-500">
+                    {selectedProjectIds.length} selected
+                  </span>
+                ) : (
+                  <span className="text-3xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                    Admin Managed
+                  </span>
+                )}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
-                {safeProjects.map((p) => {
-                  const isChecked = selectedProjectIds.includes(p.id);
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => toggleProjectSelection(p.id)}
-                      className={`flex items-center gap-2 p-2 rounded-lg border text-left text-xs transition-colors cursor-pointer ${
-                        isChecked
-                          ? 'border-blue-300 dark:border-blue-700 bg-blue-50/70 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 font-medium'
-                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      <div
-                        className={`w-4 h-4 rounded-sm flex items-center justify-center shrink-0 border ${
+
+              {isAdmin ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                  {safeProjects.map((p) => {
+                    const isChecked = selectedProjectIds.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => toggleProjectSelection(p.id)}
+                        className={`flex items-center gap-2 p-2 rounded-lg border text-left text-xs transition-colors cursor-pointer ${
                           isChecked
-                            ? 'bg-blue-600 border-blue-600 text-white'
-                            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
+                            ? 'border-blue-300 dark:border-blue-700 bg-blue-50/70 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 font-medium'
+                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
-                        {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </div>
-                      <span className="truncate">{p.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
+                        <div
+                          className={`w-4 h-4 rounded-sm flex items-center justify-center shrink-0 border ${
+                            isChecked
+                              ? 'bg-blue-600 border-blue-600 text-white'
+                              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
+                          }`}
+                        >
+                          {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </div>
+                        <span className="truncate">{p.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 min-h-12 items-center">
+                    {selectedProjectIds.length > 0 ? (
+                      safeProjects
+                        .filter((p) => selectedProjectIds.includes(p.id))
+                        .map((p) => (
+                          <span
+                            key={p.id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs"
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: p.color }}
+                            />
+                            <span className="truncate max-w-[180px]">{p.name}</span>
+                          </span>
+                        ))
+                    ) : (
+                      <span className="text-xs text-slate-400 dark:text-slate-500 italic">
+                        Not assigned to any project yet.
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-3xs text-slate-400 dark:text-slate-500">
+                    Project assignments are managed by Administrators. Staff members cannot modify project assignments.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

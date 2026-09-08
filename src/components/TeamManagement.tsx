@@ -474,12 +474,18 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
               {/* Card Footer Quick Action */}
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => openProjectManager(member)}
-                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer truncate"
-                >
-                  Assign to Projects &rarr;
-                </button>
+                {isAdmin ? (
+                  <button
+                    onClick={() => openProjectManager(member)}
+                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer truncate"
+                  >
+                    Assign to Projects &rarr;
+                  </button>
+                ) : (
+                  <span className="text-2xs text-slate-400 dark:text-slate-500 italic">
+                    {assignedProjects.length} {assignedProjects.length === 1 ? 'project' : 'projects'}
+                  </span>
+                )}
                 <div className="flex items-center gap-3 shrink-0">
                   {(isAdmin || currentUser?.memberId === member.id) && (
                     <button
