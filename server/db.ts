@@ -174,14 +174,14 @@ export async function runMigrationsAndSeed(): Promise<void> {
       CREATE TABLE IF NOT EXISTS ai_settings (
           id VARCHAR(32) PRIMARY KEY DEFAULT 'default',
           api_key TEXT,
-          model VARCHAR(64) DEFAULT 'gemini-2.5-flash',
+          model VARCHAR(64) DEFAULT 'gemini-3.6-flash',
           enabled BOOLEAN DEFAULT true,
           created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
 
       INSERT INTO ai_settings (id, model, enabled)
-      VALUES ('default', 'gemini-2.5-flash', true)
+      VALUES ('default', 'gemini-3.6-flash', true)
       ON CONFLICT (id) DO NOTHING;
 
       -- 7. Team Activity Logs Table

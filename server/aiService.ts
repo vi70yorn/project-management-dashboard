@@ -96,7 +96,7 @@ export async function getActiveAIConfig(pool: Pool): Promise<{
   source: 'env' | 'database' | 'none';
 }> {
   const envKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '';
-  const defaultModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const defaultModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
   if (envKey) {
     return {
@@ -176,7 +176,7 @@ export async function saveAISettings(
   const existingRow = current.rows[0] || {};
 
   const newKey = params.apiKey !== undefined ? params.apiKey.trim() : existingRow.api_key;
-  const newModel = params.model || existingRow.model || 'gemini-2.5-flash';
+  const newModel = params.model || existingRow.model || 'gemini-3.6-flash';
   const newEnabled = params.enabled !== undefined ? params.enabled : (existingRow.enabled ?? true);
 
   await pool.query(
@@ -203,7 +203,7 @@ function getAIClient(apiKey: string): GoogleGenAI {
 /**
  * Quick connection test
  */
-export async function testAIConnection(apiKey: string, model: string = 'gemini-2.5-flash'): Promise<{
+export async function testAIConnection(apiKey: string, model: string = 'gemini-3.6-flash'): Promise<{
   success: boolean;
   message: string;
   response?: string;
@@ -516,3 +516,4 @@ ${contextStr}`;
 
   return result.text ? result.text.trim() : 'I am here to help, but no response was generated.';
 }
+

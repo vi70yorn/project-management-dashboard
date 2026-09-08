@@ -26,9 +26,9 @@ interface AISettingsModalProps {
 }
 
 const MODEL_OPTIONS = [
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recommended - Fastest & Capable)' },
-  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Next-Gen High Speed)' },
-  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Legacy Stable)' },
+  { value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (Recommended - Ultra Fast & Intelligent)' },
+  { value: 'gemini-flash-latest', label: 'Gemini Flash Latest' },
+  { value: 'gemini-flash-lite-latest', label: 'Gemini Flash Lite (Lightweight)' },
 ];
 
 export const AISettingsModal: React.FC<AISettingsModalProps> = ({
@@ -38,7 +38,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
 }) => {
   const [status, setStatus] = useState<AISettingsStatus | null>(null);
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gemini-2.5-flash');
+  const [model, setModel] = useState('gemini-3.6-flash');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -56,7 +56,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
     try {
       const data = await fetchAIStatusApi();
       setStatus(data);
-      setModel(data.model || 'gemini-2.5-flash');
+      setModel(data.model || 'gemini-3.6-flash');
       setApiKey(''); // Never display raw secret key
     } catch (err: any) {
       if (onShowToast) onShowToast('error', 'Failed to load AI settings: ' + err.message);
@@ -120,7 +120,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 Google Gemini AI Settings
                 <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                  v2.5
+                  Flash
                 </span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -296,3 +296,4 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
     </div>
   );
 };
+
