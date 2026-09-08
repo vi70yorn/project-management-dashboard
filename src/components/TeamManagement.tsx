@@ -53,6 +53,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   const [managingProjectsForMember, setManagingProjectsForMember] = useState<TeamMember | null>(null);
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [inspectingMemberTasks, setInspectingMemberTasks] = useState<TeamMember | null>(null);
+  const [openExtraProjectsMemberId, setOpenExtraProjectsMemberId] = useState<string | null>(null);
 
   // Filter members
   const filteredMembers = safeMembers.filter((m) => {
@@ -352,21 +353,88 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 min-h-6">
+                  <div className="flex items-center gap-1.5 flex-nowrap min-h-7">
                     {assignedProjects.length > 0 ? (
-                      assignedProjects.map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => onSelectProject(p.id)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
-                        >
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ backgroundColor: p.color }}
-                          />
-                          <span className="truncate max-w-[140px]">{p.name}</span>
-                        </button>
-                      ))
+                      <>
+                        {assignedProjects.slice(0, 2).map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => onSelectProject(p.id)}
+                            title={p.name}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer shrink min-w-0 max-w-[130px]"
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: p.color }}
+                            />
+                            <span className="truncate">{p.name}</span>
+                          </button>
+                        ))}
+
+                        {assignedProjects.length > 2 && (
+                          <div className="relative shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenExtraProjectsMemberId(openExtraProjectsMemberId === member.id ? null : member.id);
+                              }}
+                              title={`+${assignedProjects.length - 2} more: ${assignedProjects.slice(2).map((p) => p.name).join(', ')}`}
+                              className="inline-flex items-center justify-center px-2 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-300 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+                            >
+                              +{assignedProjects.length - 2}
+                            </button>
+
+                            {openExtraProjectsMemberId === member.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenExtraProjectsMemberId(null);
+                                  }}
+                                />
+                                <div className="absolute right-0 top-full mt-1.5 z-30 w-52 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1.5 py-1 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                                  <div className="px-2 py-1 text-3xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                    Other Assigned Projects
+                                  </div>
+                                  {assignedProjects.slice(2).map((p) => (
+                                    <button
+                                      key={p.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenExtraProjectsMemberId(null);
+                                        onSelectProject(p.id);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left cursor-pointer"
+                                    >
+                                      <span
+                                        className="w-2 h-2 rounded-full shrink-0"
+                                        style={{ backgroundColor: p.color }}
+                                      />
+                                      <span className="truncate">{p.name}</span>
+                                    </button>
+                                  ))}
+                                  {isAdmin && (
+                                    <div className="pt-1 mt-1 border-t border-slate-100 dark:border-slate-700">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenExtraProjectsMemberId(null);
+                                          openProjectManager(member);
+                                        }}
+                                        className="w-full text-left px-2.5 py-1 text-2xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                                      >
+                                        Manage All Projects &rarr;
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <span className="text-xs text-slate-400 dark:text-slate-500 italic">
                         Not assigned to any project
