@@ -48,7 +48,7 @@ interface ProjectDetailProps {
   onDeleteProject?: (project: Project) => void;
 }
 
-const KANBAN_STATUSES: StatusType[] = ['In Progress', 'Ready Review', 'Blocked', 'Completed'];
+const KANBAN_STATUSES: StatusType[] = ['Draft', 'In Progress', 'Ready Review', 'Blocked', 'Completed'];
 
 export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   project,
@@ -622,9 +622,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         )}
       </div>
 
-      {/* VIEW 1: Task Board (Kanban Columns with same status as Project: In Progress, Ready Review, Blocked, Completed) */}
+      {/* VIEW 1: Task Board (Kanban Columns with same status as Project: Draft, In Progress, Ready Review, Blocked, Completed) */}
       {activeTab === 'board' && (
-        <div id="kanban-board-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start pb-8">
+        <div id="kanban-board-container" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-start pb-8">
           {KANBAN_STATUSES.map((status) => {
             const columnTasks = filteredTasks.filter((t) => t.status === status);
 

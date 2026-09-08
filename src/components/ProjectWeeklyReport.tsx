@@ -84,6 +84,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       const pTasks = tasks.filter((t) => t.projectId === project.id);
       const total = pTasks.length;
       const completed = pTasks.filter((t) => t.status === 'Completed');
+      const draft = pTasks.filter((t) => t.status === 'Draft');
       const inProgress = pTasks.filter((t) => t.status === 'In Progress');
       const blocked = pTasks.filter((t) => t.status === 'Blocked');
       const readyReview = pTasks.filter((t) => t.status === 'Ready Review' || t.status === 'Pending');
@@ -101,8 +102,8 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
         };
       });
 
-      // In progress / ongoing deliverables
-      const ongoingList = [...inProgress, ...blocked, ...readyReview].map((t) => {
+      // In progress / ongoing deliverables (including drafts)
+      const ongoingList = [...draft, ...inProgress, ...blocked, ...readyReview].map((t) => {
         const mem = teamMembers.find((m) => m.id === t.assigneeId);
         return {
           ...t,
@@ -120,6 +121,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
         project,
         totalTasks: total,
         completedCount: completed.length,
+        draftCount: draft.length,
         inProgressCount: inProgress.length,
         blockedCount: blocked.length,
         readyReviewCount: readyReview.length,
@@ -171,21 +173,25 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
   // Overall KPI metrics
   const overallMetrics = useMemo(() => {
     const totalProjects = projects.length;
+    const draftProjects = projects.filter((p) => p.status === 'Draft').length;
     const completedProjects = projects.filter((p) => p.status === 'Completed').length;
     const inProgressProjects = projects.filter((p) => p.status === 'In Progress').length;
     const blockedProjects = projects.filter((p) => p.status === 'Blocked').length;
 
     const totalTasks = tasks.length;
+    const totalDraft = tasks.filter((t) => t.status === 'Draft').length;
     const totalCompleted = tasks.filter((t) => t.status === 'Completed').length;
     const totalBlocked = tasks.filter((t) => t.status === 'Blocked').length;
     const overallRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
 
     return {
       totalProjects,
+      draftProjects,
       completedProjects,
       inProgressProjects,
       blockedProjects,
       totalTasks,
+      totalDraft,
       totalCompleted,
       totalBlocked,
       overallRate,
@@ -221,7 +227,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       if (ps.ongoingList.length > 0) {
         lines.push(`   • Ongoing:`);
         ps.ongoingList.forEach((t) => {
-          const statusIcon = t.status === 'Blocked' ? '⚠️' : '⏳';
+          const statusIcon = t.status === 'Blocked' ? '⚠️' : t.status === 'Draft' ? '📝' : '⏳';
           lines.push(`     ${statusIcon} ${t.title} [${t.status}] (${t.assigneeName})`);
         });
       }
@@ -666,7 +672,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
 
             {/* Status Filters */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-              {(['All', 'In Progress', 'Completed', 'Blocked'] as const).map((st) => (
+              {(['All', 'Draft', 'In Progress', 'Completed', 'Blocked'] as const).map((st) => (
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}

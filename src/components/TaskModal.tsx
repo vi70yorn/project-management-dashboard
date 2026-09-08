@@ -118,11 +118,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       : projectName || 'Project';
 
     const taskPriority = priority || initialTask?.priority || 'Medium';
+    const taskStatus = status || initialTask?.status || 'In Progress';
     const desc = (description || initialTask?.description || '').trim();
 
     const lines = [
       `📁 Project: ${projName}`,
       `📋 Task: ${taskTitle}`,
+      `📌 Status: ${taskStatus}`,
       `⚡ Priority: ${taskPriority}`,
     ];
 

@@ -24,6 +24,7 @@ import {
   Table as TableIcon,
   LayoutGrid,
   User,
+  FileEdit,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
@@ -77,7 +78,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const [projectListViewMode, setProjectListViewMode] = useState<'card' | 'table'>('table');
 
   // Deadlines Section Filter & Pagination State
-  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Ready Review' | 'Blocked'>('all');
+  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'Draft' | 'In Progress' | 'Ready Review' | 'Blocked'>('all');
   const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>('all');
   const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(10);
   const [deadlineCurrentPage, setDeadlineCurrentPage] = useState<number>(1);
@@ -89,6 +90,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   // Metrics computation
   const metrics = useMemo(() => {
     const totalProjects = safeProjects.length;
+    const draftProjects = safeProjects.filter((p) => p.status === 'Draft').length;
     const activeProjects = safeProjects.filter(
       (p) => p.status === 'In Progress' || p.status === 'Ready Review' || p.status === 'Pending'
     ).length;
@@ -96,6 +98,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     const completedProjects = safeProjects.filter((p) => p.status === 'Completed').length;
 
     const totalTasks = safeTasks.length;
+    const draftTasks = safeTasks.filter((t) => t.status === 'Draft').length;
     const inProgressTasks = safeTasks.filter((t) => t.status === 'In Progress').length;
     const blockedTasks = safeTasks.filter((t) => t.status === 'Blocked').length;
     const completedTasks = safeTasks.filter((t) => t.status === 'Completed').length;
@@ -106,10 +109,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
     return {
       totalProjects,
+      draftProjects,
       activeProjects,
       blockedProjects,
       completedProjects,
       totalTasks,
+      draftTasks,
       inProgressTasks,
       blockedTasks,
       completedTasks,
@@ -119,13 +124,13 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     };
   }, [safeProjects, safeTasks]);
 
-  // All open tasks (In Progress, Ready Review, Blocked) sorted by nearest deadline
+  // All open tasks (Draft, In Progress, Ready Review, Blocked) sorted by nearest deadline
   const allActiveDeadlines = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     return safeTasks
-      .filter((t) => t.status === 'In Progress' || t.status === 'Ready Review' || t.status === 'Pending' || t.status === 'Blocked')
+      .filter((t) => t.status === 'Draft' || t.status === 'In Progress' || t.status === 'Ready Review' || t.status === 'Pending' || t.status === 'Blocked')
       .map((t) => {
         const proj = safeProjects.find((p) => p.id === t.projectId);
         const assignee = safeMembers.find((m) => m.id === t.assigneeId);
@@ -196,6 +201,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     ).length;
     return {
       all: memberFilteredDeadlines.length,
+      draft: memberFilteredDeadlines.filter((d) => d.status === 'Draft').length,
       inProgress: memberFilteredDeadlines.filter((d) => d.status === 'In Progress').length,
       readyReview,
       pending: readyReview,
@@ -271,7 +277,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     return filteredDeadlines.slice(startIdx, startIdx + effectivePageSize);
   }, [filteredDeadlines, deadlinePageSize, safeCurrentPage, effectivePageSize]);
 
-  const handleStatusFilterChange = (status: 'all' | 'In Progress' | 'Ready Review' | 'Blocked') => {
+  const handleStatusFilterChange = (status: 'all' | 'Draft' | 'In Progress' | 'Ready Review' | 'Blocked') => {
     setDeadlineStatusFilter(status);
     setDeadlineCurrentPage(1);
   };
@@ -286,6 +292,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     const readyReview = safeProjects.filter((p) => p.status === 'Ready Review' || p.status === 'Pending').length;
     return {
       all: safeProjects.length,
+      draft: safeProjects.filter((p) => p.status === 'Draft').length,
       inProgress: safeProjects.filter((p) => p.status === 'In Progress').length,
       readyReview,
       pending: readyReview,
@@ -536,6 +543,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
                   {[
                     { label: 'All', value: 'all', count: deadlineCounts.all },
+                    { label: 'Draft', value: 'Draft', count: deadlineCounts.draft },
                     { label: 'In Progress', value: 'In Progress', count: deadlineCounts.inProgress },
                     { label: 'Ready Review', value: 'Ready Review', count: deadlineCounts.readyReview },
                     { label: 'Blocked', value: 'Blocked', count: deadlineCounts.blocked },
@@ -839,6 +847,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
               {[
                 { label: 'All Projects', value: 'all', count: projectStatusCounts.all },
+                { label: 'Draft', value: 'Draft', count: projectStatusCounts.draft },
                 { label: 'In Progress', value: 'In Progress', count: projectStatusCounts.inProgress },
                 { label: 'Ready Review', value: 'Ready Review', count: projectStatusCounts.readyReview },
                 { label: 'Blocked', value: 'Blocked', count: projectStatusCounts.blocked },
@@ -959,6 +968,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                   {filteredProjects.map((project, idx) => {
                     const projectTasks = tasks.filter((t) => t.projectId === project.id);
+                    const draftCount = projectTasks.filter((t) => t.status === 'Draft').length;
                     const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
                     const inProgressCount = projectTasks.filter((t) => t.status === 'In Progress').length;
                     const blockedCount = projectTasks.filter((t) => t.status === 'Blocked').length;
@@ -1067,6 +1077,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                         {/* Deliverables Overview */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-1.5 flex-wrap">
+                            {draftCount > 0 && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-4xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                <FileEdit className="w-2.5 h-2.5" />
+                                {draftCount} Draft
+                              </span>
+                            )}
                             {completedCount > 0 && (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-4xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800">
                                 <CheckCircle2 className="w-2.5 h-2.5" />
@@ -1340,6 +1356,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                           ? 'bg-rose-500'
                           : project.status === 'Completed'
                           ? 'bg-emerald-500'
+                          : project.status === 'Draft'
+                          ? 'bg-slate-400 dark:bg-slate-500'
                           : 'bg-blue-600 dark:bg-blue-500'
                       }`}
                       style={{ width: `${completionPercent}%` }}

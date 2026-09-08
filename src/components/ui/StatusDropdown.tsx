@@ -24,6 +24,14 @@ interface StatusConfig {
 }
 
 const STATUS_CONFIGS: Record<StatusType, StatusConfig> = {
+  'Draft': {
+    label: 'Draft',
+    dotColor: 'bg-slate-400 dark:bg-slate-500',
+    badgeBg: 'bg-slate-100 dark:bg-slate-500/10',
+    badgeText: 'text-slate-700 dark:text-slate-300/90',
+    badgeBorder: 'border-slate-300/80 dark:border-slate-500/25',
+    hoverBg: 'hover:bg-slate-100 dark:hover:bg-slate-500/15',
+  },
   'In Progress': {
     label: 'In Progress',
     dotColor: 'bg-blue-500 dark:bg-blue-400',
@@ -58,7 +66,7 @@ const STATUS_CONFIGS: Record<StatusType, StatusConfig> = {
   },
 };
 
-const ALL_STATUSES: StatusType[] = ['In Progress', 'Ready Review', 'Blocked', 'Completed'];
+const ALL_STATUSES: StatusType[] = ['Draft', 'In Progress', 'Ready Review', 'Blocked', 'Completed'];
 
 export const StatusDropdown: React.FC<StatusDropdownProps> = ({
   status,

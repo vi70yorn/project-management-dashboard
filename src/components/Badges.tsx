@@ -19,6 +19,8 @@ export const getStatusBadgeClass = (
   const base = `inline-flex items-center font-semibold border shadow-2xs transition-colors ${sizeCls}`;
 
   switch (status) {
+    case 'Draft':
+      return `${base} bg-slate-100 dark:bg-slate-500/10 text-slate-700 dark:text-slate-300/90 border-slate-300/80 dark:border-slate-500/25`;
     case 'In Progress':
       return `${base} bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300/90 border-blue-200 dark:border-blue-500/25`;
     case 'Ready Review':

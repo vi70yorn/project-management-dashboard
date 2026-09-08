@@ -203,6 +203,8 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
   // Helper for status background pill
   const getStatusPillClass = (status: StatusType | string) => {
     switch (status) {
+      case 'Draft':
+        return 'bg-slate-500/15 text-slate-700 dark:text-slate-300/90 border-slate-300 dark:border-slate-500/25';
       case 'Completed':
         return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300/90 border-emerald-300 dark:border-emerald-500/25';
       case 'In Progress':
@@ -220,6 +222,8 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
   // Helper for Gantt bar color
   const getGanttTaskColor = (status: StatusType | string) => {
     switch (status) {
+      case 'Draft':
+        return 'bg-slate-500 hover:bg-slate-600 text-white';
       case 'Completed':
         return 'bg-emerald-500 hover:bg-emerald-600 text-white';
       case 'In Progress':
@@ -614,6 +618,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
             icon={<CheckCircle2 className="w-3.5 h-3.5" />}
             options={[
               { value: 'all', label: 'All Statuses' },
+              { value: 'Draft', label: 'Draft', color: '#64748b' },
               { value: 'In Progress', label: 'In Progress', color: '#3b82f6' },
               { value: 'Ready Review', label: 'Ready Review', color: '#f59e0b' },
               { value: 'Blocked', label: 'Blocked', color: '#f43f5e' },

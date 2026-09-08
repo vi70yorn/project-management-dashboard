@@ -1747,14 +1747,15 @@ async function generateTelegramWeeklyReport(pool: any): Promise<string> {
 
   projects.forEach((p: any, idx: number) => {
     const pTasks = tasks.filter((t: any) => t.project_id === p.id);
+    const pDraft = pTasks.filter((t: any) => t.status === 'Draft');
     const pCompleted = pTasks.filter((t: any) => t.status === 'Completed');
     const pInProgress = pTasks.filter((t: any) => t.status === 'In Progress');
     const pReadyReview = pTasks.filter((t: any) => t.status === 'Ready Review' || t.status === 'Pending');
     const pBlocked = pTasks.filter((t: any) => t.status === 'Blocked');
-    const pOther = pTasks.filter((t: any) => !['Completed', 'In Progress', 'Ready Review', 'Pending', 'Blocked'].includes(t.status));
+    const pOther = pTasks.filter((t: any) => !['Draft', 'Completed', 'In Progress', 'Ready Review', 'Pending', 'Blocked'].includes(t.status));
     const pPercent = pTasks.length > 0 ? Math.round((pCompleted.length / pTasks.length) * 100) : 0;
 
-    const statusEmoji = p.status === 'Completed' ? '✅' : p.status === 'Blocked' ? '🛑' : '🚀';
+    const statusEmoji = p.status === 'Completed' ? '✅' : p.status === 'Blocked' ? '🛑' : p.status === 'Draft' ? '📝' : '🚀';
 
     text += `${idx + 1}. ${statusEmoji} <b>${escapeTelegramHtml(p.name.toUpperCase())}</b>\n`;
     text += `   • <b>Status:</b> ${escapeTelegramHtml(p.status)} | <b>Progress:</b> ${pPercent}%\n`;
@@ -1798,7 +1799,16 @@ async function generateTelegramWeeklyReport(pool: any): Promise<string> {
       });
     }
 
-    // 5. Other custom statuses (if any exist)
+    // 5. Draft tasks (All)
+    if (pDraft.length > 0) {
+      text += `   • <b>Draft:</b>\n`;
+      pDraft.forEach((t: any) => {
+        const assignee = members.find((m: any) => m.id === t.assignee_id)?.name || 'Unassigned';
+        text += `     📝 ${escapeTelegramHtml(t.title)} [Draft] (${escapeTelegramHtml(assignee)})\n`;
+      });
+    }
+
+    // 6. Other custom statuses (if any exist)
     if (pOther.length > 0) {
       text += `   • <b>Other:</b>\n`;
       pOther.forEach((t: any) => {
