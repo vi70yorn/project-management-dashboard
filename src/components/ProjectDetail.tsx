@@ -88,13 +88,14 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         const parsed = JSON.parse(saved);
         return {
           Draft: parsed.Draft !== undefined ? parsed.Draft : true,
+          Completed: parsed.Completed !== undefined ? parsed.Completed : true,
           ...parsed,
         };
       }
     } catch {
       // fallback
     }
-    return { Draft: true };
+    return { Draft: true, Completed: true };
   });
 
   useEffect(() => {
@@ -104,6 +105,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         const parsed = JSON.parse(saved);
         setCollapsedColumns({
           Draft: parsed.Draft !== undefined ? parsed.Draft : true,
+          Completed: parsed.Completed !== undefined ? parsed.Completed : true,
           ...parsed,
         });
         return;
@@ -111,7 +113,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     } catch {
       // ignore
     }
-    setCollapsedColumns({ Draft: true });
+    setCollapsedColumns({ Draft: true, Completed: true });
   }, [project?.id]);
 
   const toggleColumnCollapse = (status: StatusType) => {
@@ -703,7 +705,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       title={`Expand ${status} list`}
                       className="w-7 h-7 rounded-lg text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 hover:bg-white dark:hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
                     >
-                      <ChevronsRight className="w-4 h-4" />
+                      {status === 'Completed' ? <ChevronsLeft className="w-4 h-4" /> : <ChevronsRight className="w-4 h-4" />}
                     </button>
                     <span
                       className="text-2xs font-bold px-1.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 min-w-[20px] text-center"
@@ -777,7 +779,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       title={`Collapse ${status} list`}
                       className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
-                      <ChevronsLeft className="w-4 h-4" />
+                      {status === 'Completed' ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
