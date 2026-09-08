@@ -26,13 +26,14 @@ import {
   CheckCircle2,
   ListTodo,
   CheckSquare,
+  Filter,
 } from 'lucide-react';
 import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser, TaskTimelineEvent, TaskSubtask } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 import { StatusDropdown } from './ui/StatusDropdown';
-import { CustomSelect } from './ui/CustomSelect';
+import { CustomSelect, CustomSelectOption } from './ui/CustomSelect';
 import { DatePicker } from './ui/DatePicker';
 import { FormattedText } from './ui/FormattedText';
 import { RichTextEditor } from './ui/RichTextEditor';
@@ -415,6 +416,30 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   const selectedMemberObj = safeMembers.find((m) => m.id === (assigneeId || initialTask?.assigneeId));
 
+  const timelineFilterOptions: CustomSelectOption[] = [
+    {
+      value: 'all',
+      label: 'All',
+      badge: timeline.length,
+      icon: <Filter className="w-3.5 h-3.5 text-slate-400" />,
+      sublabel: 'All comments & status updates',
+    },
+    {
+      value: 'comments',
+      label: 'Comments',
+      badge: commentsCount,
+      icon: <MessageSquare className="w-3.5 h-3.5 text-blue-500" />,
+      sublabel: 'Team feedback & notes',
+    },
+    {
+      value: 'activity',
+      label: 'Updates',
+      badge: activityCount,
+      icon: <History className="w-3.5 h-3.5 text-indigo-500" />,
+      sublabel: 'Status changes & history',
+    },
+  ];
+
   const renderDiscussionPanel = () => (
     <div
       id="task-discussion-right-panel"
@@ -424,55 +449,31 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     >
       {/* Discussion Header (Top Right) */}
       <div className="p-3.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 bg-white dark:bg-slate-900/80 shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
             <MessageSquare className="w-3.5 h-3.5" />
           </div>
-          <div className="flex items-center gap-1.5">
-            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
               Discussion & Timeline
             </h4>
-            <span className="px-2 py-0.5 rounded-full text-3xs font-semibold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
-              {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
+            <span className="px-2 py-0.5 rounded-full text-3xs font-semibold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 shrink-0">
+              {commentsCount}
             </span>
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-3xs">
-          <button
-            type="button"
-            onClick={() => setTimelineFilter('all')}
-            className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
-              timelineFilter === 'all'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            All ({timeline.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setTimelineFilter('comments')}
-            className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
-              timelineFilter === 'comments'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            Comments ({commentsCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => setTimelineFilter('activity')}
-            className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
-              timelineFilter === 'activity'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            Updates ({activityCount})
-          </button>
+        {/* Filter Dropdown (Replaces segmented tabs) */}
+        <div className="shrink-0">
+          <CustomSelect
+            id="timeline-filter-select"
+            value={timelineFilter}
+            onChange={(val) => setTimelineFilter(val as 'all' | 'comments' | 'activity')}
+            options={timelineFilterOptions}
+            size="sm"
+            align="right"
+            className="w-36 sm:w-40"
+          />
         </div>
       </div>
 
@@ -608,9 +609,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                               {item.userRole}
                             </span>
                           )}
-                          <span className="text-3xs text-slate-400 dark:text-slate-500 font-medium">
+                          {/* <span className="text-3xs text-slate-400 dark:text-slate-500 font-medium">
                             • {formatDateTime(item.createdAt)}
-                          </span>
+                          </span> */}
                         </div>
 
                         {canDelete && (
