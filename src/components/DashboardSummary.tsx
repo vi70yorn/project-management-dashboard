@@ -841,7 +841,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 </div>
 
                 {/* Group By Selector */}
-                <div className="w-full sm:w-auto min-w-[155px]">
+                {/* <div className="w-full sm:w-auto min-w-[155px]">
                   <CustomSelect
                     id="deadline-group-by-select"
                     value={deadlineGroupBy}
@@ -851,7 +851,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                     options={deadlineGroupByOptions}
                     placeholder="Group By"
                   />
-                </div>
+                </div> */}
 
                 {/* Expand / Collapse All when grouped */}
                 {deadlineGroupBy !== 'none' && groupedDeadlines.length > 0 && (
