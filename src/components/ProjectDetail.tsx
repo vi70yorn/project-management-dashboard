@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ArrowLeft,
   Plus,
@@ -84,11 +84,35 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [collapsedColumns, setCollapsedColumns] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem(`pm_collapsed_columns_${project?.id || 'default'}`);
-      return saved ? JSON.parse(saved) : {};
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          Draft: parsed.Draft !== undefined ? parsed.Draft : true,
+          ...parsed,
+        };
+      }
     } catch {
-      return {};
+      // fallback
     }
+    return { Draft: true };
   });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`pm_collapsed_columns_${project?.id || 'default'}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setCollapsedColumns({
+          Draft: parsed.Draft !== undefined ? parsed.Draft : true,
+          ...parsed,
+        });
+        return;
+      }
+    } catch {
+      // ignore
+    }
+    setCollapsedColumns({ Draft: true });
+  }, [project?.id]);
 
   const toggleColumnCollapse = (status: StatusType) => {
     setCollapsedColumns((prev) => {
