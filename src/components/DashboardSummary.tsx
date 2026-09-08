@@ -137,6 +137,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           id: t.id,
           task: t,
           title: t.title,
+          description: t.description,
           projectName: proj?.name || 'Unknown Project',
           projectColor: proj?.color || '#2563eb',
           projectId: t.projectId,
@@ -592,7 +593,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                   <thead>
                     <tr className="border-y border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       <th className="py-3 pl-6 pr-3 text-center w-14">#</th>
-                      <th className="py-3 px-4 min-w-[200px]">Task / Deliverable</th>
+                      <th className="py-3 px-4 min-w-[240px]">Task / Deliverable</th>
                       <th className="py-3 px-4 min-w-[150px]">Project</th>
                       <th className="py-3 px-4 min-w-[140px]">Assignee</th>
                       <th className="py-3 px-3 min-w-[95px]">Priority</th>
@@ -624,11 +625,21 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                             </span>
                           </td>
 
-                          {/* Task / Deliverable Title */}
-                          <td className="py-3.5 px-4">
-                            <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
-                              {item.title}
-                            </span>
+                          {/* Task / Deliverable Title & Description */}
+                          <td className="py-3.5 px-4 min-w-[220px]">
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+                                {item.title}
+                              </span>
+                              {item.description && (
+                                <p
+                                  className="text-2xs text-slate-500 dark:text-slate-400 line-clamp-1 leading-snug mt-0.5"
+                                  title={item.description}
+                                >
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
                           </td>
 
                           {/* Project Name with Color Dot */}
