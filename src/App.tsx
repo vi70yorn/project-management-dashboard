@@ -51,6 +51,7 @@ import {
   fetchMembersApi,
   createMemberApi,
   updateMemberApi,
+  updateMemberProjectsApi,
   deleteMemberApi,
   fetchRecycleBinApi,
   restoreRecycleBinItemApi,
@@ -939,7 +940,12 @@ export default function App() {
         );
       }
 
-      updateMemberApi(editingMember.id, baseData, currentUser?.role, currentUser?.memberId)
+      const memberPayload = {
+        ...baseData,
+        ...(isAdmin ? { projectIds } : {}),
+      };
+
+      updateMemberApi(editingMember.id, memberPayload, currentUser?.role, currentUser?.memberId)
         .then(() => {
           showToast('success', isEditingOwnProfile ? 'Your profile has been updated!' : `Team member "${updatedMember.name}" updated.`);
           refreshDatabase(true, currentUser?.role);
@@ -970,7 +976,7 @@ export default function App() {
         );
       }
 
-      createMemberApi(newMember, currentUser?.role)
+      createMemberApi({ ...newMember, projectIds }, currentUser?.role)
         .then(() => {
           showToast('success', `Team member "${newMember.name}" added to roster!`);
           refreshDatabase(true, currentUser?.role);
@@ -1063,7 +1069,15 @@ export default function App() {
         return p;
       })
     );
-    showToast('success', 'Project assignments updated.');
+    updateMemberProjectsApi(memberId, projectIds, currentUser?.role)
+      .then(() => {
+        showToast('success', 'Project assignments updated.');
+        refreshDatabase(true, currentUser?.role);
+      })
+      .catch((err) => {
+        console.warn('[PostgreSQL Sync] Update member projects error:', err);
+        showToast('error', err.message || 'Failed to update project assignments');
+      });
   };
 
   // If not logged in, render the login screen before project management

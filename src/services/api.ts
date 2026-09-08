@@ -277,7 +277,7 @@ export async function fetchMembersApi(userRole?: string): Promise<TeamMember[]> 
 }
 
 export async function createMemberApi(
-  memberData: Partial<TeamMember>,
+  memberData: Partial<TeamMember> & { projectIds?: string[] },
   userRole: string = 'admin'
 ): Promise<TeamMember> {
   const res = await fetch(`${API_BASE}/members`, {
@@ -296,7 +296,7 @@ export async function createMemberApi(
 
 export async function updateMemberApi(
   id: string,
-  memberData: Partial<TeamMember>,
+  memberData: Partial<TeamMember> & { projectIds?: string[] },
   userRole?: string,
   callerMemberId?: string
 ): Promise<TeamMember> {
@@ -316,6 +316,25 @@ export async function updateMemberApi(
 
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || `Failed to update member (${res.status})`);
+  return data;
+}
+
+export async function updateMemberProjectsApi(
+  memberId: string,
+  projectIds: string[],
+  userRole: string = 'admin'
+): Promise<{ memberId: string; projectIds: string[] }> {
+  const res = await fetch(`${API_BASE}/members/${memberId}/projects`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-user-role': userRole,
+    },
+    body: JSON.stringify({ projectIds }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Failed to update member projects (${res.status})`);
   return data;
 }
 

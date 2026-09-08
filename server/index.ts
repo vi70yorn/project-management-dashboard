@@ -1372,6 +1372,7 @@ app.post('/api/members', async (req: Request, res: Response) => {
     color = '#2563eb',
     status = 'active',
     department,
+    projectIds,
   } = req.body;
 
   if (!username || !username.trim()) {
@@ -1385,12 +1386,16 @@ app.post('/api/members', async (req: Request, res: Response) => {
   const memberId = id || `mem-${Date.now()}`;
   const cleanUsername = username.trim().toLowerCase();
 
+  const pool = getPool();
+  const dbClient = await pool.connect();
+
   try {
-    const pool = getPool();
+    await dbClient.query('BEGIN');
 
     // Check duplicate username
-    const existing = await pool.query(`SELECT id FROM team_members WHERE LOWER(username) = $1`, [cleanUsername]);
+    const existing = await dbClient.query(`SELECT id FROM team_members WHERE LOWER(username) = $1`, [cleanUsername]);
     if (existing.rowCount && existing.rowCount > 0) {
+      await dbClient.query('ROLLBACK');
       return res.status(400).json({ error: `Username "${cleanUsername}" is already taken.` });
     }
 
@@ -1400,7 +1405,7 @@ app.post('/api/members', async (req: Request, res: Response) => {
       RETURNING 
         id, name, username, password, email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
     `;
-    const result = await pool.query(query, [
+    const result = await dbClient.query(query, [
       memberId,
       name,
       cleanUsername,
@@ -1413,10 +1418,31 @@ app.post('/api/members', async (req: Request, res: Response) => {
       status,
       department,
     ]);
+
+    // Insert project assignments if provided
+    if (Array.isArray(projectIds) && projectIds.length > 0) {
+      for (const pId of projectIds) {
+        if (typeof pId === 'string' && pId.trim()) {
+          await dbClient.query(
+            `INSERT INTO project_members (project_id, member_id)
+             SELECT id, $2::varchar
+             FROM projects
+             WHERE id = $1 AND deleted_at IS NULL
+             ON CONFLICT (project_id, member_id) DO NOTHING`,
+            [pId.trim(), memberId]
+          );
+        }
+      }
+    }
+
+    await dbClient.query('COMMIT');
     res.status(201).json(result.rows[0]);
   } catch (err: any) {
+    await dbClient.query('ROLLBACK');
     console.error('Error creating member:', err);
     res.status(500).json({ error: err.message });
+  } finally {
+    dbClient.release();
   }
 });
 
@@ -1432,60 +1458,167 @@ app.put('/api/members/:id', async (req: Request, res: Response) => {
     return res.status(403).json({ error: 'Permission denied. You can only update your own user info.' });
   }
 
-  const { name, username, password, email, role, systemRole, avatar, color, status, department } = req.body;
+  const { name, username, password, email, role, systemRole, avatar, color, status, department, projectIds } = req.body;
+
+  const pool = getPool();
+  const dbClient = await pool.connect();
 
   try {
-    const pool = getPool();
+    await dbClient.query('BEGIN');
 
     // Check if username is being changed and conflicts
     if (username) {
-      const conflictCheck = await pool.query(
+      const conflictCheck = await dbClient.query(
         `SELECT id FROM team_members WHERE LOWER(username) = LOWER($1) AND id != $2`,
         [username.trim(), id]
       );
       if (conflictCheck.rowCount && conflictCheck.rowCount > 0) {
+        await dbClient.query('ROLLBACK');
         return res.status(400).json({ error: `Username "${username}" is already in use.` });
       }
     }
 
-    // Only Admin can change systemRole or update password directly here
-    const query = `
-      UPDATE team_members
-      SET 
-        name = COALESCE($1, name),
-        username = COALESCE($2, username),
-        ${isAdmin && password ? 'password = $3,' : ''}
-        email = COALESCE($4, email),
-        role = COALESCE($5, role),
-        ${isAdmin ? 'system_role = COALESCE($6, system_role),' : ''}
-        avatar = COALESCE($7, avatar),
-        color = COALESCE($8, color),
-        status = COALESCE($9, status),
-        department = COALESCE($10, department)
-      WHERE id = $11
-      RETURNING 
-        id, name, username, ${isAdmin ? 'password,' : ''} email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
-    `;
+    // Build update fields dynamically with strictly indexed parameters
+    const updates: string[] = [];
+    const params: any[] = [];
 
-    const result = await pool.query(query, [
-      name,
-      username ? username.trim().toLowerCase() : null,
-      password || null,
-      email,
-      role,
-      systemRole,
-      avatar,
-      color,
-      status,
-      department,
-      id,
-    ]);
+    if (name !== undefined) {
+      params.push(name);
+      updates.push(`name = $${params.length}`);
+    }
+    if (username !== undefined) {
+      params.push(username.trim().toLowerCase());
+      updates.push(`username = $${params.length}`);
+    }
+    if (isAdmin && password !== undefined && password.trim() !== '') {
+      params.push(password);
+      updates.push(`password = $${params.length}`);
+    }
+    if (email !== undefined) {
+      params.push(email);
+      updates.push(`email = $${params.length}`);
+    }
+    if (role !== undefined) {
+      params.push(role);
+      updates.push(`role = $${params.length}`);
+    }
+    if (isAdmin && systemRole !== undefined) {
+      params.push(systemRole);
+      updates.push(`system_role = $${params.length}`);
+    }
+    if (avatar !== undefined) {
+      params.push(avatar);
+      updates.push(`avatar = $${params.length}`);
+    }
+    if (color !== undefined) {
+      params.push(color);
+      updates.push(`color = $${params.length}`);
+    }
+    if (status !== undefined) {
+      params.push(status);
+      updates.push(`status = $${params.length}`);
+    }
+    if (department !== undefined) {
+      params.push(department);
+      updates.push(`department = $${params.length}`);
+    }
 
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Member not found' });
-    res.json(result.rows[0]);
+    let memberRow = null;
+    if (updates.length > 0) {
+      params.push(id);
+      const query = `
+        UPDATE team_members
+        SET ${updates.join(', ')}
+        WHERE id = $${params.length}
+        RETURNING 
+          id, name, username, ${isAdmin ? 'password,' : ''} email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
+      `;
+      const result = await dbClient.query(query, params);
+      if (result.rowCount === 0) {
+        await dbClient.query('ROLLBACK');
+        return res.status(404).json({ error: 'Member not found' });
+      }
+      memberRow = result.rows[0];
+    } else {
+      const existing = await dbClient.query(
+        `SELECT id, name, username, ${isAdmin ? 'password,' : ''} email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt" FROM team_members WHERE id = $1`,
+        [id]
+      );
+      if (existing.rowCount === 0) {
+        await dbClient.query('ROLLBACK');
+        return res.status(404).json({ error: 'Member not found' });
+      }
+      memberRow = existing.rows[0];
+    }
+
+    // Only Admin can update member project assignments
+    if (isAdmin && Array.isArray(projectIds)) {
+      await dbClient.query(`DELETE FROM project_members WHERE member_id = $1`, [id]);
+      for (const pId of projectIds) {
+        if (typeof pId === 'string' && pId.trim()) {
+          await dbClient.query(
+            `INSERT INTO project_members (project_id, member_id)
+             SELECT id, $2::varchar
+             FROM projects
+             WHERE id = $1 AND deleted_at IS NULL
+             ON CONFLICT (project_id, member_id) DO NOTHING`,
+            [pId.trim(), id]
+          );
+        }
+      }
+    }
+
+    await dbClient.query('COMMIT');
+    res.json(memberRow);
   } catch (err: any) {
+    await dbClient.query('ROLLBACK');
     console.error('Error updating member:', err);
     res.status(500).json({ error: err.message });
+  } finally {
+    dbClient.release();
+  }
+});
+
+// PUT update member's project assignments (admin only)
+app.put('/api/members/:id/projects', async (req: Request, res: Response) => {
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  if (callerRole !== 'admin') {
+    return res.status(403).json({ error: 'Permission denied. Only admin can update member project assignments.' });
+  }
+
+  const { id } = req.params;
+  const { projectIds } = req.body;
+
+  if (!Array.isArray(projectIds)) {
+    return res.status(400).json({ error: 'projectIds must be an array of strings.' });
+  }
+
+  const pool = getPool();
+  const dbClient = await pool.connect();
+
+  try {
+    await dbClient.query('BEGIN');
+    await dbClient.query(`DELETE FROM project_members WHERE member_id = $1`, [id]);
+    for (const pId of projectIds) {
+      if (typeof pId === 'string' && pId.trim()) {
+        await dbClient.query(
+          `INSERT INTO project_members (project_id, member_id)
+           SELECT id, $2::varchar
+           FROM projects
+           WHERE id = $1 AND deleted_at IS NULL
+           ON CONFLICT (project_id, member_id) DO NOTHING`,
+          [pId.trim(), id]
+        );
+      }
+    }
+    await dbClient.query('COMMIT');
+    res.json({ memberId: id, projectIds });
+  } catch (err: any) {
+    await dbClient.query('ROLLBACK');
+    console.error('Error updating member projects:', err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    dbClient.release();
   }
 });
 
