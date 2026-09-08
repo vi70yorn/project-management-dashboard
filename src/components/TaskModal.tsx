@@ -485,7 +485,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <button
+           {/*  <button
               id="copy-task-modal-btn"
               type="button"
               onClick={handleCopyTask}
@@ -507,7 +507,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   <span>Copy Task</span>
                 </>
               )}
-            </button>
+            </button> */}
             <button
               id="close-task-modal-btn"
               onClick={onClose}
@@ -852,7 +852,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 ) : (
                   <>
                     <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                    <span>Copy Text</span>
+                    <span>Copy Task as Text</span>
                   </>
                 )}
               </button>
