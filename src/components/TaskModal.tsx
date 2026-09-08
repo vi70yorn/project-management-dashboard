@@ -117,33 +117,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       ? `${proj.name}${proj.client ? ` (Client: ${proj.client})` : ''}`
       : projectName || 'Project';
 
-    const currentAssigneeId = assigneeId || initialTask?.assigneeId;
-    const assigned = safeMembers.find((m) => m.id === currentAssigneeId);
-    const assigneeName = assigned ? assigned.name : 'Unassigned';
-
-    const taskStatus = status || initialTask?.status || 'In Progress';
     const taskPriority = priority || initialTask?.priority || 'Medium';
-    const start = startDate || initialTask?.startDate;
-    const due = dueDate || initialTask?.dueDate;
-
-    let dateText = 'Not set';
-    if (start && due && start !== due) {
-      dateText = `${start} → ${due}`;
-    } else if (due) {
-      dateText = due;
-    } else if (start) {
-      dateText = `Starts ${start}`;
-    }
-
     const desc = (description || initialTask?.description || '').trim();
 
     const lines = [
       `📋 Task: ${taskTitle}`,
       `📁 Project: ${projName}`,
-      `👤 Assignee: ${assigneeName}`,
       `⚡ Priority: ${taskPriority}`,
-      `🔄 Status: ${taskStatus}`,
-      `📅 Due Date: ${dateText}`,
     ];
 
     if (desc) {
