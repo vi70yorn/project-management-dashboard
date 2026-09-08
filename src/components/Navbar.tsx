@@ -353,44 +353,39 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Current Logged In User Pill */}
           {currentUser && (
-            <div
+            <div 
               id="navbar-user-profile"
               className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-blue-600/60 dark:border-slate-800"
             >
-              <div className="flex items-center gap-2">
+              <button
+                type="button"
+                id="navbar-user-profile-btn"
+                onClick={onOpenEditProfile}
+                title="Update your user profile & info"
+                className="flex items-center gap-2 p-1 -m-1 sm:px-2 sm:py-1 rounded-xl hover:bg-blue-600/60 dark:hover:bg-slate-800 transition-colors cursor-pointer group text-left"
+              >
                 {currentUser.avatar ? (
                   <img
                     src={currentUser.avatar}
                     alt={currentUser.name}
-                    className="w-8 h-8 rounded-full object-cover border border-blue-500/60 dark:border-slate-700 shadow-2xs shrink-0"
+                    className="w-8 h-8 rounded-full object-cover border border-blue-500/60 dark:border-slate-700 shadow-2xs shrink-0 group-hover:ring-2 group-hover:ring-white/40 transition-all"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-blue-800 dark:bg-slate-800 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 border border-blue-500/60 dark:border-slate-700">
-                    {currentUser.name.slice(0, 2).toUpperCase()}
+                  <div className="w-8 h-8 rounded-full bg-blue-800 dark:bg-slate-800 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 border border-blue-500/60 dark:border-slate-700 group-hover:ring-2 group-hover:ring-white/40 transition-all">
+                    {currentUser.name.slice(0, 2).toUpperCase()}                    
                   </div>
                 )}
                 <div className="hidden lg:block text-left min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-white truncate max-w-[120px]">
-                      {currentUser.name}
+                  <div className="flex items-center gap-1.5">                    
+                    <span className="text-xs font-bold text-white group-hover:text-blue-100 truncate max-w-[120px] transition-colors">
+                      {currentUser.name}                     
                     </span>
                   </div>
-                  <p className="text-3xs text-blue-100 dark:text-slate-400 truncate max-w-[130px]">
+                  <p className="text-3xs text-blue-100/90 dark:text-slate-400 truncate max-w-[130px]">
                     {currentUser.username ? `@${currentUser.username}` : currentUser.email}
                   </p>
                 </div>
-              </div>
-
-              {onOpenEditProfile && (
-                <button
-                  id="navbar-edit-profile-btn"
-                  onClick={onOpenEditProfile}
-                  title="Update your user profile & info"
-                  className="p-1.5 text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                >
-                  <User className="w-4 h-4" />
-                </button>
-              )}
+              </button>
 
               {onOpenResetPassword && (
                 <button
