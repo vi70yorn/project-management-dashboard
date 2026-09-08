@@ -124,6 +124,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [activeMobileTab, setActiveMobileTab] = useState<'details' | 'discussion'>('details');
 
   useEffect(() => {
     if (isOpen && initialTask?.id) {
@@ -414,6 +415,299 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   const selectedMemberObj = safeMembers.find((m) => m.id === (assigneeId || initialTask?.assigneeId));
 
+  const renderDiscussionPanel = () => (
+    <div
+      id="task-discussion-right-panel"
+      className={`w-full lg:w-[400px] xl:w-[440px] border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col min-h-0 overflow-hidden shrink-0 ${
+        activeMobileTab === 'details' ? 'hidden lg:flex' : 'flex'
+      }`}
+    >
+      {/* Discussion Header (Top Right) */}
+      <div className="p-3.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 bg-white dark:bg-slate-900/80 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+            <MessageSquare className="w-3.5 h-3.5" />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Discussion & Timeline
+            </h4>
+            <span className="px-2 py-0.5 rounded-full text-3xs font-semibold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+              {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
+            </span>
+          </div>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-3xs">
+          <button
+            type="button"
+            onClick={() => setTimelineFilter('all')}
+            className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+              timelineFilter === 'all'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            All ({timeline.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimelineFilter('comments')}
+            className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+              timelineFilter === 'comments'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            Comments ({commentsCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setTimelineFilter('activity')}
+            className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+              timelineFilter === 'activity'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            Updates ({activityCount})
+          </button>
+        </div>
+      </div>
+
+      {/* Add Comment Input Form (Situated right at TOP under the header!) */}
+      <div className="p-3 bg-white dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">
+        <div className="flex items-start gap-2.5">
+          {currentUser?.avatar ? (
+            <img
+              src={currentUser.avatar}
+              alt={currentUser.name}
+              className="w-7 h-7 rounded-full object-cover shrink-0 ring-2 ring-white dark:ring-slate-900 shadow-2xs"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-3xs flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-900 shadow-2xs">
+              {(currentUser?.name || 'U').charAt(0).toUpperCase()}
+            </div>
+          )}
+
+          <div className="flex-1">
+            <textarea
+              id="task-comment-input"
+              rows={2}
+              value={commentInput}
+              onChange={(e) => setCommentInput(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  handlePostComment();
+                }
+              }}
+              placeholder="Write a comment or feedback... (Press Ctrl+Enter to post)"
+              className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-none transition-all"
+              disabled={isPostingComment}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-0.5">
+          <span className="text-3xs text-slate-400 dark:text-slate-500">
+            Press <kbd className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-3xs">Ctrl</kbd> + <kbd className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-3xs">Enter</kbd> to post
+          </span>
+
+          <button
+            id="post-task-comment-btn"
+            type="button"
+            onClick={handlePostComment}
+            disabled={!commentInput.trim() || isPostingComment}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-2xs transition-colors cursor-pointer"
+          >
+            {isPostingComment ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Posting...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-3.5 h-3.5" />
+                <span>Post Comment</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {commentError && (
+          <p className="text-2xs text-rose-600 dark:text-rose-400 font-medium">
+            {commentError}
+          </p>
+        )}
+      </div>
+
+      {/* Feed List (Scrollable below the comment form) */}
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
+        {isLoadingTimeline ? (
+          <div className="py-8 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-xs gap-2">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+            <span>Loading discussion & activity timeline...</span>
+          </div>
+        ) : filteredTimeline.length === 0 ? (
+          <div className="py-7 text-center rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 p-4">
+            <MessageSquare className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto mb-1.5" />
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {timelineFilter === 'comments'
+                ? 'No comments on this task yet.'
+                : timelineFilter === 'activity'
+                ? 'No status updates logged yet.'
+                : 'No discussion or updates yet.'}
+            </p>
+            <p className="text-3xs text-slate-400 dark:text-slate-500 mt-0.5">
+              Post a comment above to share feedback or instructions with your team.
+            </p>
+          </div>
+        ) : (
+          <div className="relative space-y-3 py-1 px-1">
+            {filteredTimeline.map((item, index) => {
+              if (item.type === 'comment') {
+                const canDelete =
+                  currentUser?.role === 'admin' ||
+                  (currentUser?.memberId && item.userId === currentUser.memberId);
+                return (
+                  <div key={item.id} className="relative flex items-start gap-3 group">
+                    {/* Vertical connector line */}
+                    {index < filteredTimeline.length - 1 && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-[13px] top-[26px] bottom-[-14px] w-[2px] bg-slate-200 dark:bg-slate-700/70 pointer-events-none"
+                      />
+                    )}
+
+                    {/* Avatar */}
+                    <div className="relative z-10 shrink-0">
+                      {item.userAvatar ? (
+                        <img
+                          src={item.userAvatar}
+                          alt={item.userName}
+                          className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-slate-900 shadow-2xs"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold text-3xs flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
+                          {(item.userName || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Comment Bubble */}
+                    <div className="flex-1 bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 rounded-xl p-3 shadow-2xs text-xs">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 text-2xs">
+                            {item.userName}
+                          </span>
+                          {item.userRole && (
+                            <span className="px-1.5 py-0.5 rounded text-3xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                              {item.userRole}
+                            </span>
+                          )}
+                          <span className="text-3xs text-slate-400 dark:text-slate-500 font-medium">
+                            • {formatDateTime(item.createdAt)}
+                          </span>
+                        </div>
+
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteComment(item.id)}
+                            disabled={deletingCommentId === item.id}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                            title="Delete comment"
+                          >
+                            {deletingCommentId === item.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin text-rose-500" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="text-slate-700 dark:text-slate-200 text-xs leading-relaxed break-words">
+                        <FormattedText content={item.content} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Otherwise: Activity Event (Status changes, Task creations, etc.)
+              const isStatusChange = item.actionType === 'update_task_status';
+              const fromStatus = (item.details?.fromStatus as StatusType) || null;
+              const toStatus = (item.details?.toStatus || item.details?.newStatus) as StatusType;
+
+              return (
+                <div key={item.id} className="relative flex items-start gap-3">
+                  {/* Vertical connector line */}
+                  {index < filteredTimeline.length - 1 && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-[13px] top-[26px] bottom-[-14px] w-[2px] bg-slate-200 dark:bg-slate-700/70 pointer-events-none"
+                    />
+                  )}
+
+                  {/* Node icon */}
+                  <div
+                    className={`relative z-10 w-7 h-7 rounded-full flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-900 shadow-2xs border ${
+                      isStatusChange
+                        ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/80'
+                        : item.actionType === 'create_task'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/80'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {isStatusChange ? (
+                      <Clock className="w-3.5 h-3.5" />
+                    ) : item.actionType === 'create_task' ? (
+                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    ) : (
+                      <History className="w-3.5 h-3.5" />
+                    )}
+                  </div>
+
+                  {/* Node content */}
+                  <div className="flex-1 min-h-[28px] text-2xs text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2 bg-slate-50/85 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors px-3 py-1 rounded-lg border border-slate-200/75 dark:border-slate-700/60 shadow-2xs">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">
+                        {item.userName}
+                      </span>
+                      {isStatusChange && toStatus ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-slate-500 dark:text-slate-400">changed status</span>
+                          {fromStatus && (
+                            <>
+                              <StatusBadge status={fromStatus} size="xs" />
+                              <ArrowRight className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500" />
+                            </>
+                          )}
+                          <StatusBadge status={toStatus} size="xs" />
+                        </span>
+                      ) : item.actionType === 'create_task' ? (
+                        <span className="text-slate-500 dark:text-slate-400">created this deliverable</span>
+                      ) : (
+                        <span className="text-slate-500 dark:text-slate-400">updated deliverable details</span>
+                      )}
+                    </div>
+                    <span className="text-3xs text-slate-400 dark:text-slate-500 shrink-0 font-medium tabular-nums">
+                      {formatDateTime(item.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   // If Staff role and viewing ANOTHER member's task: render pristine, read-only Task Detail View
   if (isStaff && initialTask && !isOwnTask) {
     const dueInfo = getDueDateStatus(initialTask.dueDate);
@@ -426,12 +720,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       >
         <div
           id="task-modal-card"
-          className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+          className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
         >
           {/* Read-Only Header */}
-          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
+          <div className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <Eye className="w-4 h-4" />
               </div>
               <div>
@@ -451,6 +745,38 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Mobile Tab Switcher */}
+              <div className="flex items-center lg:hidden bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveMobileTab('details')}
+                  className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                    activeMobileTab === 'details'
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  Details
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveMobileTab('discussion')}
+                  className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
+                    activeMobileTab === 'discussion'
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Discussion</span>
+                  {commentsCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-3xs bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold">
+                      {commentsCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
               <button
                 id="copy-readonly-task-btn"
                 type="button"
@@ -484,9 +810,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
 
-          {/* Read-Only Details Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-5">
-            {/* Title & Status Badges */}
+          {/* Read-Only Split Main Content */}
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+            {/* Left Column: Read-Only Details */}
+            <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${
+              activeMobileTab === 'discussion' ? 'hidden lg:flex' : 'flex'
+            }`}>
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                {/* Title & Status Badges */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <StatusBadge status={initialTask.status} size="sm" prefix="Status:" />
@@ -723,9 +1054,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Right Column: Discussion & Activity Timeline */}
+        {renderDiscussionPanel()}
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // Create / Edit Form (Admins on all tasks, or Staff on their own tasks / new tasks)
   return (
@@ -735,10 +1071,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     >
       <div
         id="task-modal-card"
-        className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+        className={`w-full ${initialTask ? 'max-w-5xl' : 'max-w-xl'} bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]`}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60">
+        <div className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60 shrink-0">
           <div>
             <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {currentProject ? currentProject.name : projectName || 'Project Task'}
@@ -754,29 +1090,38 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </h2>
           </div>
           <div className="flex items-center gap-2">
-           {/*  <button
-              id="copy-task-modal-btn"
-              type="button"
-              onClick={handleCopyTask}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
-                copied
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs'
-              }`}
-              title="Copy task formatted as text for communication apps (Telegram, Slack, Teams, etc.)"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                  <span>Copy Task</span>
-                </>
-              )}
-            </button> */}
+            {initialTask && (
+              <div className="flex items-center lg:hidden bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveMobileTab('details')}
+                  className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                    activeMobileTab === 'details'
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  Details
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveMobileTab('discussion')}
+                  className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
+                    activeMobileTab === 'discussion'
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Discussion</span>
+                  {commentsCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-3xs bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold">
+                      {commentsCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
             <button
               id="close-task-modal-btn"
               onClick={onClose}
@@ -787,9 +1132,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </div>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* Project Selector */}
+        {/* Modal Main Split Content */}
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+          {/* Left Column: Task Form */}
+          <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${
+            activeMobileTab === 'discussion' ? 'hidden lg:flex' : 'flex'
+          }`}>
+            <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {/* Project Selector */}
           {safeProjects.length > 0 && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -1204,358 +1555,75 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </div>
             </div>
           )}
+        </div>
 
-          {/* Discussion & Activity Timeline Section */}
-          {initialTask && (
-            <div id="task-discussion-timeline-section" className="border-t border-slate-200 dark:border-slate-800 pt-5 space-y-3.5">
-              {/* Header & Filter Controls */}
-              <div className="flex items-center justify-between flex-wrap gap-2">
+              {/* Pinned Left Footer */}
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Discussion & Timeline
-                    </h4>
-                    <span className="px-2 py-0.5 rounded-full text-3xs font-semibold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
-                      {commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Filter Tabs */}
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-2xs">
-                  <button
-                    type="button"
-                    onClick={() => setTimelineFilter('all')}
-                    className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                      timelineFilter === 'all'
-                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                  >
-                    All ({timeline.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTimelineFilter('comments')}
-                    className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                      timelineFilter === 'comments'
-                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                  >
-                    Comments ({commentsCount})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTimelineFilter('activity')}
-                    className={`px-2 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                      timelineFilter === 'activity'
-                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                  >
-                    Updates ({activityCount})
-                  </button>
-                </div>
-              </div>
-
-              {/* Feed List */}
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {isLoadingTimeline ? (
-                  <div className="py-8 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-xs gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                    <span>Loading discussion & activity timeline...</span>
-                  </div>
-                ) : filteredTimeline.length === 0 ? (
-                  <div className="py-7 text-center rounded-xl bg-slate-50/60 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 p-4">
-                    <MessageSquare className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto mb-1.5" />
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      {timelineFilter === 'comments'
-                        ? 'No comments on this task yet.'
-                        : timelineFilter === 'activity'
-                        ? 'No status updates logged yet.'
-                        : 'No discussion or updates yet.'}
-                    </p>
-                    <p className="text-3xs text-slate-400 dark:text-slate-500 mt-0.5">
-                      Post a comment below to share feedback or instructions with your team.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="relative space-y-3 py-1 px-1">
-                    {filteredTimeline.map((item, index) => {
-                      if (item.type === 'comment') {
-                        const canDelete =
-                          currentUser?.role === 'admin' ||
-                          (currentUser?.memberId && item.userId === currentUser.memberId);
-                        return (
-                          <div key={item.id} className="relative flex items-start gap-3 group">
-                            {/* Vertical connector line */}
-                            {index < filteredTimeline.length - 1 && (
-                              <span
-                                aria-hidden="true"
-                                className="absolute left-[13px] top-[26px] bottom-[-14px] w-[2px] bg-slate-200 dark:bg-slate-700/70 pointer-events-none"
-                              />
-                            )}
-
-                            {/* Avatar */}
-                            <div className="relative z-10 shrink-0">
-                              {item.userAvatar ? (
-                                <img
-                                  src={item.userAvatar}
-                                  alt={item.userName}
-                                  className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-slate-900 shadow-2xs"
-                                />
-                              ) : (
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold text-3xs flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
-                                  {(item.userName || 'U').charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Comment Bubble */}
-                            <div className="flex-1 bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/80 rounded-xl p-3 shadow-2xs text-xs">
-                              <div className="flex items-center justify-between gap-2 mb-1">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-semibold text-slate-800 dark:text-slate-200 text-2xs">
-                                    {item.userName}
-                                  </span>
-                                  {item.userRole && (
-                                    <span className="px-1.5 py-0.5 rounded text-3xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                                      {item.userRole}
-                                    </span>
-                                  )}
-                                  <span className="text-3xs text-slate-400 dark:text-slate-500 font-medium">
-                                    • {formatDateTime(item.createdAt)}
-                                  </span>
-                                </div>
-
-                                {canDelete && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteComment(item.id)}
-                                    disabled={deletingCommentId === item.id}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
-                                    title="Delete comment"
-                                  >
-                                    {deletingCommentId === item.id ? (
-                                      <Loader2 className="w-3 h-3 animate-spin text-rose-500" />
-                                    ) : (
-                                      <Trash2 className="w-3 h-3" />
-                                    )}
-                                  </button>
-                                )}
-                              </div>
-
-                              <div className="text-slate-700 dark:text-slate-200 text-xs leading-relaxed break-words">
-                                <FormattedText content={item.content} />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      // Otherwise: Activity Event (Status changes, Task creations, etc.)
-                      const isStatusChange = item.actionType === 'update_task_status';
-                      const fromStatus = (item.details?.fromStatus as StatusType) || null;
-                      const toStatus = (item.details?.toStatus || item.details?.newStatus) as StatusType;
-
-                      return (
-                        <div key={item.id} className="relative flex items-start gap-3">
-                          {/* Vertical connector line */}
-                          {index < filteredTimeline.length - 1 && (
-                            <span
-                              aria-hidden="true"
-                              className="absolute left-[13px] top-[26px] bottom-[-14px] w-[2px] bg-slate-200 dark:bg-slate-700/70 pointer-events-none"
-                            />
-                          )}
-
-                          {/* Node icon */}
-                          <div
-                            className={`relative z-10 w-7 h-7 rounded-full flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-900 shadow-2xs border ${
-                              isStatusChange
-                                ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/80'
-                                : item.actionType === 'create_task'
-                                ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/80'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-                            }`}
-                          >
-                            {isStatusChange ? (
-                              <Clock className="w-3.5 h-3.5" />
-                            ) : item.actionType === 'create_task' ? (
-                              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                            ) : (
-                              <History className="w-3.5 h-3.5" />
-                            )}
-                          </div>
-
-                          {/* Node content */}
-                          <div className="flex-1 min-h-[28px] text-2xs text-slate-600 dark:text-slate-300 flex items-center justify-between gap-2 bg-slate-50/85 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors px-3 py-1 rounded-lg border border-slate-200/75 dark:border-slate-700/60 shadow-2xs">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-semibold text-slate-900 dark:text-slate-100">
-                                {item.userName}
-                              </span>
-                              {isStatusChange && toStatus ? (
-                                <span className="inline-flex items-center gap-1">
-                                  <span className="text-slate-500 dark:text-slate-400">changed status</span>
-                                  {fromStatus && (
-                                    <>
-                                      <StatusBadge status={fromStatus} size="xs" />
-                                      <ArrowRight className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500" />
-                                    </>
-                                  )}
-                                  <StatusBadge status={toStatus} size="xs" />
-                                </span>
-                              ) : item.actionType === 'create_task' ? (
-                                <span className="text-slate-500 dark:text-slate-400">created this deliverable</span>
-                              ) : (
-                                <span className="text-slate-500 dark:text-slate-400">updated deliverable details</span>
-                              )}
-                            </div>
-                            <span className="text-3xs text-slate-400 dark:text-slate-500 shrink-0 font-medium tabular-nums">
-                              {formatDateTime(item.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Add Comment Input Form */}
-              <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
-                <div className="flex items-start gap-2.5">
-                  {currentUser?.avatar ? (
-                    <img
-                      src={currentUser.avatar}
-                      alt={currentUser.name}
-                      className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-slate-300 dark:ring-slate-700"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-3xs flex items-center justify-center shrink-0 ring-1 ring-slate-300 dark:ring-slate-700">
-                      {(currentUser?.name || 'U').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-
-                  <div className="flex-1">
-                    <textarea
-                      id="task-comment-input"
-                      rows={2}
-                      value={commentInput}
-                      onChange={(e) => setCommentInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                          e.preventDefault();
-                          handlePostComment();
-                        }
+                  {initialTask && onDelete && canDeleteTask && (
+                    <button
+                      id="delete-task-modal-btn"
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onDelete(initialTask);
                       }}
-                      placeholder="Write a comment or feedback... (Press Ctrl+Enter to post)"
-                      className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-none transition-all"
-                      disabled={isPostingComment}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-3xs text-slate-400 dark:text-slate-500">
-                    Press <kbd className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-3xs">Ctrl</kbd> + <kbd className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-3xs">Enter</kbd> to post
-                  </span>
-
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/80 rounded-lg transition-colors cursor-pointer"
+                      title="Move task to Recycle Bin (kept for 7 days)"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Task</span>
+                    </button>
+                  )}
                   <button
-                    id="post-task-comment-btn"
+                    id="copy-task-footer-btn"
                     type="button"
-                    onClick={handlePostComment}
-                    disabled={!commentInput.trim() || isPostingComment}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-2xs transition-colors cursor-pointer"
+                    onClick={handleCopyTask}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-all cursor-pointer border rounded-lg ${
+                      copied
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                    title="Copy task formatted as text for communication apps"
                   >
-                    {isPostingComment ? (
+                    {copied ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Posting...</span>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>Copied!</span>
                       </>
                     ) : (
                       <>
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Post Comment</span>
+                        <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                        <span>Copy Task as Text</span>
                       </>
                     )}
                   </button>
                 </div>
-
-                {commentError && (
-                  <p className="text-2xs text-rose-600 dark:text-rose-400 font-medium">
-                    {commentError}
-                  </p>
-                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    id="cancel-task-modal-btn"
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    id="submit-task-btn"
+                    type="submit"
+                    className="px-5 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Check className="w-4 h-4" />
+                    {initialTask ? 'Save Task' : 'Create Task'}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Footer */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              {initialTask && onDelete && canDeleteTask && (
-                <button
-                  id="delete-task-modal-btn"
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onDelete(initialTask);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/80 rounded-lg transition-colors cursor-pointer"
-                  title="Move task to Recycle Bin (kept for 7 days)"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete Task</span>
-                </button>
-              )}
-              <button
-                id="copy-task-footer-btn"
-                type="button"
-                onClick={handleCopyTask}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-all cursor-pointer border rounded-lg ${
-                  copied
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-                title="Copy task formatted as text for communication apps"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                    <span>Copy Task as Text</span>
-                  </>
-                )}
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                id="cancel-task-modal-btn"
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                id="submit-task-btn"
-                type="submit"
-                className="px-5 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <Check className="w-4 h-4" />
-                {initialTask ? 'Save Task' : 'Create Task'}
-              </button>
-            </div>
+            </form>
           </div>
-        </form>
+
+          {/* Right Column: Discussion & Activity Timeline (Situated at the TOP RIGHT!) */}
+          {initialTask && renderDiscussionPanel()}
+        </div>
       </div>
     </div>
   );
