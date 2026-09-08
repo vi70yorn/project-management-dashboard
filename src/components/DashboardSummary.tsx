@@ -734,7 +734,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                                   ? 'Due Today!'
                                   : isOverdue
                                   ? `Overdue by ${Math.abs(item.diffDays)}d`
-                                  : `Due in ${item.diffDays} days (${item.dueDate})`}
+                                  : `${item.diffDays} days (${item.dueDate})`}
                               </span>
                             </div>
                           </td>
