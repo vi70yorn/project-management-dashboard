@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   LayoutDashboard,
   Plus,
@@ -17,8 +17,11 @@ import {
   Calendar as CalendarIcon,
   Activity,
   Search,
+  Bell,
 } from 'lucide-react';
-import { Project, AuthUser, ViewType } from '../types';
+import { Project, AuthUser, ViewType, InAppNotification } from '../types';
+import { NotificationDropdown } from './NotificationDropdown';
+import { isNotificationForUser, isNotificationUnread } from '../utils/notificationUtils';
 
 interface NavbarProps {
   currentView: ViewType;
@@ -46,6 +49,11 @@ interface NavbarProps {
   onOpenTeamActivities?: () => void;
   isTeamActivitiesOpen?: boolean;
   onOpenCommandPalette?: () => void;
+  notifications?: InAppNotification[];
+  onMarkNotificationAsRead?: (id: string) => void;
+  onMarkAllNotificationsAsRead?: () => void;
+  onDismissNotification?: (id: string) => void;
+  onOpenTaskFromNotification?: (taskId: string, projectId?: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -74,9 +82,23 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenTeamActivities,
   isTeamActivitiesOpen = false,
   onOpenCommandPalette,
+  notifications = [],
+  onMarkNotificationAsRead,
+  onMarkAllNotificationsAsRead,
+  onDismissNotification,
+  onOpenTaskFromNotification,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const handleRecycleBinAction = onGoToRecycleBin || onOpenRecycleBin;
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // Unread badge count for current user
+  const unreadNotificationCount = useMemo(() => {
+    if (!notifications || !Array.isArray(notifications)) return 0;
+    return notifications.filter(
+      (notif) => isNotificationForUser(notif, currentUser) && isNotificationUnread(notif, currentUser)
+    ).length;
+  }, [notifications, currentUser]);
 
   return (
     <header
@@ -106,19 +128,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 pl-4 border-l border-blue-600/60 dark:border-slate-800">
+          <div className="hidden md:flex items-center gap-1.5 sm:gap-2 pl-4 border-l border-blue-600/60 dark:border-slate-800">
             {/* Dashboard summary tab */}
             <button
               id="nav-dashboard-summary-btn"
               onClick={onGoToDashboard}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              title="Dashboard"
+              className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 currentView === 'dashboard'
                   ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
                   : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
               }`}
             >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              Dashboard
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
+              <span
+                className={`transition-all duration-200 whitespace-nowrap overflow-hidden ${
+                  currentView === 'dashboard'
+                    ? 'max-w-44 opacity-100 ml-1.5'
+                    : 'max-w-0 opacity-0 ml-0 group-hover:max-w-44 group-hover:opacity-100 group-hover:ml-1.5'
+                }`}
+              >
+                Dashboard
+              </span>
             </button>
 
             {/* Calendar & Timeline View tab */}
@@ -126,15 +157,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 id="nav-calendar-btn"
                 onClick={onGoToCalendar}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                title="Calendar & Project/Task Timeline"
+                className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   currentView === 'calendar'
                     ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
                     : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                 }`}
-                title="Calendar & Project/Task Timeline"
               >
-                <CalendarIcon className="w-3.5 h-3.5" />
-                Calendar
+                <CalendarIcon className="w-4 h-4 shrink-0" />
+                <span
+                  className={`transition-all duration-200 whitespace-nowrap overflow-hidden ${
+                    currentView === 'calendar'
+                      ? 'max-w-44 opacity-100 ml-1.5'
+                      : 'max-w-0 opacity-0 ml-0 group-hover:max-w-44 group-hover:opacity-100 group-hover:ml-1.5'
+                  }`}
+                >
+                  Calendar
+                </span>
               </button>
             )}
 
@@ -142,22 +181,31 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="nav-team-management-btn"
               onClick={onGoToTeam}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              title="Team Management"
+              className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 currentView === 'team'
                   ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
                   : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
               }`}
             >
-              <Users className="w-3.5 h-3.5" />
-              Team
+              <Users className="w-4 h-4 shrink-0" />
               <span
-                className={`px-1.5 py-0.2 rounded-full text-3xs font-bold ${
+                className={`inline-flex items-center gap-1.5 transition-all duration-200 whitespace-nowrap overflow-hidden ${
                   currentView === 'team'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-white'
-                    : 'bg-blue-800/80 text-blue-100 border border-blue-600/50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                    ? 'max-w-44 opacity-100 ml-1.5'
+                    : 'max-w-0 opacity-0 ml-0 group-hover:max-w-44 group-hover:opacity-100 group-hover:ml-1.5'
                 }`}
               >
-                {teamCount}
+                <span>Team</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-3xs font-bold ${
+                    currentView === 'team'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-white'
+                      : 'bg-blue-800/80 text-blue-100 border border-blue-600/50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                  }`}
+                >
+                  {teamCount}
+                </span>
               </span>
             </button>
 
@@ -166,15 +214,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 id="nav-project-summary-btn"
                 onClick={onGoToSummary}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                title="Project Weekly Summary & Reports"
+                className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   currentView === 'summary'
                     ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
                     : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
                 }`}
-                title="Project Weekly Summary & Reports"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                Weekly Summary
+                <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                <span
+                  className={`transition-all duration-200 whitespace-nowrap overflow-hidden ${
+                    currentView === 'summary'
+                      ? 'max-w-44 opacity-100 ml-1.5'
+                      : 'max-w-0 opacity-0 ml-0 group-hover:max-w-44 group-hover:opacity-100 group-hover:ml-1.5'
+                  }`}
+                >
+                  Weekly Summary
+                </span>
               </button>
             )}
 
@@ -302,6 +358,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </button>
             )}
+            {/* Mobile Notification Bell */}
+            <button
+              id="nav-mobile-notifications-btn"
+              onClick={() => setIsNotificationOpen((prev) => !prev)}
+              className={`relative p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                isNotificationOpen
+                  ? 'bg-blue-800 text-white dark:bg-blue-950/60 dark:text-blue-300'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+              }`}
+              title={`Notifications${unreadNotificationCount > 0 ? ` (${unreadNotificationCount} unread)` : ''}`}
+              aria-label="Open notifications"
+            >
+              <Bell className="w-4 h-4" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-1 ring-blue-700 dark:ring-slate-900 animate-pulse">
+                  {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Quick Command Palette (Cmd + K / Ctrl + K) Button */}
@@ -377,6 +452,40 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </button>
           )}
+
+          {/* Notification Center (Bell Icon in Header) */}
+          <div className="relative">
+            <button
+              id="navbar-notifications-btn"
+              onClick={() => setIsNotificationOpen((prev) => !prev)}
+              title={`Notification Center${unreadNotificationCount > 0 ? ` (${unreadNotificationCount} unread)` : ''}`}
+              className={`relative p-2 rounded-xl transition-all cursor-pointer border ${
+                isNotificationOpen
+                  ? 'bg-blue-800 text-white border-blue-500 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 shadow-2xs'
+                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-800 border-transparent hover:border-blue-500/40 dark:hover:border-slate-700'
+              }`}
+              aria-label="Open Notifications"
+            >
+              <Bell className="w-4 h-4" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-2 ring-blue-700 dark:ring-slate-900 shadow-xs animate-pulse">
+                  {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown Panel */}
+            <NotificationDropdown
+              isOpen={isNotificationOpen}
+              onClose={() => setIsNotificationOpen(false)}
+              notifications={notifications}
+              currentUser={currentUser || null}
+              onMarkAsRead={onMarkNotificationAsRead || (() => {})}
+              onMarkAllAsRead={onMarkAllNotificationsAsRead || (() => {})}
+              onDismissNotification={onDismissNotification || (() => {})}
+              onOpenTask={onOpenTaskFromNotification}
+            />
+          </div>
 
           {/* Current Logged In User Pill */}
           {currentUser && (

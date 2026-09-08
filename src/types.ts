@@ -139,3 +139,23 @@ export interface RecycleBinData {
   tasks: Task[];
   totalCount: number;
 }
+
+export type NotificationType = 'task_assigned' | 'task_ready_review' | 'task_blocked' | 'system';
+
+export interface InAppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  taskId?: string;
+  taskTitle?: string;
+  projectId?: string;
+  projectName?: string;
+  targetUserIds?: string[]; // Member IDs of specific targets
+  targetRoles?: UserRole[]; // 'admin' or 'staff'
+  actorId?: string;
+  actorName?: string;
+  actorAvatar?: string;
+  readBy: string[]; // Member IDs or user IDs who marked read
+  createdAt: string;
+}

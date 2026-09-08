@@ -4,7 +4,18 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Project, Task, TeamMember, StatusType, AuthUser, RecycleBinData, ViewType } from './types';
+import {
+  Project,
+  Task,
+  TeamMember,
+  StatusType,
+  AuthUser,
+  RecycleBinData,
+  ViewType,
+  InAppNotification,
+  NotificationType,
+  UserRole,
+} from './types';
 import {
   loadProjects,
   saveProjects,
@@ -17,6 +28,8 @@ import {
   clearAuthUser,
   loadRecycleBinData,
   saveRecycleBinData,
+  loadNotifications,
+  saveNotifications,
 } from './services/storage';
 import { Navbar } from './components/Navbar';
 import { DashboardSummary } from './components/DashboardSummary';
@@ -58,6 +71,11 @@ import {
   restoreRecycleBinItemApi,
   permanentlyDeleteItemApi,
   emptyRecycleBinApi,
+  fetchNotificationsApi,
+  createNotificationApi,
+  markNotificationReadApi,
+  markAllNotificationsReadApi,
+  dismissNotificationApi,
   DatabaseHealthResponse,
 } from './services/api';
 
@@ -161,6 +179,111 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
 
+  // In-App Notification Center State
+  const [notifications, setNotifications] = useState<InAppNotification[]>(loadNotifications);
+
+  useEffect(() => {
+    saveNotifications(notifications);
+  }, [notifications]);
+
+  // Sync notifications from server periodically and on activity
+  const refreshNotifications = async () => {
+    try {
+      const remoteNotifs = await fetchNotificationsApi();
+      if (Array.isArray(remoteNotifs)) {
+        setNotifications(remoteNotifs);
+      }
+    } catch {
+      // Fallback or network error, retain existing notifications
+    }
+  };
+
+  useEffect(() => {
+    refreshNotifications();
+    const interval = setInterval(refreshNotifications, 4000);
+    return () => clearInterval(interval);
+  }, [activityTrigger]);
+
+  const dispatchNotification = (notificationData: {
+    type: NotificationType;
+    title: string;
+    message: string;
+    taskId?: string;
+    taskTitle?: string;
+    projectId?: string;
+    projectName?: string;
+    targetUserIds?: string[];
+    targetRoles?: UserRole[];
+  }) => {
+    if (!dbHealth?.connected) {
+      const newNotif: InAppNotification = {
+        id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        type: notificationData.type,
+        title: notificationData.title,
+        message: notificationData.message,
+        taskId: notificationData.taskId,
+        taskTitle: notificationData.taskTitle,
+        projectId: notificationData.projectId,
+        projectName: notificationData.projectName,
+        targetUserIds: notificationData.targetUserIds,
+        targetRoles: notificationData.targetRoles,
+        actorId: currentUser?.memberId,
+        actorName: currentUser?.name || 'A team member',
+        actorAvatar: currentUser?.avatar,
+        readBy: [],
+        createdAt: new Date().toISOString(),
+      };
+
+      setNotifications((prev) => [newNotif, ...prev]);
+    }
+  };
+
+  const handleMarkNotificationAsRead = (id: string) => {
+    if (!currentUser) return;
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === id && !n.readBy.includes(currentUser.memberId)
+          ? { ...n, readBy: [...n.readBy, currentUser.memberId] }
+          : n
+      )
+    );
+    markNotificationReadApi(id, currentUser).catch((err) =>
+      console.warn('[Notification API] Mark read error:', err.message)
+    );
+  };
+
+  const handleMarkAllNotificationsAsRead = () => {
+    if (!currentUser) return;
+    setNotifications((prev) =>
+      prev.map((n) =>
+        !n.readBy.includes(currentUser.memberId)
+          ? { ...n, readBy: [...n.readBy, currentUser.memberId] }
+          : n
+      )
+    );
+    markAllNotificationsReadApi(currentUser).catch((err) =>
+      console.warn('[Notification API] Mark all read error:', err.message)
+    );
+    showToast('info', 'All notifications marked as read.');
+  };
+
+  const handleDismissNotification = (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    dismissNotificationApi(id).catch((err) =>
+      console.warn('[Notification API] Dismiss error:', err.message)
+    );
+  };
+
+  const handleOpenTaskFromNotification = (taskId: string, projectId?: string) => {
+    const targetTask = tasks.find((t) => t.id === taskId);
+    if (targetTask) {
+      if (projectId) setActiveProjectId(projectId);
+      handleOpenTaskModal(targetTask);
+    } else {
+      showToast('info', 'Task not found or has been removed.');
+    }
+  };
+
   // Recycle Bin State
   const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
   const [recycleBinData, setRecycleBinData] = useState<RecycleBinData>(() => loadRecycleBinData());
@@ -194,11 +317,12 @@ export default function App() {
       if (health.connected) {
         const activeRole = roleOverride !== undefined ? roleOverride : currentUser?.role;
         // Fetch fresh data directly from PostgreSQL
-        const [remoteProjects, remoteTasks, remoteMembers, remoteRecycleBin] = await Promise.all([
+        const [remoteProjects, remoteTasks, remoteMembers, remoteRecycleBin, remoteNotifications] = await Promise.all([
           fetchProjectsApi().catch(() => null),
           fetchTasksApi().catch(() => null),
           fetchMembersApi(activeRole).catch(() => null),
           fetchRecycleBinApi().catch(() => null),
+          fetchNotificationsApi().catch(() => null),
         ]);
 
         if (Array.isArray(remoteProjects)) {
@@ -212,6 +336,9 @@ export default function App() {
         }
         if (remoteRecycleBin && typeof remoteRecycleBin.totalCount === 'number') {
           setRecycleBinData(remoteRecycleBin);
+        }
+        if (Array.isArray(remoteNotifications)) {
+          setNotifications(remoteNotifications);
         }
 
         if (!silent) {
@@ -609,6 +736,45 @@ export default function App() {
       setTasks(nextTasks);
       syncProjectStatusForTasks(updatedTask.projectId, nextTasks, projects);
 
+      // Notification Triggers for Task Update
+      const projectName = projects.find((p) => p.id === updatedTask.projectId)?.name || '';
+      if (updatedTask.assigneeId && updatedTask.assigneeId !== editingTask.assigneeId) {
+        dispatchNotification({
+          type: 'task_assigned',
+          title: 'Task Assigned to You',
+          message: `${currentUser?.name || 'A team member'} assigned "${updatedTask.title}" to you.`,
+          taskId: updatedTask.id,
+          taskTitle: updatedTask.title,
+          projectId: updatedTask.projectId,
+          projectName,
+          targetUserIds: [updatedTask.assigneeId],
+        });
+      }
+      if (updatedTask.status === 'Ready Review' && editingTask.status !== 'Ready Review') {
+        dispatchNotification({
+          type: 'task_ready_review',
+          title: 'Task Ready for Review',
+          message: `${currentUser?.name || 'A team member'} moved "${updatedTask.title}" to Ready Review.`,
+          taskId: updatedTask.id,
+          taskTitle: updatedTask.title,
+          projectId: updatedTask.projectId,
+          projectName,
+          targetRoles: ['admin'],
+        });
+      }
+      if (updatedTask.status === 'Blocked' && editingTask.status !== 'Blocked') {
+        dispatchNotification({
+          type: 'task_blocked',
+          title: 'Task Marked Blocked',
+          message: `${currentUser?.name || 'A team member'} flagged "${updatedTask.title}" as Blocked!`,
+          taskId: updatedTask.id,
+          taskTitle: updatedTask.title,
+          projectId: updatedTask.projectId,
+          projectName,
+          targetRoles: ['admin'],
+        });
+      }
+
       updateTaskApi(editingTask.id, updatedTask, currentUser)
         .then(() => triggerActivityRefresh())
         .catch((err) => console.warn('[PostgreSQL Sync] Update task error:', err));
@@ -636,6 +802,45 @@ export default function App() {
       setTasks(nextTasks);
       syncProjectStatusForTasks(targetProjectId, nextTasks, projects);
 
+      // Notification Triggers for New Task
+      const projectName = projects.find((p) => p.id === targetProjectId)?.name || '';
+      if (newTask.assigneeId) {
+        dispatchNotification({
+          type: 'task_assigned',
+          title: 'New Task Assigned',
+          message: `${currentUser?.name || 'A team member'} assigned "${newTask.title}" to you.`,
+          taskId: newTask.id,
+          taskTitle: newTask.title,
+          projectId: targetProjectId,
+          projectName,
+          targetUserIds: [newTask.assigneeId],
+        });
+      }
+      if (newTask.status === 'Ready Review') {
+        dispatchNotification({
+          type: 'task_ready_review',
+          title: 'Task Ready for Review',
+          message: `${currentUser?.name || 'A team member'} marked "${newTask.title}" as Ready Review.`,
+          taskId: newTask.id,
+          taskTitle: newTask.title,
+          projectId: targetProjectId,
+          projectName,
+          targetRoles: ['admin'],
+        });
+      }
+      if (newTask.status === 'Blocked') {
+        dispatchNotification({
+          type: 'task_blocked',
+          title: 'Task Marked Blocked',
+          message: `${currentUser?.name || 'A team member'} marked "${newTask.title}" as Blocked!`,
+          taskId: newTask.id,
+          taskTitle: newTask.title,
+          projectId: targetProjectId,
+          projectName,
+          targetRoles: ['admin'],
+        });
+      }
+
       createTaskApi(newTask, currentUser)
         .then(() => triggerActivityRefresh())
         .catch((err) => console.warn('[PostgreSQL Sync] Create task error:', err));
@@ -657,6 +862,34 @@ export default function App() {
 
     let movedTaskTitle = '';
     let targetProjectId = '';
+
+    // Trigger Notification if moved to Ready Review or Blocked
+    if (targetTask && targetTask.status !== newStatus) {
+      const projName = projects.find((p) => p.id === targetTask.projectId)?.name || '';
+      if (newStatus === 'Ready Review') {
+        dispatchNotification({
+          type: 'task_ready_review',
+          title: 'Task Ready for Review',
+          message: `${currentUser?.name || 'A team member'} moved "${targetTask.title}" to Ready Review.`,
+          taskId: targetTask.id,
+          taskTitle: targetTask.title,
+          projectId: targetTask.projectId,
+          projectName: projName,
+          targetRoles: ['admin'],
+        });
+      } else if (newStatus === 'Blocked') {
+        dispatchNotification({
+          type: 'task_blocked',
+          title: 'Task Marked Blocked',
+          message: `${currentUser?.name || 'A team member'} flagged "${targetTask.title}" as Blocked!`,
+          taskId: targetTask.id,
+          taskTitle: targetTask.title,
+          projectId: targetTask.projectId,
+          projectName: projName,
+          targetRoles: ['admin'],
+        });
+      }
+    }
 
     const nextTasks = tasks.map((t) => {
       if (t.id === taskId) {
@@ -686,6 +919,21 @@ export default function App() {
     if (currentUser?.role === 'staff') {
       showToast('error', 'Staff members cannot reassign tasks.');
       return;
+    }
+
+    const currentTask = tasks.find((t) => t.id === taskId);
+    if (currentTask && currentTask.assigneeId !== assigneeId) {
+      const projName = projects.find((p) => p.id === currentTask.projectId)?.name || '';
+      dispatchNotification({
+        type: 'task_assigned',
+        title: 'Task Assigned to You',
+        message: `${currentUser?.name || 'A team member'} assigned "${currentTask.title}" to you.`,
+        taskId: currentTask.id,
+        taskTitle: currentTask.title,
+        projectId: currentTask.projectId,
+        projectName: projName,
+        targetUserIds: [assigneeId],
+      });
     }
 
     setTasks((prev) =>
@@ -1154,6 +1402,11 @@ export default function App() {
         onOpenTeamActivities={() => setIsTeamActivitiesOpen(true)}
         isTeamActivitiesOpen={isTeamActivitiesOpen}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        notifications={notifications}
+        onMarkNotificationAsRead={handleMarkNotificationAsRead}
+        onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
+        onDismissNotification={handleDismissNotification}
+        onOpenTaskFromNotification={handleOpenTaskFromNotification}
       />
 
       {/* Main Content Area */}

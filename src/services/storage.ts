@@ -1,4 +1,4 @@
-import { Project, Task, TeamMember, AuthUser, RecycleBinData } from '../types';
+import { Project, Task, TeamMember, AuthUser, RecycleBinData, InAppNotification } from '../types';
 
 export const INITIAL_MEMBERS: TeamMember[] = [];
 
@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   AUTH_USER: 'pm_auth_user_v2',
   RECYCLE_BIN_PROJECTS: 'pm_clean_recycle_projects_v1',
   RECYCLE_BIN_TASKS: 'pm_clean_recycle_tasks_v1',
+  NOTIFICATIONS: 'pm_clean_notifications_v1',
 };
 
 export const DEFAULT_ADMIN_USER: AuthUser = {
@@ -161,5 +162,71 @@ export const saveRecycleBinData = (data: RecycleBinData) => {
     }
   } catch (e) {
     console.error('Error saving recycle bin to localStorage:', e);
+  }
+};
+
+export const INITIAL_NOTIFICATIONS: InAppNotification[] = [
+  {
+    id: 'notif-seed-1',
+    type: 'task_assigned',
+    title: 'New Task Assigned',
+    message: 'You have been assigned to "Implement OAuth2 refresh token rotation"',
+    taskTitle: 'Implement OAuth2 refresh token rotation',
+    projectName: 'Merchant 5.0',
+    targetUserIds: ['mem-1788624319284', 'mem-1788624380119'],
+    actorName: 'Y.VICHET',
+    readBy: [],
+    createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'notif-seed-2',
+    type: 'task_ready_review',
+    title: 'Task Ready for Review',
+    message: 'David moved "Redesign checkout flow UI" to Ready Review',
+    taskTitle: 'Redesign checkout flow UI',
+    projectName: 'Merchant 5.0',
+    targetRoles: ['admin'],
+    targetUserIds: ['mem-1788624380119'],
+    actorName: 'David',
+    readBy: [],
+    createdAt: new Date(Date.now() - 65 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'notif-seed-3',
+    type: 'task_blocked',
+    title: 'Task Marked Blocked',
+    message: 'Sarah Chen flagged "Payment Gateway Sandbox Integration" as Blocked: Waiting for API credentials',
+    taskTitle: 'Payment Gateway Sandbox Integration',
+    projectName: 'Mobile App 2.0',
+    targetRoles: ['admin'],
+    targetUserIds: ['mem-1788624380119'],
+    actorName: 'Sarah Chen',
+    readBy: [],
+    createdAt: new Date(Date.now() - 140 * 60 * 1000).toISOString(),
+  },
+];
+
+export const loadNotifications = (): InAppNotification[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+    if (!raw) {
+      saveNotifications(INITIAL_NOTIFICATIONS);
+      return INITIAL_NOTIFICATIONS;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : INITIAL_NOTIFICATIONS;
+  } catch (e) {
+    console.error('Error loading notifications from localStorage:', e);
+    return INITIAL_NOTIFICATIONS;
+  }
+};
+
+export const saveNotifications = (notifications: InAppNotification[]) => {
+  try {
+    if (Array.isArray(notifications)) {
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+    }
+  } catch (e) {
+    console.error('Error saving notifications to localStorage:', e);
   }
 };

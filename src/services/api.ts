@@ -1,4 +1,4 @@
-import { Project, Task, TeamMember, StatusType, RecycleBinData, TaskComment, TaskTimelineResponse, TaskSubtask } from '../types';
+import { Project, Task, TeamMember, StatusType, RecycleBinData, TaskComment, TaskTimelineResponse, TaskSubtask, InAppNotification } from '../types';
 import { loadAuthUser } from './storage';
 
 const API_BASE = '/api';
@@ -581,6 +581,62 @@ export async function deleteTaskSubtaskApi(
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to delete subtask');
   return data;
+}
+
+// -------------------------------------------------------------
+// In-App Notification Center API (Cross-User & Multi-Session)
+// -------------------------------------------------------------
+
+export async function fetchNotificationsApi(): Promise<InAppNotification[]> {
+  const res = await fetch(`${API_BASE}/notifications`);
+  if (!res.ok) throw new Error('Failed to fetch notifications');
+  return res.json();
+}
+
+export async function createNotificationApi(
+  notification: Partial<InAppNotification>,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ success: boolean; id?: string }> {
+  const res = await fetch(`${API_BASE}/notifications`, {
+    method: 'POST',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify(notification),
+  });
+  if (!res.ok) throw new Error('Failed to create notification');
+  return res.json();
+}
+
+export async function markNotificationReadApi(
+  id: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify({ memberId: currentUser?.memberId }),
+  });
+  if (!res.ok) throw new Error('Failed to mark notification read');
+  return res.json();
+}
+
+export async function markAllNotificationsReadApi(
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE}/notifications/mark-all-read`, {
+    method: 'POST',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify({ memberId: currentUser?.memberId }),
+  });
+  if (!res.ok) throw new Error('Failed to mark all notifications read');
+  return res.json();
+}
+
+export async function dismissNotificationApi(id: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_BASE}/notifications/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to dismiss notification');
+  return res.json();
 }
 
 

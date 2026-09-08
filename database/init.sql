@@ -200,3 +200,24 @@ CREATE TABLE IF NOT EXISTS task_subtasks (
 
 CREATE INDEX IF NOT EXISTS idx_task_subtasks_task_id ON task_subtasks(task_id, position ASC);
 
+-- 10. In-App Notifications Table (Handoff alerts between Admin & Staff)
+CREATE TABLE IF NOT EXISTS in_app_notifications (
+    id VARCHAR(64) PRIMARY KEY,
+    type VARCHAR(64) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    task_id VARCHAR(64) REFERENCES tasks(id) ON DELETE CASCADE,
+    task_title VARCHAR(255),
+    project_id VARCHAR(64) REFERENCES projects(id) ON DELETE CASCADE,
+    project_name VARCHAR(255),
+    target_user_ids TEXT[] DEFAULT '{}',
+    target_roles VARCHAR(32)[] DEFAULT '{}',
+    actor_id VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
+    actor_name VARCHAR(255),
+    actor_avatar TEXT,
+    read_by TEXT[] DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_in_app_notifications_created_at ON in_app_notifications(created_at DESC);
+

@@ -839,6 +839,58 @@ app.post('/api/tasks', async (req: Request, res: Response) => {
       details: { status, priority, assigneeId },
     }, req);
 
+    // Server-side notification trigger on task create
+    const taskTitle = createdTask?.title || title;
+    const projName = createdTask?.projectName || '';
+    const actorName = req.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : 'A team member';
+    const actorAvatar = req.headers['x-user-avatar'] ? decodeURIComponent(req.headers['x-user-avatar'] as string) : null;
+
+    if (assigneeId) {
+      createServerNotification(pool, {
+        type: 'task_assigned',
+        title: 'New Task Assigned',
+        message: `${actorName} assigned "${taskTitle}" to you.`,
+        taskId,
+        taskTitle,
+        projectId,
+        projectName: projName,
+        targetUserIds: [assigneeId],
+        actorId: effectiveCreatedBy,
+        actorName,
+        actorAvatar,
+      });
+    }
+    if (status === 'Ready Review') {
+      createServerNotification(pool, {
+        type: 'task_ready_review',
+        title: 'Task Ready for Review',
+        message: `${actorName} marked "${taskTitle}" as Ready Review.`,
+        taskId,
+        taskTitle,
+        projectId,
+        projectName: projName,
+        targetRoles: ['admin'],
+        actorId: effectiveCreatedBy,
+        actorName,
+        actorAvatar,
+      });
+    }
+    if (status === 'Blocked') {
+      createServerNotification(pool, {
+        type: 'task_blocked',
+        title: 'Task Marked Blocked',
+        message: `${actorName} marked "${taskTitle}" as Blocked!`,
+        taskId,
+        taskTitle,
+        projectId,
+        projectName: projName,
+        targetRoles: ['admin'],
+        actorId: effectiveCreatedBy,
+        actorName,
+        actorAvatar,
+      });
+    }
+
     res.status(201).json(createdTask || {
       id: taskId,
       projectId,
@@ -881,8 +933,9 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
 
   try {
     const pool = getPool();
-    const prevRes = await pool.query('SELECT status FROM tasks WHERE id = $1', [id]);
+    const prevRes = await pool.query('SELECT status, assignee_id, title, project_id FROM tasks WHERE id = $1', [id]);
     const oldStatus = prevRes.rows[0]?.status;
+    const oldAssigneeId = prevRes.rows[0]?.assignee_id;
 
     const query = `
       UPDATE tasks
@@ -941,6 +994,61 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
       }, req);
     }
 
+    // Trigger Server-side Notifications on Task Update
+    const actorName = req.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : 'A team member';
+    const actorAvatar = req.headers['x-user-avatar'] ? decodeURIComponent(req.headers['x-user-avatar'] as string) : null;
+    const taskTitle = updatedTask?.title || title || 'Task';
+    const projId = updatedTask?.projectId || projectId;
+    const projName = updatedTask?.projectName || '';
+
+    if (assigneeId && assigneeId !== oldAssigneeId) {
+      createServerNotification(pool, {
+        type: 'task_assigned',
+        title: 'Task Assigned to You',
+        message: `${actorName} assigned "${taskTitle}" to you.`,
+        taskId: id,
+        taskTitle,
+        projectId: projId,
+        projectName: projName,
+        targetUserIds: [assigneeId],
+        actorId: actorMemberId,
+        actorName,
+        actorAvatar,
+      });
+    }
+
+    if (status && oldStatus && status !== oldStatus) {
+      if (status === 'Ready Review') {
+        createServerNotification(pool, {
+          type: 'task_ready_review',
+          title: 'Task Ready for Review',
+          message: `${actorName} moved "${taskTitle}" to Ready Review.`,
+          taskId: id,
+          taskTitle,
+          projectId: projId,
+          projectName: projName,
+          targetRoles: ['admin'],
+          actorId: actorMemberId,
+          actorName,
+          actorAvatar,
+        });
+      } else if (status === 'Blocked') {
+        createServerNotification(pool, {
+          type: 'task_blocked',
+          title: 'Task Marked Blocked',
+          message: `${actorName} flagged "${taskTitle}" as Blocked!`,
+          taskId: id,
+          taskTitle,
+          projectId: projId,
+          projectName: projName,
+          targetRoles: ['admin'],
+          actorId: actorMemberId,
+          actorName,
+          actorAvatar,
+        });
+      }
+    }
+
     res.json(updatedTask);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -981,6 +1089,45 @@ app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
       projectId: updatedTask?.projectId || result.rows[0].projectId,
       details: { fromStatus: oldStatus || 'Draft', toStatus: status, newStatus: status },
     }, req);
+
+    // Trigger Server-side Notifications on Status Patch
+    const actorName = req.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : 'A team member';
+    const actorAvatar = req.headers['x-user-avatar'] ? decodeURIComponent(req.headers['x-user-avatar'] as string) : null;
+    const taskTitle = updatedTask?.title || result.rows[0].title || 'Task';
+    const projId = updatedTask?.projectId || result.rows[0].projectId;
+    const projName = updatedTask?.projectName || '';
+
+    if (status && oldStatus && status !== oldStatus) {
+      if (status === 'Ready Review') {
+        createServerNotification(pool, {
+          type: 'task_ready_review',
+          title: 'Task Ready for Review',
+          message: `${actorName} moved "${taskTitle}" to Ready Review.`,
+          taskId: id,
+          taskTitle,
+          projectId: projId,
+          projectName: projName,
+          targetRoles: ['admin'],
+          actorId: actorMemberId,
+          actorName,
+          actorAvatar,
+        });
+      } else if (status === 'Blocked') {
+        createServerNotification(pool, {
+          type: 'task_blocked',
+          title: 'Task Marked Blocked',
+          message: `${actorName} flagged "${taskTitle}" as Blocked!`,
+          taskId: id,
+          taskTitle,
+          projectId: projId,
+          projectName: projName,
+          targetRoles: ['admin'],
+          actorId: actorMemberId,
+          actorName,
+          actorAvatar,
+        });
+      }
+    }
 
     res.json(updatedTask || result.rows[0]);
   } catch (err: any) {
@@ -2558,6 +2705,185 @@ function startRecycleBinPurgeScheduler() {
   }, 3600000);
   console.log('[Recycle Bin Auto-Purge] 7-day retention scheduler registered (checks every 1 hour).');
 }
+
+// ==========================================
+// In-App Notification Endpoints & Server Triggers
+// ==========================================
+
+interface CreateNotificationParams {
+  type: string;
+  title: string;
+  message: string;
+  taskId?: string | null;
+  taskTitle?: string | null;
+  projectId?: string | null;
+  projectName?: string | null;
+  targetUserIds?: string[];
+  targetRoles?: string[];
+  actorId?: string | null;
+  actorName?: string | null;
+  actorAvatar?: string | null;
+}
+
+async function createServerNotification(pool: any, data: CreateNotificationParams): Promise<void> {
+  try {
+    const id = `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    await pool.query(
+      `INSERT INTO in_app_notifications (
+        id, type, title, message, task_id, task_title, project_id, project_name, target_user_ids, target_roles, actor_id, actor_name, actor_avatar, read_by, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, '{}', CURRENT_TIMESTAMP)`,
+      [
+        id,
+        data.type,
+        data.title,
+        data.message,
+        data.taskId || null,
+        data.taskTitle || null,
+        data.projectId || null,
+        data.projectName || null,
+        data.targetUserIds || [],
+        data.targetRoles || [],
+        data.actorId || null,
+        data.actorName || 'System',
+        data.actorAvatar || null,
+      ]
+    );
+  } catch (err: any) {
+    console.warn('[Server Notification Warning]:', err.message);
+  }
+}
+
+// GET all in-app notifications
+app.get('/api/notifications', async (_req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const result = await pool.query(`
+      SELECT 
+        id,
+        type,
+        title,
+        message,
+        task_id AS "taskId",
+        task_title AS "taskTitle",
+        project_id AS "projectId",
+        project_name AS "projectName",
+        target_user_ids AS "targetUserIds",
+        target_roles AS "targetRoles",
+        actor_id AS "actorId",
+        actor_name AS "actorName",
+        actor_avatar AS "actorAvatar",
+        read_by AS "readBy",
+        created_at AS "createdAt"
+      FROM in_app_notifications
+      ORDER BY created_at DESC
+      LIMIT 60;
+    `);
+    res.json(result.rows);
+  } catch (err: any) {
+    console.error('Error fetching notifications:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST create notification
+app.post('/api/notifications', async (req: Request, res: Response) => {
+  const {
+    type,
+    title,
+    message,
+    taskId,
+    taskTitle,
+    projectId,
+    projectName,
+    targetUserIds = [],
+    targetRoles = [],
+  } = req.body;
+
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
+  const actorName = req.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : 'A team member';
+  const actorAvatar = req.headers['x-user-avatar'] ? decodeURIComponent(req.headers['x-user-avatar'] as string) : null;
+
+  try {
+    const pool = getPool();
+    await createServerNotification(pool, {
+      type,
+      title,
+      message,
+      taskId,
+      taskTitle,
+      projectId,
+      projectName,
+      targetUserIds,
+      targetRoles,
+      actorId: actorMemberId,
+      actorName,
+      actorAvatar,
+    });
+    res.status(201).json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH mark single notification as read
+app.patch('/api/notifications/:id/read', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const memberId = (req.headers['x-user-member-id'] as string) || req.body.memberId;
+  if (!memberId) {
+    return res.status(400).json({ error: 'User member ID is required' });
+  }
+
+  try {
+    const pool = getPool();
+    await pool.query(
+      `UPDATE in_app_notifications
+       SET read_by = CASE 
+         WHEN $1 = ANY(read_by) THEN read_by 
+         ELSE array_append(read_by, $1) 
+       END
+       WHERE id = $2`,
+      [memberId, id]
+    );
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST mark all notifications as read
+app.post('/api/notifications/mark-all-read', async (req: Request, res: Response) => {
+  const memberId = (req.headers['x-user-member-id'] as string) || req.body.memberId;
+  if (!memberId) {
+    return res.status(400).json({ error: 'User member ID is required' });
+  }
+
+  try {
+    const pool = getPool();
+    await pool.query(
+      `UPDATE in_app_notifications
+       SET read_by = CASE 
+         WHEN $1 = ANY(read_by) THEN read_by 
+         ELSE array_append(read_by, $1) 
+       END`,
+      [memberId]
+    );
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE dismiss notification
+app.delete('/api/notifications/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const pool = getPool();
+    await pool.query(`DELETE FROM in_app_notifications WHERE id = $1`, [id]);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ==========================================
 // Serve Static Frontend (Single-Service Deployment)
