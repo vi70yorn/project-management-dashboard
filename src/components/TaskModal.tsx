@@ -121,8 +121,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     const desc = (description || initialTask?.description || '').trim();
 
     const lines = [
-      `📋 Task: ${taskTitle}`,
       `📁 Project: ${projName}`,
+      `📋 Task: ${taskTitle}`,
       `⚡ Priority: ${taskPriority}`,
     ];
 
