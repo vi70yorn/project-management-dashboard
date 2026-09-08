@@ -1,4 +1,4 @@
-import { Project, Task, TeamMember, StatusType, RecycleBinData } from '../types';
+import { Project, Task, TeamMember, StatusType, RecycleBinData, TaskComment, TaskTimelineResponse } from '../types';
 import { loadAuthUser } from './storage';
 
 const API_BASE = '/api';
@@ -57,7 +57,7 @@ export async function fetchProjectsApi(): Promise<Project[]> {
   return res.json();
 }
 
-function getAuthHeaders(user?: { memberId?: string; name?: string; avatar?: string } | null): Record<string, string> {
+function getAuthHeaders(user?: { memberId?: string; name?: string; avatar?: string; role?: string } | null): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const authUser = user || loadAuthUser();
   if (authUser?.memberId) {
@@ -68,6 +68,9 @@ function getAuthHeaders(user?: { memberId?: string; name?: string; avatar?: stri
   }
   if (authUser?.avatar) {
     headers['x-user-avatar'] = encodeURIComponent(authUser.avatar);
+  }
+  if (authUser?.role) {
+    headers['x-user-role'] = authUser.role;
   }
   return headers;
 }
@@ -484,5 +487,45 @@ export async function emptyRecycleBinApi(): Promise<{ success: boolean; message:
   if (!res.ok) throw new Error(data.error || 'Failed to empty recycle bin');
   return data;
 }
+
+// -------------------------------------------------------------
+// Task Timeline & Comments API
+// -------------------------------------------------------------
+
+export async function fetchTaskTimelineApi(taskId: string): Promise<TaskTimelineResponse> {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/timeline`);
+  if (!res.ok) throw new Error(`Failed to fetch task timeline (${res.status})`);
+  return res.json();
+}
+
+export async function addTaskCommentApi(
+  taskId: string,
+  content: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ comment: TaskComment; commentCount: number }> {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/comments`, {
+    method: 'POST',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify({ content }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to post comment');
+  return data;
+}
+
+export async function deleteTaskCommentApi(
+  taskId: string,
+  commentId: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ message: string; id: string; commentCount: number }> {
+  const res = await fetch(`${API_BASE}/tasks/${taskId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(currentUser),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to delete comment');
+  return data;
+}
+
 
 

@@ -293,6 +293,20 @@ export async function runMigrationsAndSeed(): Promise<void> {
       UPDATE tasks SET status = 'Ready Review' WHERE status = 'Pending';
       UPDATE projects SET status = 'Ready Review' WHERE status = 'Pending';
       ALTER TABLE projects ALTER COLUMN status SET DEFAULT 'Ready Review';
+
+      -- 8. Task Comments Table (Discussion Thread)
+      CREATE TABLE IF NOT EXISTS task_comments (
+          id VARCHAR(64) PRIMARY KEY,
+          task_id VARCHAR(64) NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+          user_id VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
+          user_name VARCHAR(255) NOT NULL,
+          user_avatar TEXT,
+          content TEXT NOT NULL,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_task_comments_task_id ON task_comments(task_id, created_at ASC);
     `);
 
     console.log('[PostgreSQL] Database schema, credentials & initial seeds verified successfully.');

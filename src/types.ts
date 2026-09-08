@@ -58,6 +58,40 @@ export interface Task {
   deletedByAvatar?: string;
   expiresAt?: string;
   daysLeft?: number;
+  commentCount?: number;
+}
+
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  userId?: string | null;
+  userName: string;
+  userAvatar?: string | null;
+  userRole?: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+  type: 'comment';
+}
+
+export interface TaskActivityEvent {
+  id: string;
+  taskId: string;
+  userId?: string | null;
+  userName: string;
+  userAvatar?: string | null;
+  userRole?: string;
+  actionType: string;
+  details?: Record<string, any>;
+  createdAt: string;
+  type: 'activity';
+}
+
+export type TaskTimelineEvent = TaskComment | TaskActivityEvent;
+
+export interface TaskTimelineResponse {
+  timeline: TaskTimelineEvent[];
+  commentCount: number;
 }
 
 export interface Project {

@@ -267,7 +267,8 @@ async function getTaskById(pool: any, id: string) {
       t.start_date AS "startDate",
       t.due_date AS "dueDate",
       t.created_at AS "createdAt",
-      t.updated_at AS "updatedAt"
+      t.updated_at AS "updatedAt",
+      (SELECT COUNT(*)::int FROM task_comments WHERE task_id = t.id) AS "commentCount"
     FROM tasks t
     LEFT JOIN projects p ON p.id = t.project_id
     LEFT JOIN team_members cb_m ON cb_m.id = t.created_by
@@ -657,7 +658,8 @@ app.get('/api/tasks', async (_req: Request, res: Response) => {
         t.start_date AS "startDate",
         t.due_date AS "dueDate",
         t.created_at AS "createdAt",
-        t.updated_at AS "updatedAt"
+        t.updated_at AS "updatedAt",
+        (SELECT COUNT(*)::int FROM task_comments WHERE task_id = t.id) AS "commentCount"
       FROM tasks t
       LEFT JOIN projects p ON p.id = t.project_id
       LEFT JOIN team_members cb_m ON cb_m.id = t.created_by
@@ -827,6 +829,9 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
 
   try {
     const pool = getPool();
+    const prevRes = await pool.query('SELECT status FROM tasks WHERE id = $1', [id]);
+    const oldStatus = prevRes.rows[0]?.status;
+
     const query = `
       UPDATE tasks
       SET 
@@ -864,14 +869,25 @@ app.put('/api/tasks/:id', async (req: Request, res: Response) => {
       await syncProjectStatus(pool, updatedTask.projectId);
     }
 
-    recordActivity(pool, {
-      actionType: 'update_task',
-      entityType: 'task',
-      entityId: id,
-      entityName: updatedTask?.title || title,
-      projectId: updatedTask?.projectId || projectId,
-      details: { status: updatedTask?.status || status, priority: updatedTask?.priority || priority, assigneeId: updatedTask?.assigneeId || assigneeId },
-    }, req);
+    if (status && oldStatus && status !== oldStatus) {
+      recordActivity(pool, {
+        actionType: 'update_task_status',
+        entityType: 'task',
+        entityId: id,
+        entityName: updatedTask?.title || title,
+        projectId: updatedTask?.projectId || projectId,
+        details: { fromStatus: oldStatus, toStatus: status, newStatus: status },
+      }, req);
+    } else {
+      recordActivity(pool, {
+        actionType: 'update_task',
+        entityType: 'task',
+        entityId: id,
+        entityName: updatedTask?.title || title,
+        projectId: updatedTask?.projectId || projectId,
+        details: { status: updatedTask?.status || status, priority: updatedTask?.priority || priority, assigneeId: updatedTask?.assigneeId || assigneeId },
+      }, req);
+    }
 
     res.json(updatedTask);
   } catch (err: any) {
@@ -886,6 +902,9 @@ app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
   const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
   try {
     const pool = getPool();
+    const prevRes = await pool.query('SELECT status, title, project_id FROM tasks WHERE id = $1', [id]);
+    const oldStatus = prevRes.rows[0]?.status;
+
     const result = await pool.query(
       `UPDATE tasks 
        SET status = $1, 
@@ -908,7 +927,7 @@ app.patch('/api/tasks/:id/status', async (req: Request, res: Response) => {
       entityId: id,
       entityName: updatedTask?.title || result.rows[0].title,
       projectId: updatedTask?.projectId || result.rows[0].projectId,
-      details: { newStatus: status },
+      details: { fromStatus: oldStatus || 'Draft', toStatus: status, newStatus: status },
     }, req);
 
     res.json(updatedTask || result.rows[0]);
@@ -943,6 +962,211 @@ app.delete('/api/tasks/:id', async (req: Request, res: Response) => {
 
     res.json({ message: 'Task moved to Recycle Bin', id });
   } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// Task Comments & Discussion Timeline Endpoints
+// ==========================================
+
+// GET task timeline (comments + activity logs)
+app.get('/api/tasks/:id/timeline', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const pool = getPool();
+
+    // 1. Fetch comments
+    const commentsQuery = `
+      SELECT 
+        c.id,
+        c.task_id AS "taskId",
+        c.user_id AS "userId",
+        c.user_name AS "userName",
+        c.user_avatar AS "userAvatar",
+        COALESCE(tm.role, u.job_role, u.role, 'Member') AS "userRole",
+        c.content,
+        c.created_at AS "createdAt",
+        c.updated_at AS "updatedAt",
+        'comment' AS "type"
+      FROM task_comments c
+      LEFT JOIN team_members tm ON tm.id = c.user_id
+      LEFT JOIN users u ON u.member_id = c.user_id
+      WHERE c.task_id = $1
+      ORDER BY c.created_at ASC;
+    `;
+    const commentsResult = await pool.query(commentsQuery, [id]);
+
+    // 2. Fetch task activity logs (status changes, updates, creations)
+    const activitiesQuery = `
+      SELECT 
+        a.id,
+        a.entity_id AS "taskId",
+        a.user_id AS "userId",
+        a.user_name AS "userName",
+        a.user_avatar AS "userAvatar",
+        COALESCE(tm.role, u.job_role, u.role, 'Member') AS "userRole",
+        a.action_type AS "actionType",
+        a.details,
+        a.created_at AS "createdAt",
+        'activity' AS "type"
+      FROM activity_logs a
+      LEFT JOIN team_members tm ON tm.id = a.user_id
+      LEFT JOIN users u ON u.member_id = a.user_id
+      WHERE a.entity_type = 'task' 
+        AND a.entity_id = $1 
+        AND a.action_type != 'comment_task'
+      ORDER BY a.created_at ASC;
+    `;
+    const activitiesResult = await pool.query(activitiesQuery, [id]);
+
+    // Merge chronologically
+    const combined = [...commentsResult.rows, ...activitiesResult.rows].sort((a, b) => {
+      const timeA = new Date(a.createdAt).getTime();
+      const timeB = new Date(b.createdAt).getTime();
+      return timeA - timeB;
+    });
+
+    res.json({
+      timeline: combined,
+      commentCount: commentsResult.rows.length,
+    });
+  } catch (err: any) {
+    console.error('Error fetching task timeline:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST new comment on task
+app.post('/api/tasks/:id/comments', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { content } = req.body;
+
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'Comment content cannot be empty' });
+  }
+
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || req.body.userId || null;
+  const headerName = req.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : (req.body.userName || '');
+  const headerAvatar = req.headers['x-user-avatar'] ? decodeURIComponent(req.headers['x-user-avatar'] as string) : (req.body.userAvatar || null);
+
+  try {
+    const pool = getPool();
+
+    // Verify task exists
+    const taskRes = await pool.query('SELECT id, title, project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL', [id]);
+    if (taskRes.rowCount === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+    const task = taskRes.rows[0];
+
+    let userName = headerName;
+    let userAvatar = headerAvatar;
+    let userRole = 'Member';
+
+    if (actorMemberId) {
+      const memberRes = await pool.query(
+        `SELECT tm.name, tm.avatar, COALESCE(tm.role, u.job_role, u.role, 'Member') AS role
+         FROM team_members tm
+         LEFT JOIN users u ON u.member_id = tm.id
+         WHERE tm.id = $1`,
+        [actorMemberId]
+      );
+      if (memberRes.rowCount > 0) {
+        userName = memberRes.rows[0].name || userName;
+        userAvatar = memberRes.rows[0].avatar !== undefined && memberRes.rows[0].avatar !== null ? memberRes.rows[0].avatar : userAvatar;
+        userRole = memberRes.rows[0].role || userRole;
+      }
+    }
+
+    if (!userName) userName = 'Team Member';
+
+    const commentId = `com-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const insertQuery = `
+      INSERT INTO task_comments (id, task_id, user_id, user_name, user_avatar, content, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      RETURNING 
+        id, 
+        task_id AS "taskId", 
+        user_id AS "userId", 
+        user_name AS "userName", 
+        user_avatar AS "userAvatar", 
+        content, 
+        created_at AS "createdAt", 
+        updated_at AS "updatedAt";
+    `;
+    const insertRes = await pool.query(insertQuery, [
+      commentId,
+      id,
+      actorMemberId,
+      userName,
+      userAvatar,
+      content.trim(),
+    ]);
+
+    const newComment = {
+      ...insertRes.rows[0],
+      userRole,
+      type: 'comment',
+    };
+
+    // Record activity log for team dashboard
+    recordActivity(pool, {
+      actionType: 'comment_task',
+      entityType: 'task',
+      entityId: id,
+      entityName: task.title,
+      projectId: task.project_id,
+      details: { commentPreview: content.trim().substring(0, 100) },
+    }, req);
+
+    // Get updated total comment count
+    const countRes = await pool.query('SELECT COUNT(*)::int AS count FROM task_comments WHERE task_id = $1', [id]);
+    const commentCount = countRes.rows[0]?.count || 1;
+
+    res.status(201).json({
+      comment: newComment,
+      commentCount,
+    });
+  } catch (err: any) {
+    console.error('Error creating task comment:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE comment on task
+app.delete('/api/tasks/:id/comments/:commentId', async (req: Request, res: Response) => {
+  const { id, commentId } = req.params;
+  const actorMemberId = (req.headers['x-user-member-id'] as string) || null;
+  const actorRole = (req.headers['x-user-role'] as string) || '';
+
+  try {
+    const pool = getPool();
+    const commentRes = await pool.query('SELECT * FROM task_comments WHERE id = $1 AND task_id = $2', [commentId, id]);
+    if (commentRes.rowCount === 0) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    const comment = commentRes.rows[0];
+    const isAuthor = Boolean(actorMemberId && comment.user_id === actorMemberId);
+    const isAdmin = actorRole.toLowerCase().includes('admin') || actorRole.toLowerCase().includes('manager');
+
+    if (!isAuthor && !isAdmin && actorMemberId) {
+      return res.status(403).json({ error: 'You do not have permission to delete this comment' });
+    }
+
+    await pool.query('DELETE FROM task_comments WHERE id = $1', [commentId]);
+
+    const countRes = await pool.query('SELECT COUNT(*)::int AS count FROM task_comments WHERE task_id = $1', [id]);
+    const commentCount = countRes.rows[0]?.count || 0;
+
+    res.json({
+      message: 'Comment deleted successfully',
+      id: commentId,
+      commentCount,
+    });
+  } catch (err: any) {
+    console.error('Error deleting task comment:', err);
     res.status(500).json({ error: err.message });
   }
 });

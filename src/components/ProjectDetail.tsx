@@ -25,6 +25,7 @@ import {
   Eye,
   ChevronsLeft,
   ChevronsRight,
+  MessageSquare,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
@@ -816,6 +817,20 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" title="Staff: View detail mode" />
                             )}
                             <PriorityBadge priority={task.priority} size="xs" />
+                            {Boolean(task.commentCount && task.commentCount > 0) && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenTaskModal(task);
+                                }}
+                                title={`${task.commentCount} ${task.commentCount === 1 ? 'comment' : 'comments'} • Click to view discussion`}
+                                className="inline-flex items-center gap-1 text-3xs font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/80 hover:bg-blue-100 dark:hover:bg-blue-900/60 cursor-pointer transition-colors"
+                              >
+                                <MessageSquare className="w-2.5 h-2.5" />
+                                <span>{task.commentCount}</span>
+                              </button>
+                            )}
                             {isStaff && isOwnTask && (
                               <span className="text-3xs font-semibold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                                 My Task

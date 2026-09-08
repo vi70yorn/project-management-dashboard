@@ -1258,6 +1258,12 @@ export default function App() {
         onOpenAddMember={handleOpenAddMember}
         currentUser={currentUser}
         onDelete={handleDeleteTaskRequest}
+        onCommentCountChange={(taskId, count) => {
+          setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, commentCount: count } : t)));
+          if (editingTask && editingTask.id === taskId) {
+            setEditingTask((prev) => (prev ? { ...prev, commentCount: count } : prev));
+          }
+        }}
       />
 
       {/* Team Member Modal */}
