@@ -699,19 +699,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           </button>
 
           <button
-            id="tab-btn-team"
-            onClick={() => setActiveTab('team')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'team'
-                ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            Project Team & Workload ({projectTeam.length})
-          </button>
-
-          <button
             id="tab-btn-documents"
             onClick={() => setActiveTab('documents')}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -727,6 +714,19 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 {projectAttachmentCount}
               </span>
             )}
+          </button>
+
+          <button
+            id="tab-btn-team"
+            onClick={() => setActiveTab('team')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'team'
+                ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            Project Team & Workload ({projectTeam.length})
           </button>
         </div>
 
