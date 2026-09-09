@@ -180,7 +180,17 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
   }, [isOpen, initialTask?.id]);
 
+  // Checklist update permissions: Staff can only update checklist for tasks assigned to them. Admins can update all.
+  const isTaskAssignedToCurrentUser = Boolean(
+    initialTask &&
+    initialTask.assigneeId &&
+    currentUser?.memberId &&
+    initialTask.assigneeId === currentUser.memberId
+  );
+  const canUpdateChecklist = isAdmin || (!initialTask) || (isStaff && isTaskAssignedToCurrentUser);
+
   const handleToggleSubtask = async (subtaskId: string, currentCompleted: boolean) => {
+    if (!canUpdateChecklist) return;
     const nextCompleted = !currentCompleted;
     const nextSubtasks = subtasks.map((s) =>
       s.id === subtaskId ? { ...s, completed: nextCompleted } : s
@@ -199,6 +209,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const handleAddSubtask = async () => {
+    if (!canUpdateChecklist) return;
     if (!newSubtaskTitle.trim() || isAddingSubtask) return;
     const text = newSubtaskTitle.trim();
     setNewSubtaskTitle('');
@@ -231,6 +242,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const handleDeleteSubtask = async (subtaskId: string) => {
+    if (!canUpdateChecklist) return;
     const prevSubtasks = subtasks;
     const nextSubtasks = subtasks.filter((s) => s.id !== subtaskId);
     setSubtasks(nextSubtasks);
@@ -1104,6 +1116,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     }`}>
                       {completedSubtasks}/{totalSubtasks}
                     </span>
+                    {!canUpdateChecklist && (
+                      <span className="text-3xs text-slate-400 dark:text-slate-500 flex items-center gap-1 font-normal ml-1">
+                        <Lock className="w-3 h-3 text-slate-400" />
+                        <span>Assigned staff only</span>
+                      </span>
+                    )}
                   </div>
                   <span className={`text-2xs font-bold ${
                     isAllChecklistDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
@@ -1127,13 +1145,19 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   {subtasks.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-2.5 px-3 py-2 hover:bg-white dark:hover:bg-slate-800/60 transition-colors"
+                      className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${
+                        canUpdateChecklist ? 'hover:bg-white dark:hover:bg-slate-800/60' : 'opacity-85'
+                      }`}
                     >
                       <input
                         type="checkbox"
                         checked={item.completed}
-                        onChange={() => handleToggleSubtask(item.id, item.completed)}
-                        className="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer"
+                        disabled={!canUpdateChecklist}
+                        onChange={() => canUpdateChecklist && handleToggleSubtask(item.id, item.completed)}
+                        title={canUpdateChecklist ? 'Toggle item completion' : 'Only the assigned staff member or Admin can update this checklist'}
+                        className={`w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500 ${
+                          canUpdateChecklist ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                        }`}
                       />
                       <span className={`text-xs truncate ${
                         item.completed
@@ -1577,6 +1601,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     {completedSubtasks}/{totalSubtasks}
                   </span>
                 )}
+                {!canUpdateChecklist && (
+                  <span className="text-3xs text-slate-400 dark:text-slate-500 flex items-center gap-1 font-normal ml-1">
+                    <Lock className="w-3 h-3 text-slate-400" />
+                    <span>Assigned staff only</span>
+                  </span>
+                )}
               </div>
 
               {totalSubtasks > 0 && (
@@ -1605,14 +1635,22 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               {subtasks.map((item) => (
                 <div
                   key={item.id}
-                  className="group flex items-center justify-between gap-2.5 px-3 py-2 hover:bg-white dark:hover:bg-slate-800/60 transition-colors"
+                  className={`group flex items-center justify-between gap-2.5 px-3 py-2 transition-colors ${
+                    canUpdateChecklist ? 'hover:bg-white dark:hover:bg-slate-800/60' : 'opacity-85'
+                  }`}
                 >
-                  <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer select-none">
+                  <label className={`flex items-center gap-2.5 flex-1 min-w-0 select-none ${
+                    canUpdateChecklist ? 'cursor-pointer' : 'cursor-not-allowed'
+                  }`}>
                     <input
                       type="checkbox"
                       checked={item.completed}
-                      onChange={() => handleToggleSubtask(item.id, item.completed)}
-                      className="w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500 cursor-pointer transition-colors"
+                      disabled={!canUpdateChecklist}
+                      onChange={() => canUpdateChecklist && handleToggleSubtask(item.id, item.completed)}
+                      title={canUpdateChecklist ? 'Toggle item completion' : 'Only the assigned staff member or Admin can update this checklist'}
+                      className={`w-4 h-4 text-blue-600 rounded border-slate-300 dark:border-slate-600 focus:ring-blue-500 transition-colors ${
+                        canUpdateChecklist ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                      }`}
                     />
                     <span className={`text-xs transition-all truncate ${
                       item.completed
@@ -1623,47 +1661,56 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     </span>
                   </label>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteSubtask(item.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                    title="Delete checkpoint"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {canUpdateChecklist && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSubtask(item.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                      title="Delete checkpoint"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               ))}
 
               {/* Inline Add Checkpoint Input Row */}
-              <div className="flex items-center gap-2.5 px-3 py-2 bg-white dark:bg-slate-900/80 focus-within:bg-blue-50/20 dark:focus-within:bg-blue-950/20 transition-colors">
-                <Plus className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
-                <input
-                  id="new-subtask-input"
-                  type="text"
-                  value={newSubtaskTitle}
-                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddSubtask();
-                    }
-                  }}
-                  placeholder="Add a checklist item... (press Enter)"
-                  className="flex-1 text-xs bg-transparent border-none text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
-                  disabled={isAddingSubtask}
-                />
-                {newSubtaskTitle.trim() && (
-                  <button
-                    id="add-subtask-btn"
-                    type="button"
-                    onClick={handleAddSubtask}
+              {canUpdateChecklist ? (
+                <div className="flex items-center gap-2.5 px-3 py-2 bg-white dark:bg-slate-900/80 focus-within:bg-blue-50/20 dark:focus-within:bg-blue-950/20 transition-colors">
+                  <Plus className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                  <input
+                    id="new-subtask-input"
+                    type="text"
+                    value={newSubtaskTitle}
+                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSubtask();
+                      }
+                    }}
+                    placeholder="Add a checklist item... (press Enter)"
+                    className="flex-1 text-xs bg-transparent border-none text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
                     disabled={isAddingSubtask}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-2xs transition-colors cursor-pointer shrink-0"
-                  >
-                    Add
-                  </button>
-                )}
-              </div>
+                  />
+                  {newSubtaskTitle.trim() && (
+                    <button
+                      id="add-subtask-btn"
+                      type="button"
+                      onClick={handleAddSubtask}
+                      disabled={isAddingSubtask}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-2xs transition-colors cursor-pointer shrink-0"
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="px-3 py-2 text-3xs text-slate-400 dark:text-slate-500 italic bg-slate-50/50 dark:bg-slate-900/50 flex items-center gap-1.5">
+                  <Lock className="w-3 h-3 text-slate-400 shrink-0" />
+                  <span>Only the assigned staff member or Admin can add or update checklist items.</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

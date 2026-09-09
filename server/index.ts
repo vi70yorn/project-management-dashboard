@@ -1431,6 +1431,8 @@ app.get('/api/tasks/:id/subtasks', async (req: Request, res: Response) => {
 app.post('/api/tasks/:id/subtasks', async (req: Request, res: Response) => {
   const { id } = req.params;
   const { title } = req.body;
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  const callerMemberId = (req.headers['x-user-member-id'] as string) || '';
 
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Subtask title cannot be empty' });
@@ -1438,6 +1440,17 @@ app.post('/api/tasks/:id/subtasks', async (req: Request, res: Response) => {
 
   try {
     const pool = getPool();
+    // Permission check: Staff can only update checklist for tasks assigned to them
+    if (callerRole === 'staff') {
+      const taskRes = await pool.query('SELECT assignee_id FROM tasks WHERE id = $1', [id]);
+      if (taskRes.rowCount === 0) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      if (taskRes.rows[0].assignee_id !== callerMemberId) {
+        return res.status(403).json({ error: 'Permission denied. Only assigned staff can update this task checklist.' });
+      }
+    }
+
     // Get next position index
     const posRes = await pool.query(
       'SELECT COALESCE(MAX(position), -1) + 1 AS next_pos FROM task_subtasks WHERE task_id = $1',
@@ -1470,9 +1483,22 @@ app.post('/api/tasks/:id/subtasks', async (req: Request, res: Response) => {
 app.patch('/api/tasks/:id/subtasks/:subtaskId', async (req: Request, res: Response) => {
   const { id, subtaskId } = req.params;
   const { title, completed, position } = req.body;
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  const callerMemberId = (req.headers['x-user-member-id'] as string) || '';
 
   try {
     const pool = getPool();
+    // Permission check: Staff can only update checklist for tasks assigned to them
+    if (callerRole === 'staff') {
+      const taskRes = await pool.query('SELECT assignee_id FROM tasks WHERE id = $1', [id]);
+      if (taskRes.rowCount === 0) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      if (taskRes.rows[0].assignee_id !== callerMemberId) {
+        return res.status(403).json({ error: 'Permission denied. Only assigned staff can update this task checklist.' });
+      }
+    }
+
     const updateQuery = `
       UPDATE task_subtasks
       SET 
@@ -1512,8 +1538,22 @@ app.patch('/api/tasks/:id/subtasks/:subtaskId', async (req: Request, res: Respon
 // DELETE subtask
 app.delete('/api/tasks/:id/subtasks/:subtaskId', async (req: Request, res: Response) => {
   const { id, subtaskId } = req.params;
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  const callerMemberId = (req.headers['x-user-member-id'] as string) || '';
+
   try {
     const pool = getPool();
+    // Permission check: Staff can only update checklist for tasks assigned to them
+    if (callerRole === 'staff') {
+      const taskRes = await pool.query('SELECT assignee_id FROM tasks WHERE id = $1', [id]);
+      if (taskRes.rowCount === 0) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      if (taskRes.rows[0].assignee_id !== callerMemberId) {
+        return res.status(403).json({ error: 'Permission denied. Only assigned staff can update this task checklist.' });
+      }
+    }
+
     const result = await pool.query('DELETE FROM task_subtasks WHERE id = $1 AND task_id = $2', [subtaskId, id]);
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Subtask not found' });
