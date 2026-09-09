@@ -1912,7 +1912,6 @@ app.get('/api/members', async (req: Request, res: Response) => {
         id,
         name,
         username,
-        ${isAdmin ? 'password,' : ''}
         email,
         role,
         system_role AS "systemRole",
@@ -1957,9 +1956,7 @@ app.post('/api/members', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Username is required' });
   }
 
-  if (!password || !password.trim()) {
-    return res.status(400).json({ error: 'Password is required' });
-  }
+  const memberPassword = (password && typeof password === 'string' && password.trim()) ? password.trim() : '123456';
 
   const memberId = id || `mem-${Date.now()}`;
   const cleanUsername = username.trim().toLowerCase();
@@ -1981,13 +1978,13 @@ app.post('/api/members', async (req: Request, res: Response) => {
       INSERT INTO team_members (id, name, username, password, email, role, system_role, avatar, color, status, department)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING 
-        id, name, username, password, email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
+        id, name, username, email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
     `;
     const result = await dbClient.query(query, [
       memberId,
       name,
       cleanUsername,
-      password,
+      memberPassword,
       email,
       role,
       systemRole,
@@ -2109,7 +2106,7 @@ app.put('/api/members/:id', async (req: Request, res: Response) => {
         SET ${updates.join(', ')}
         WHERE id = $${params.length}
         RETURNING 
-          id, name, username, ${isAdmin ? 'password,' : ''} email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
+          id, name, username, email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt";
       `;
       const result = await dbClient.query(query, params);
       if (result.rowCount === 0) {
@@ -2119,7 +2116,7 @@ app.put('/api/members/:id', async (req: Request, res: Response) => {
       memberRow = result.rows[0];
     } else {
       const existing = await dbClient.query(
-        `SELECT id, name, username, ${isAdmin ? 'password,' : ''} email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt" FROM team_members WHERE id = $1`,
+        `SELECT id, name, username, email, role, system_role AS "systemRole", avatar, color, status, department, created_at AS "createdAt" FROM team_members WHERE id = $1`,
         [id]
       );
       if (existing.rowCount === 0) {

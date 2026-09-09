@@ -83,7 +83,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
     if (initialMember) {
       setName(initialMember.name);
       setUsername(initialMember.username || '');
-      setPassword(initialMember.password || '');
+      setPassword('');
       setShowPassword(false);
       setRole(initialMember.role);
       setSystemRole(initialMember.systemRole || 'staff');
@@ -157,7 +157,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
       {
         name: name.trim(),
         username: username.trim().toLowerCase() || name.trim().toLowerCase().replace(/\s+/g, ''),
-        password: password.trim() || undefined,
+        password: !initialMember ? password.trim() : undefined,
         role: role.trim(),
         systemRole,
         email: email.trim() || `${name.trim().toLowerCase().replace(/\s+/g, '.')}@team.org`,
@@ -392,26 +392,19 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
             </div>
           )}
 
-          {/* Login Credentials Section */}
+          {/* User Account / Login Credentials Section */}
           <div className="p-4 bg-slate-50/90 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                  <KeyRound className="w-3.5 h-3.5" />
-                </div>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                  Login Credentials {initialMember ? '(User Account)' : '(Required for Login)'}
-                </h4>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <KeyRound className="w-3.5 h-3.5" />
               </div>
-              {isAdmin && (
-                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                  Admin Visible & Editable
-                </span>
-              )}
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                {initialMember ? 'User Account' : 'Login Credentials (Required for Login)'}
+              </h4>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {/* Username field */}
+            {initialMember ? (
+              /* Edit Mode: Only Username shown (Password hidden for all roles) */
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Username <span className="text-rose-500">*</span>
@@ -421,56 +414,76 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                   <input
                     id="member-username-input"
                     type="text"
-                    required={!initialMember}
+                    required
                     placeholder="e.g. rachel or jordan"
                     value={username}
                     onChange={(e) => setUsername(e.target.value.toLowerCase())}
                     className={FORM_STYLES.inputWithIcon}
                   />
                 </div>
+                <p className="text-3xs text-slate-500 dark:text-slate-400 mt-2">
+                  Username used by this member to log in. To change passwords, members can use "Change Password" in the user menu.
+                </p>
               </div>
+            ) : (
+              /* Add Mode: Both Username & Password available */
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Username <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        id="member-username-input"
+                        type="text"
+                        required
+                        placeholder="e.g. rachel or jordan"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                        className={FORM_STYLES.inputWithIcon}
+                      />
+                    </div>
+                  </div>
 
-              {/* Password field with show/hide icon */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    {initialMember ? 'Password' : 'Password *'}
-                  </label>
-                  <span className="text-3xs text-slate-400 dark:text-slate-500">
-                    {showPassword ? 'Visible' : 'Hidden'}
-                  </span>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Password <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-3xs text-slate-400 dark:text-slate-500">
+                        {showPassword ? 'Visible' : 'Hidden'}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        id="member-password-input"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        placeholder="Enter password (e.g. 123456)"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`${FORM_STYLES.inputWithIcon} pr-10`}
+                      />
+                      <button
+                        type="button"
+                        id="toggle-member-password-visibility-btn"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md transition-colors cursor-pointer"
+                        title={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    id="member-password-input"
-                    type={showPassword ? 'text' : 'password'}
-                    required={!initialMember}
-                    placeholder={initialMember ? 'Current or new password' : 'Enter password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`${FORM_STYLES.inputWithIcon} pr-10`}
-                  />
-                  <button
-                    type="button"
-                    id="toggle-member-password-visibility-btn"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md transition-colors cursor-pointer"
-                    title={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <p className="text-3xs text-slate-500 dark:text-slate-400 leading-normal">
-              {initialMember
-                ? (isAdmin
-                    ? 'As an Admin, click the eye icon to view the password or type a new password to modify it.'
-                    : 'Your login credentials for accessing the platform.')
-                : 'Team member will use this username and password to log in.'}
-            </p>
+                <p className="text-3xs text-slate-500 dark:text-slate-400 leading-normal">
+                  Team member will use this username and password to log in.
+                </p>
+              </>
+            )}
           </div>
 
           {/* Role & Department */}
