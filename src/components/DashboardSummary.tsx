@@ -27,8 +27,12 @@ import {
   FileEdit,
   Layers,
   CheckSquare,
+  Check,
+  Share2,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
+import { getProjectShareUrl, getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
@@ -82,12 +86,35 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const [projectListViewMode, setProjectListViewMode] = useState<'card' | 'table'>('table');
 
   // Deadlines Section Filter & Pagination State
-  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'Draft' | 'In Progress' | 'Ready Review' | 'Blocked'>('all');
+  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Ready Review' | 'Blocked'>('all');
   const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>(initialDeadlineMemberFilter || 'all');
   const [deadlineGroupBy, setDeadlineGroupBy] = useState<'none' | 'assignee' | 'priority' | 'status'>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(10);
   const [deadlineCurrentPage, setDeadlineCurrentPage] = useState<number>(1);
+
+  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
+  const [copiedProjectId, setCopiedProjectId] = useState<string | null>(null);
+
+  const handleShareTaskLink = async (e: React.MouseEvent, projectId: string, taskId: string) => {
+    e.stopPropagation();
+    const url = getTaskShareUrl(projectId, taskId);
+    const success = await copyTextToClipboard(url);
+    if (success) {
+      setCopiedTaskId(taskId);
+      setTimeout(() => setCopiedTaskId(null), 2000);
+    }
+  };
+
+  const handleShareProjectLink = async (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    const url = getProjectShareUrl(projectId);
+    const success = await copyTextToClipboard(url);
+    if (success) {
+      setCopiedProjectId(projectId);
+      setTimeout(() => setCopiedProjectId(null), 2000);
+    }
+  };
 
   // Sync deadlineMemberFilter when initialDeadlineMemberFilter prop changes
   useEffect(() => {
@@ -137,13 +164,13 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     };
   }, [safeProjects, safeTasks]);
 
-  // All open tasks (Draft, In Progress, Ready Review, Blocked) sorted by nearest deadline
+  // All open active tasks (In Progress, Ready Review, Blocked) sorted by nearest deadline (Draft tasks excluded while under drafting)
   const allActiveDeadlines = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     return safeTasks
-      .filter((t) => t.status === 'Draft' || t.status === 'In Progress' || t.status === 'Ready Review' || t.status === 'Pending' || t.status === 'Blocked')
+      .filter((t) => t.status === 'In Progress' || t.status === 'Ready Review' || t.status === 'Pending' || t.status === 'Blocked')
       .map((t) => {
         const proj = safeProjects.find((p) => p.id === t.projectId);
         const assignee = safeMembers.find((m) => m.id === t.assigneeId);
@@ -215,7 +242,6 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     ).length;
     return {
       all: memberFilteredDeadlines.length,
-      draft: memberFilteredDeadlines.filter((d) => d.status === 'Draft').length,
       inProgress: memberFilteredDeadlines.filter((d) => d.status === 'In Progress').length,
       readyReview,
       pending: readyReview,
@@ -291,7 +317,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     return filteredDeadlines.slice(startIdx, startIdx + effectivePageSize);
   }, [filteredDeadlines, deadlinePageSize, safeCurrentPage, effectivePageSize]);
 
-  const handleStatusFilterChange = (status: 'all' | 'Draft' | 'In Progress' | 'Ready Review' | 'Blocked') => {
+  const handleStatusFilterChange = (status: 'all' | 'In Progress' | 'Ready Review' | 'Blocked') => {
     setDeadlineStatusFilter(status);
     setDeadlineCurrentPage(1);
   };
@@ -422,7 +448,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     }
 
     if (deadlineGroupBy === 'status') {
-      const STATUS_ORDER: StatusType[] = ['Draft', 'In Progress', 'Ready Review', 'Blocked', 'Completed'];
+      const STATUS_ORDER: StatusType[] = ['In Progress', 'Ready Review', 'Blocked', 'Completed'];
       const groups: DeadlineGroup[] = [];
 
       STATUS_ORDER.forEach((st) => {
@@ -607,6 +633,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               status={item.status}
               onChange={(newStatus) => onUpdateTaskStatus?.(item.id, newStatus)}
               size="sm"
+              excludeStatuses={['Draft']}
             />
           ) : (
             <StatusBadge status={item.status} size="sm" />
@@ -647,13 +674,30 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         <td className="py-3.5 pr-6 pl-3 text-right">
           <div className="flex items-center justify-end gap-1">
             <button
+              id={`share-deadline-task-btn-${item.id}`}
+              type="button"
+              onClick={(e) => handleShareTaskLink(e, item.projectId, item.id)}
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                copiedTaskId === item.id
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                  : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-slate-200 dark:border-slate-700'
+              }`}
+              title={copiedTaskId === item.id ? 'Direct link copied!' : 'Copy direct link to task'}
+            >
+              {copiedTaskId === item.id ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <LinkIcon className="w-3.5 h-3.5" />
+              )}
+            </button>
+            <button
+              id={`view-deadline-task-btn-${item.id}`}
               type="button"
               onClick={(e) => handleOpenTask(e, item)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-2xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 transition-colors cursor-pointer"
-              title="Edit Task Deliverable"
+              className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 transition-colors cursor-pointer"
+              title="View Task Deliverable"
             >
-              <span>View</span>
-              <ArrowUpRight className="w-3 h-3" />
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </td>
@@ -905,7 +949,6 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
                   {[
                     { label: 'All', value: 'all', count: deadlineCounts.all },
-                    { label: 'Draft', value: 'Draft', count: deadlineCounts.draft },
                     { label: 'In Progress', value: 'In Progress', count: deadlineCounts.inProgress },
                     { label: 'Ready Review', value: 'Ready Review', count: deadlineCounts.readyReview },
                     { label: 'Blocked', value: 'Blocked', count: deadlineCounts.blocked },
@@ -1512,6 +1555,23 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                         {/* Action Buttons */}
                         <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              id={`share-proj-row-btn-${project.id}`}
+                              type="button"
+                              onClick={(e) => handleShareProjectLink(e, project.id)}
+                              title={copiedProjectId === project.id ? 'Direct link copied!' : 'Copy direct link to project'}
+                              className={`p-1 rounded-md transition-colors cursor-pointer ${
+                                copiedProjectId === project.id
+                                  ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400'
+                                  : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              {copiedProjectId === project.id ? (
+                                <Check className="w-3.5 h-3.5" />
+                              ) : (
+                                <Share2 className="w-3.5 h-3.5" />
+                              )}
+                            </button>
                             {isAdmin && onEditProject && (
                               <button
                                 onClick={() => onEditProject(project)}
@@ -1775,9 +1835,26 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                         );
                       })()}
                       <button
+                        id={`share-proj-card-btn-${project.id}`}
+                        type="button"
+                        onClick={(e) => handleShareProjectLink(e, project.id)}
+                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ml-auto ${
+                          copiedProjectId === project.id
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                            : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-slate-200 dark:border-slate-700'
+                        }`}
+                        title={copiedProjectId === project.id ? 'Direct link copied!' : 'Copy direct link to project'}
+                      >
+                        {copiedProjectId === project.id ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <Share2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <button
                         id={`open-project-btn-${project.id}`}
                         onClick={() => onSelectProject(project.id)}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline ml-auto cursor-pointer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer"
                       >
                         {isAdmin ? 'Open Workspace' : 'View Details'}
                         <ArrowUpRight className="w-3.5 h-3.5" />

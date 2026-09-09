@@ -12,6 +12,7 @@ export interface StatusDropdownProps {
   align?: 'left' | 'right';
   className?: string;
   id?: string;
+  excludeStatuses?: StatusType[];
 }
 
 interface StatusConfig {
@@ -77,6 +78,7 @@ export const StatusDropdown: React.FC<StatusDropdownProps> = ({
   align = 'left',
   className = '',
   id,
+  excludeStatuses,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -273,7 +275,10 @@ export const StatusDropdown: React.FC<StatusDropdownProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="space-y-0.5">
-              {ALL_STATUSES.map((st) => {
+              {(excludeStatuses && excludeStatuses.length > 0
+                ? ALL_STATUSES.filter((st) => !excludeStatuses.includes(st))
+                : ALL_STATUSES
+              ).map((st) => {
                 const cfg = STATUS_CONFIGS[st];
                 const isSelected = currentKey === st;
 

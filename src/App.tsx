@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Project,
   Task,
@@ -78,6 +78,36 @@ import {
   dismissNotificationApi,
   DatabaseHealthResponse,
 } from './services/api';
+
+/**
+ * Updates URL search parameters smoothly without full page refresh
+ */
+const updateUrlParams = (params: { projectId?: string | null; taskId?: string | null }) => {
+  try {
+    const url = new URL(window.location.href);
+    if (params.projectId !== undefined) {
+      if (params.projectId) {
+        url.searchParams.set('projectId', params.projectId);
+      } else {
+        url.searchParams.delete('projectId');
+      }
+    }
+    if (params.taskId !== undefined) {
+      if (params.taskId) {
+        url.searchParams.set('taskId', params.taskId);
+      } else {
+        url.searchParams.delete('taskId');
+      }
+    }
+    const newSearch = url.searchParams.toString();
+    const newPath = `${url.pathname}${newSearch ? `?${newSearch}` : ''}${url.hash}`;
+    if (window.location.pathname + window.location.search + window.location.hash !== newPath) {
+      window.history.replaceState(null, '', newPath);
+    }
+  } catch (err) {
+    console.warn('Failed to update URL parameters:', err);
+  }
+};
 
 export default function App() {
   // Authentication State
@@ -411,6 +441,83 @@ export default function App() {
     refreshDatabase(true, user.role);
   };
 
+  const hasProcessedInitialDeepLink = useRef(false);
+
+  // Deep Link Handling: Parse ?projectId=...&taskId=... on startup or when user logs in
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetProjectId = urlParams.get('projectId');
+    const targetTaskId = urlParams.get('taskId');
+
+    if (!targetProjectId && !targetTaskId) return;
+
+    if (!hasProcessedInitialDeepLink.current) {
+      if (targetProjectId) {
+        const foundProj = projects.find((p) => p.id === targetProjectId);
+        if (foundProj || projects.length > 0) {
+          setActiveProjectId(targetProjectId);
+          setCurrentView('project');
+        }
+      }
+
+      if (targetTaskId) {
+        const targetTask = tasks.find((t) => t.id === targetTaskId);
+        if (targetTask) {
+          if (targetTask.projectId) {
+            setActiveProjectId(targetTask.projectId);
+            setCurrentView('project');
+          }
+          setEditingTask(targetTask);
+          setIsTaskModalOpen(true);
+          hasProcessedInitialDeepLink.current = true;
+        } else if (tasks.length > 0 && !isCheckingDb) {
+          hasProcessedInitialDeepLink.current = true;
+          showToast('info', 'Shared task was not found or has been removed.');
+        }
+      } else if (targetProjectId && (projects.length > 0 || !isCheckingDb)) {
+        hasProcessedInitialDeepLink.current = true;
+      }
+    }
+  }, [currentUser, projects, tasks, isCheckingDb]);
+
+  // Handle browser Back / Forward history buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetProjectId = urlParams.get('projectId');
+      const targetTaskId = urlParams.get('taskId');
+
+      if (targetTaskId) {
+        const targetTask = tasks.find((t) => t.id === targetTaskId);
+        if (targetTask) {
+          if (targetTask.projectId) {
+            setActiveProjectId(targetTask.projectId);
+            setCurrentView('project');
+          }
+          setEditingTask(targetTask);
+          setIsTaskModalOpen(true);
+          return;
+        }
+      } else {
+        setIsTaskModalOpen(false);
+        setEditingTask(null);
+      }
+
+      if (targetProjectId) {
+        setActiveProjectId(targetProjectId);
+        setCurrentView('project');
+      } else {
+        setActiveProjectId('');
+        setCurrentView('dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [tasks]);
+
   const handleLogout = () => {
     setConfirmationModal({
       isOpen: true,
@@ -423,6 +530,7 @@ export default function App() {
         setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
         setCurrentUser(null);
         clearAuthUser();
+        updateUrlParams({ projectId: null, taskId: null });
         showToast('info', 'You have been logged out.');
       },
     });
@@ -432,11 +540,13 @@ export default function App() {
   const handleSelectProject = (projectId: string) => {
     setActiveProjectId(projectId);
     setCurrentView('project');
+    updateUrlParams({ projectId, taskId: null });
   };
 
   const handleGoToDashboard = () => {
     setCurrentView('dashboard');
     setActiveProjectId('');
+    updateUrlParams({ projectId: null, taskId: null });
   };
 
   const handleViewMyTasks = () => {
@@ -449,10 +559,12 @@ export default function App() {
     }
     setCurrentView('dashboard');
     setActiveProjectId('');
+    updateUrlParams({ projectId: null, taskId: null });
   };
 
   const handleGoToTeam = () => {
     setCurrentView('team');
+    updateUrlParams({ projectId: null, taskId: null });
   };
 
   const handleGoToSummary = () => {
@@ -461,17 +573,20 @@ export default function App() {
       return;
     }
     setCurrentView('summary');
+    updateUrlParams({ projectId: null, taskId: null });
   };
 
   const handleGoToRecycleBin = () => {
     refreshRecycleBin();
     setCurrentView('recycle-bin');
     setActiveProjectId('');
+    updateUrlParams({ projectId: null, taskId: null });
   };
 
   const handleGoToCalendar = () => {
     setCurrentView('calendar');
     setActiveProjectId('');
+    updateUrlParams({ projectId: null, taskId: null });
   };
 
   // Project management handlers
@@ -612,6 +727,7 @@ export default function App() {
         if (activeProjectId === project.id) {
           setActiveProjectId('');
           setCurrentView('dashboard');
+          updateUrlParams({ projectId: null, taskId: null });
         }
 
         showToast('info', `Project "${project.name}" moved to Recycle Bin (kept for 7 days).`);
@@ -648,6 +764,12 @@ export default function App() {
     setEditingTask(task || null);
     if (defaultStatus) setDefaultTaskStatus(defaultStatus);
     setIsTaskModalOpen(true);
+    if (task?.id) {
+      updateUrlParams({
+        projectId: task.projectId || activeProjectId || null,
+        taskId: task.id,
+      });
+    }
   };
 
   // Synchronize project status whenever tasks within a project change
@@ -1533,6 +1655,7 @@ export default function App() {
         onClose={() => {
           setIsTaskModalOpen(false);
           setEditingTask(null);
+          updateUrlParams({ taskId: null });
         }}
         onSave={handleSaveTask}
         initialTask={editingTask}

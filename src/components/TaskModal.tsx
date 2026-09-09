@@ -27,8 +27,11 @@ import {
   ListTodo,
   CheckSquare,
   Filter,
+  Link as LinkIcon,
+  Share2,
 } from 'lucide-react';
 import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser, TaskTimelineEvent, TaskSubtask } from '../types';
+import { getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
@@ -359,8 +362,24 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
   };
 
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleShareTaskLink = async () => {
+    const currentTaskId = initialTask?.id;
+    const currentProjId = initialTask?.projectId || selectedProjectId;
+    if (!currentTaskId) return;
+
+    const url = getTaskShareUrl(currentProjId, currentTaskId);
+    const success = await copyTextToClipboard(url);
+    if (success) {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
   useEffect(() => {
     setCopied(false);
+    setCopiedLink(false);
     if (initialTask) {
       setSelectedProjectId(initialTask.projectId);
       setTitle(initialTask.title);
@@ -785,6 +804,32 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 </button>
               </div>
 
+              {initialTask && (
+                <button
+                  id="share-readonly-task-link-btn"
+                  type="button"
+                  onClick={handleShareTaskLink}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                    copiedLink
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs'
+                  }`}
+                  title="Copy direct shareable link to this task"
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>Link Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>Share Link</span>
+                    </>
+                  )}
+                </button>
+              )}
+
               <button
                 id="copy-readonly-task-btn"
                 type="button"
@@ -1125,6 +1170,32 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 </button>
               </div>
             )}
+            {initialTask && (
+              <button
+                id="share-task-link-btn"
+                type="button"
+                onClick={handleShareTaskLink}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                  copiedLink
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs'
+                }`}
+                title="Copy direct shareable link to this task"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Link Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <LinkIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Share Link</span>
+                  </>
+                )}
+              </button>
+            )}
+
             <button
               id="close-task-modal-btn"
               onClick={onClose}

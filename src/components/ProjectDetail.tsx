@@ -27,8 +27,11 @@ import {
   ChevronsRight,
   MessageSquare,
   CheckSquare,
+  Share2,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
+import { getProjectShareUrl, getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
@@ -266,6 +269,30 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
+  const [copiedProjectLink, setCopiedProjectLink] = useState(false);
+  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
+
+  const handleShareProjectLink = async () => {
+    if (!project?.id) return;
+    const url = getProjectShareUrl(project.id);
+    const success = await copyTextToClipboard(url);
+    if (success) {
+      setCopiedProjectLink(true);
+      setTimeout(() => setCopiedProjectLink(false), 2000);
+    }
+  };
+
+  const handleShareTaskDirectLink = async (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation();
+    if (!project?.id || !taskId) return;
+    const url = getTaskShareUrl(project.id, taskId);
+    const success = await copyTextToClipboard(url);
+    if (success) {
+      setCopiedTaskId(taskId);
+      setTimeout(() => setCopiedTaskId(null), 2000);
+    }
+  };
+
   return (
     <div id="project-detail-workspace" className="space-y-6 pb-20">
       {/* Top Action Header */}
@@ -312,6 +339,29 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 Manage Team ({projectTeam.length})
               </button>
               <button
+                id="header-share-project-btn"
+                type="button"
+                onClick={handleShareProjectLink}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer border ${
+                  copiedProjectLink
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+                }`}
+                title="Copy direct shareable link to this project"
+              >
+                {copiedProjectLink ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Link Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Share Project</span>
+                  </>
+                )}
+              </button>
+              <button
                 id="header-add-task-btn"
                 onClick={() => onOpenTaskModal(null, 'In Progress')}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
@@ -329,6 +379,29 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 Staff Mode &bull; View Project Details
               </span>
+              <button
+                id="staff-share-project-btn"
+                type="button"
+                onClick={handleShareProjectLink}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer border ${
+                  copiedProjectLink
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+                }`}
+                title="Copy direct shareable link to this project"
+              >
+                {copiedProjectLink ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Link Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span>Share Project</span>
+                  </>
+                )}
+              </button>
               <button
                 id="header-add-task-btn"
                 onClick={() => onOpenTaskModal(null, 'In Progress')}
@@ -867,6 +940,23 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                           </div>
 
                           <div className="flex items-center gap-0.5">
+                            <button
+                              id={`share-task-btn-${task.id}`}
+                              type="button"
+                              onClick={(e) => handleShareTaskDirectLink(e, task.id)}
+                              title={copiedTaskId === task.id ? 'Direct link copied!' : 'Copy direct link to task'}
+                              className={`p-1 rounded-md transition-colors cursor-pointer ${
+                                copiedTaskId === task.id
+                                  ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400'
+                                  : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700'
+                              }`}
+                            >
+                              {copiedTaskId === task.id ? (
+                                <Check className="w-3.5 h-3.5" />
+                              ) : (
+                                <LinkIcon className="w-3.5 h-3.5" />
+                              )}
+                            </button>
                             {canModifyTask ? (
                               <>
                                 <button
