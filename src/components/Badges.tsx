@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 import { StatusType, PriorityType } from '../types';
 
 /**
@@ -16,7 +17,7 @@ export const getStatusBadgeClass = (
   };
 
   const sizeCls = sizeMap[size] || sizeMap.sm;
-  const base = `inline-flex items-center font-semibold border shadow-2xs transition-colors ${sizeCls}`;
+  const base = `inline-flex items-center font-semibold border shadow-2xs transition-colors whitespace-nowrap select-none ${sizeCls}`;
 
   switch (status) {
     case 'Draft':
@@ -79,10 +80,17 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   prefix,
   className = '',
 }) => {
+  const isProgress = status === 'In Progress';
   return (
-    <span className={`${getStatusBadgeClass(status, size)} ${className}`}>
+    <span className={`${getStatusBadgeClass(status, size)} ${className} whitespace-nowrap shrink-0`}>
+      {isProgress && (
+        <span className="relative flex items-center justify-center shrink-0 w-2.5 h-2.5 mr-1.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400/70 dark:bg-blue-300/60" />
+          <Loader2 className="relative w-2.5 h-2.5 text-blue-600 dark:text-blue-400 animate-spin shrink-0" />
+        </span>
+      )}
       {prefix && <span className="opacity-80 font-normal mr-1">{prefix}</span>}
-      {status}
+      <span className="whitespace-nowrap">{status}</span>
     </span>
   );
 };

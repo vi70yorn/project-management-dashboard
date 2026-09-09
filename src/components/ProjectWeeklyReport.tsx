@@ -750,12 +750,12 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                   <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 text-2xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     <th className="py-3 px-3 text-center w-12">#</th>
                     <th className="py-3 px-4 min-w-[210px]">Project</th>
-                    <th className="py-3 px-4 min-w-[120px]">Status</th>
+                    <th className="py-3 px-4 min-w-[135px] whitespace-nowrap">Status</th>
                     <th className="py-3 px-4 min-w-[140px]">Progress</th>
                     <th className="py-3 px-4 min-w-[240px]">Deliverables</th>
                     <th className="py-3 px-4 min-w-[120px]">Deadline</th>
-                    <th className="py-3 px-4 min-w-[150px]">Team</th>
-                    <th className="py-3 px-4 text-right min-w-[95px]">Action</th>
+                    <th className="py-3 px-4 min-w-[100px]">Team</th>
+                    <th className="py-3 px-4 text-right min-w-[70px]">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
@@ -823,7 +823,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                             </td>
 
                             {/* Status */}
-                            <td className="py-3.5 px-4">
+                            <td className="py-3.5 px-4 whitespace-nowrap">
                               <StatusBadge status={project.status} size="sm" />
                             </td>
 
@@ -944,12 +944,6 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                       </span>
                                     )}
                                   </div>
-                                  <span
-                                    className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate max-w-[130px]"
-                                    title={assignedMembers.map((m) => m.name).join(', ')}
-                                  >
-                                    {assignedMembers.map((m) => m.name).join(', ')}
-                                  </span>
                                 </div>
                               ) : (
                                 <span className="text-xs text-slate-400 italic">Unassigned</span>
@@ -963,11 +957,11 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                   e.stopPropagation();
                                   onSelectProject(project.id);
                                 }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/50 dark:border-blue-900/40 transition-colors cursor-pointer"
+                                className="inline-flex items-center justify-center p-1.5 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/50 dark:border-blue-900/40 transition-colors cursor-pointer shadow-2xs"
                                 title={`Open ${project.name} Kanban Board`}
+                                aria-label={`Open ${project.name} Kanban Board`}
                               >
-                                <span>Board</span>
-                                <ArrowRight className="w-3 h-3" />
+                                <ArrowRight className="w-3.5 h-3.5" />
                               </button>
                             </td>
                           </tr>

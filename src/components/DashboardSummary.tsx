@@ -1591,11 +1591,14 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                               </button>
                             )}
                             <button
+                              id={`open-workspace-proj-btn-${project.id}`}
+                              type="button"
                               onClick={() => onSelectProject(project.id)}
-                              className="inline-flex items-center gap-1 text-2xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer ml-1"
+                              className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 transition-colors cursor-pointer ml-1 shadow-2xs"
+                              title={isAdmin ? `Open ${project.name} Workspace` : `View ${project.name} Details`}
+                              aria-label={isAdmin ? `Open ${project.name} Workspace` : `View ${project.name} Details`}
                             >
-                              <span>{isAdmin ? 'Workspace' : 'Details'}</span>
-                              <ArrowUpRight className="w-3 h-3" />
+                              <ArrowUpRight className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
