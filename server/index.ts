@@ -2980,7 +2980,6 @@ app.post('/api/attachments/upload', upload.single('file'), async (req: Request, 
       return res.status(400).json({ error: 'No file was uploaded.' });
     }
 
-    const { projectId, taskId, uploadedBy, uploadedByName, uploadedByAvatar, projectName, taskTitle } = req.body;
     const {
       projectId,
       taskId,
@@ -3023,7 +3022,6 @@ app.post('/api/attachments/upload', upload.single('file'), async (req: Request, 
     const fileSize = req.file.size;
     const fileType = classifyFileType(originalName, mimeType);
 
-    // Upload to Google Drive (with automatic local storage fallback)
     // Upload to Google Drive (with folder hierarchy and renaming in Google Drive only)
     const uploadRes = await uploadDocumentFile({
       fileName: originalName,
@@ -3037,15 +3035,12 @@ app.post('/api/attachments/upload', upload.single('file'), async (req: Request, 
     });
 
     const attachmentId = `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const pool = getPool();
 
     const insertQuery = `
       INSERT INTO attachments (
         id, project_id, task_id, file_name, file_size, mime_type, file_type,
-        storage_provider, drive_file_id, web_view_link, download_link,
         storage_provider, drive_file_id, drive_file_name, web_view_link, download_link,
         uploaded_by, uploaded_by_name, uploaded_by_avatar
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING
         id,
@@ -3099,7 +3094,6 @@ app.post('/api/attachments/upload', upload.single('file'), async (req: Request, 
         entityId: taskId || projectId,
         entityName: originalName,
         projectId: projectId || null,
-        projectName: projectName || null,
         projectName: resolvedProjectName || null,
         details: {
           fileName: originalName,
@@ -3108,7 +3102,6 @@ app.post('/api/attachments/upload', upload.single('file'), async (req: Request, 
           fileType,
           storageProvider: uploadRes.storageProvider,
           driveFileId: uploadRes.driveFileId,
-          taskTitle: taskTitle || null,
           taskTitle: resolvedTaskTitle || null,
           projectName: resolvedProjectName || null,
         },

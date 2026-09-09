@@ -332,12 +332,6 @@ export async function uploadDocumentFile({
   fileName,
   filePath,
   mimeType,
-}: {
-  fileName: string;
-  filePath: string;
-  mimeType: string;
-}): Promise<UploadResult> {
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
   projectName,
   taskId,
   taskTitle,
@@ -346,12 +340,10 @@ export async function uploadDocumentFile({
 }: UploadDocumentOptions): Promise<UploadResult> {
   const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
-  if (isGoogleDriveConfigured() && folderId) {
   if (isGoogleDriveConfigured() && rootFolderId) {
     try {
       const drive = getDriveClient();
 
-      console.log(`[Google Drive] Uploading "${fileName}" to Google Drive folder (${folderId})...`);
       // 1. Resolve structured target folder: Project -> [Tasks] -> [Task Title]
       const targetFolderId = await resolveTargetFolder(drive, rootFolderId, {
         projectName,
@@ -369,8 +361,6 @@ export async function uploadDocumentFile({
       console.log(`[Google Drive] Uploading "${driveFileName}" to folder (${targetFolderId})...`);
 
       const fileMetadata = {
-        name: fileName,
-        parents: [folderId],
         name: driveFileName,
         parents: [targetFolderId],
       };
@@ -411,7 +401,6 @@ export async function uploadDocumentFile({
         fs.unlinkSync(filePath);
       } catch {}
 
-      console.log(`[Google Drive] File "${fileName}" uploaded successfully! File ID: ${fileId}`);
       console.log(`[Google Drive] File "${driveFileName}" uploaded successfully! File ID: ${fileId}`);
 
       return {
