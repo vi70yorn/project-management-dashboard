@@ -1,4 +1,4 @@
-import { Project, Task, TeamMember, StatusType, RecycleBinData, TaskComment, TaskTimelineResponse, TaskSubtask, InAppNotification } from '../types';
+import { Project, Task, TeamMember, StatusType, RecycleBinData, TaskComment, TaskTimelineResponse, TaskSubtask, InAppNotification, DocumentAttachment, StorageConfigStatus } from '../types';
 import { loadAuthUser } from './storage';
 
 const API_BASE = '/api';
@@ -636,6 +636,86 @@ export async function dismissNotificationApi(id: string): Promise<{ success: boo
     method: 'DELETE',
   });
   if (!res.ok) throw new Error('Failed to dismiss notification');
+  return res.json();
+}
+
+// -------------------------------------------------------------
+// Document Attachments API (Google Drive & Local Storage)
+// -------------------------------------------------------------
+
+export async function fetchStorageConfigStatusApi(): Promise<StorageConfigStatus> {
+  const res = await fetch(`${API_BASE}/attachments/config-status`);
+  if (!res.ok) throw new Error('Failed to fetch storage config status');
+  return res.json();
+}
+
+export async function fetchAttachmentsApi(projectId?: string, taskId?: string): Promise<DocumentAttachment[]> {
+  const params = new URLSearchParams();
+  if (taskId) params.append('taskId', taskId);
+  else if (projectId) params.append('projectId', projectId);
+
+  const res = await fetch(`${API_BASE}/attachments?${params.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch attachments');
+  return res.json();
+}
+
+export async function uploadAttachmentApi({
+  file,
+  projectId,
+  taskId,
+  projectName,
+  taskTitle,
+  currentUser,
+}: {
+  file: File;
+  projectId?: string | null;
+  taskId?: string | null;
+  projectName?: string | null;
+  taskTitle?: string | null;
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null;
+}): Promise<DocumentAttachment> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (projectId) formData.append('projectId', projectId);
+  if (taskId) formData.append('taskId', taskId);
+  if (projectName) formData.append('projectName', projectName);
+  if (taskTitle) formData.append('taskTitle', taskTitle);
+  if (currentUser?.memberId) formData.append('uploadedBy', currentUser.memberId);
+  if (currentUser?.name) formData.append('uploadedByName', currentUser.name);
+  if (currentUser?.avatar) formData.append('uploadedByAvatar', currentUser.avatar);
+  if (file.lastModified) formData.append('fileModifiedAt', String(file.lastModified));
+
+  const headers = getAuthHeaders(currentUser);
+  delete headers['Content-Type'];
+
+  const res = await fetch(`${API_BASE}/attachments/upload`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to upload document');
+  }
+
+  return res.json();
+}
+
+export async function deleteAttachmentApi(
+  attachmentId: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE}/attachments/${attachmentId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(currentUser),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to delete attachment');
+  }
+
   return res.json();
 }
 

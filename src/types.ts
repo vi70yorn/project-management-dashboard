@@ -159,3 +159,29 @@ export interface InAppNotification {
   readBy: string[]; // Member IDs or user IDs who marked read
   createdAt: string;
 }
+
+export interface DocumentAttachment {
+  id: string;
+  projectId?: string | null;
+  taskId?: string | null;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileType: 'pdf' | 'word' | 'excel' | 'image' | 'other';
+  storageProvider: 'google_drive' | 'local';
+  driveFileId?: string | null;
+  driveFileName?: string | null;
+  webViewLink: string;
+  downloadLink?: string | null;
+  uploadedBy?: string | null;
+  uploadedByName?: string | null;
+  uploadedByAvatar?: string | null;
+  createdAt: string;
+}
+
+export interface StorageConfigStatus {
+  configured: boolean;
+  provider: 'google_drive' | 'local';
+  folderId?: string;
+  message: string;
+}

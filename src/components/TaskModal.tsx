@@ -29,6 +29,7 @@ import {
   Filter,
   Link as LinkIcon,
   Share2,
+  Paperclip,
 } from 'lucide-react';
 import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser, TaskTimelineEvent, TaskSubtask } from '../types';
 import { getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
@@ -40,6 +41,7 @@ import { CustomSelect, CustomSelectOption } from './ui/CustomSelect';
 import { DatePicker } from './ui/DatePicker';
 import { FormattedText } from './ui/FormattedText';
 import { RichTextEditor } from './ui/RichTextEditor';
+import { DocumentAttachmentManager } from './DocumentAttachmentManager';
 import {
   fetchTaskTimelineApi,
   addTaskCommentApi,
@@ -53,7 +55,7 @@ import {
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (taskData: Partial<Task>) => void;
+  onSave: (taskData: Partial<Task>, stagedFiles?: File[]) => Promise<void> | void;
   onDelete?: (task: Task) => void;
   initialTask?: Task | null;
   projectId?: string;
@@ -128,7 +130,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
-  const [activeMobileTab, setActiveMobileTab] = useState<'details' | 'discussion'>('details');
+  const [activeMobileTab, setActiveMobileTab] = useState<'details' | 'discussion' | 'documents'>('details');
+  const [activeRightTab, setActiveRightTab] = useState<'documents' | 'discussion'>('documents');
+  const [attachmentCount, setAttachmentCount] = useState<number>(0);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (isOpen && initialTask?.id) {
@@ -410,6 +415,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setDueDate(targetDue);
     }
     setNewSubtaskTitle('');
+    setStagedFiles([]);
+    setActiveRightTab('documents');
   }, [initialTask, isOpen, defaultProjectId, projects, teamMembers, currentUser]);
 
   if (!isOpen) return null;
@@ -419,17 +426,20 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     if (!canEditTask) return;
     if (!title.trim() || !dueDate || !selectedProjectId) return;
 
-    onSave({
-      projectId: selectedProjectId,
-      title: title.trim(),
-      description: description.trim(),
-      status,
-      priority,
-      assigneeId: isStaff ? (currentUser?.memberId || assigneeId) : (assigneeId || safeMembers[0]?.id || 'unassigned'),
-      startDate: startDate || undefined,
-      dueDate,
-      subtasks,
-    });
+    onSave(
+      {
+        projectId: selectedProjectId,
+        title: title.trim(),
+        description: description.trim(),
+        status,
+        priority,
+        assigneeId: isStaff ? (currentUser?.memberId || assigneeId) : (assigneeId || safeMembers[0]?.id || 'unassigned'),
+        startDate: startDate || undefined,
+        dueDate,
+        subtasks,
+      },
+      stagedFiles
+    );
     onClose();
   };
 
@@ -462,40 +472,100 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const renderDiscussionPanel = () => (
     <div
       id="task-discussion-right-panel"
-      className={`w-full lg:w-[400px] xl:w-[440px] border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col min-h-0 overflow-hidden shrink-0 ${
+      className={`w-full lg:w-[420px] xl:w-[480px] border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col min-h-0 overflow-hidden shrink-0 ${
         activeMobileTab === 'details' ? 'hidden lg:flex' : 'flex'
       }`}
     >
-      {/* Discussion Header (Top Right) */}
-      <div className="p-3.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 bg-white dark:bg-slate-900/80 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+      {/* Right Panel Header: Tabs between Documents and Discussion (Documents First!) */}
+      <div className="p-2.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 bg-white dark:bg-slate-900/80 shrink-0">
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveRightTab('documents');
+              setActiveMobileTab('documents');
+            }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+              activeRightTab === 'documents'
+                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+            }`}
+          >
+            <Paperclip className="w-3.5 h-3.5" />
+            <span>Documents</span>
+            {(initialTask ? attachmentCount : stagedFiles.length) > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                {initialTask ? attachmentCount : stagedFiles.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveRightTab('discussion');
+              setActiveMobileTab('discussion');
+            }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+              activeRightTab === 'discussion'
+                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+            }`}
+          >
             <MessageSquare className="w-3.5 h-3.5" />
-          </div>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-              Discussion & Timeline
-            </h4>
-            <span className="px-2 py-0.5 rounded-full text-3xs font-semibold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 shrink-0">
-              {commentsCount}
-            </span>
-          </div>
+            <span>Discussion</span>
+            {commentsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                {commentsCount}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Filter Dropdown (Replaces segmented tabs) */}
-        <div className="shrink-0">
-          <CustomSelect
-            id="timeline-filter-select"
-            value={timelineFilter}
-            onChange={(val) => setTimelineFilter(val as 'all' | 'comments' | 'activity')}
-            options={timelineFilterOptions}
-            size="sm"
-            align="right"
-            className="w-36 sm:w-40"
-          />
-        </div>
+        {activeRightTab === 'discussion' && initialTask && (
+          <div className="shrink-0">
+            <CustomSelect
+              id="timeline-filter-select"
+              value={timelineFilter}
+              onChange={(val) => setTimelineFilter(val as 'all' | 'comments' | 'activity')}
+              options={timelineFilterOptions}
+              size="sm"
+              align="right"
+              className="w-32 sm:w-36"
+            />
+          </div>
+        )}
       </div>
 
+      {activeRightTab === 'documents' ? (
+        <div className="flex-1 overflow-y-auto p-4 min-h-0 custom-scrollbar bg-white dark:bg-slate-900/60">
+          <DocumentAttachmentManager
+            taskId={initialTask?.id}
+            projectId={initialTask?.projectId || selectedProjectId || defaultProjectId}
+            projectName={currentProject?.name || projectName}
+            taskTitle={initialTask?.title || title}
+            currentUser={currentUser}
+            onAttachmentCountChange={setAttachmentCount}
+            readOnly={isStaff && !isOwnTask}
+            isCreateMode={!initialTask}
+            stagedFiles={stagedFiles}
+            onStagedFilesChange={setStagedFiles}
+          />
+        </div>
+      ) : !initialTask ? (
+        <div className="flex-1 p-8 flex flex-col items-center justify-center text-center">
+          <div className="w-11 h-11 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            Discussion & Activity Timeline
+          </h4>
+          <p className="text-3xs text-slate-500 dark:text-slate-400 max-w-xs mt-1 leading-relaxed">
+            Team comments and status tracking will activate once this task deliverable is saved. Switch to the <strong className="text-blue-600 dark:text-blue-400">Documents</strong> tab to attach files right now!
+          </p>
+        </div>
+      ) : (
+        <>
       {/* Add Comment Input Form (Situated right at TOP under the header!) */}
       <div className="p-3 bg-white dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">
         <div className="flex items-start gap-2.5">
@@ -732,8 +802,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           </div>
         )}
       </div>
-    </div>
-  );
+      </>
+    )}
+  </div>
+);
 
   // If Staff role and viewing ANOTHER member's task: render pristine, read-only Task Detail View
   if (isStaff && initialTask && !isOwnTask) {
@@ -787,7 +859,30 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveMobileTab('discussion')}
+                  onClick={() => {
+                    setActiveMobileTab('documents');
+                    setActiveRightTab('documents');
+                  }}
+                  className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
+                    activeMobileTab === 'documents'
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  <Paperclip className="w-3.5 h-3.5" />
+                  <span>Docs</span>
+                  {attachmentCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-3xs bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold">
+                      {attachmentCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveMobileTab('discussion');
+                    setActiveRightTab('discussion');
+                  }}
                   className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
                     activeMobileTab === 'discussion'
                       ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
@@ -867,7 +962,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
             {/* Left Column: Read-Only Details */}
             <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${
-              activeMobileTab === 'discussion' ? 'hidden lg:flex' : 'flex'
+              activeMobileTab !== 'details' ? 'hidden lg:flex' : 'flex'
             }`}>
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
                 {/* Title & Status Badges */}
@@ -1119,7 +1214,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     >
       <div
         id="task-modal-card"
-        className={`w-full ${initialTask ? 'max-w-5xl' : 'max-w-xl'} bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]`}
+        className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Header */}
         <div className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60 shrink-0">
@@ -1138,38 +1233,60 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            {initialTask && (
-              <div className="flex items-center lg:hidden bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setActiveMobileTab('details')}
-                  className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
-                    activeMobileTab === 'details'
-                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
-                  }`}
-                >
-                  Details
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveMobileTab('discussion')}
-                  className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
-                    activeMobileTab === 'discussion'
-                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Discussion</span>
-                  {commentsCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-3xs bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold">
-                      {commentsCount}
-                    </span>
-                  )}
-                </button>
-              </div>
-            )}
+            {/* Mobile Tab Switcher */}
+            <div className="flex items-center lg:hidden bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveMobileTab('details')}
+                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors ${
+                  activeMobileTab === 'details'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                }`}
+              >
+                Details
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMobileTab('documents');
+                  setActiveRightTab('documents');
+                }}
+                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
+                  activeMobileTab === 'documents'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                }`}
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+                <span>Docs</span>
+                {(initialTask ? attachmentCount : stagedFiles.length) > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-3xs bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold">
+                    {initialTask ? attachmentCount : stagedFiles.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMobileTab('discussion');
+                  setActiveRightTab('discussion');
+                }}
+                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
+                  activeMobileTab === 'discussion'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Discussion</span>
+                {commentsCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-3xs bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold">
+                    {commentsCount}
+                  </span>
+                )}
+              </button>
+            </div>
             {initialTask && (
               <button
                 id="share-task-link-btn"
@@ -1210,7 +1327,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
           {/* Left Column: Task Form */}
           <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${
-            activeMobileTab === 'discussion' ? 'hidden lg:flex' : 'flex'
+            activeMobileTab !== 'details' ? 'hidden lg:flex' : 'flex'
           }`}>
             <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -1615,8 +1732,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </form>
           </div>
 
-          {/* Right Column: Discussion & Activity Timeline (Situated at the TOP RIGHT!) */}
-          {initialTask && renderDiscussionPanel()}
+          {/* Right Column: Documents & Discussion Timeline (Documents First!) */}
+          {renderDiscussionPanel()}
         </div>
       </div>
     </div>

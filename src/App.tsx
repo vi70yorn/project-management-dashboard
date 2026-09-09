@@ -76,6 +76,7 @@ import {
   markNotificationReadApi,
   markAllNotificationsReadApi,
   dismissNotificationApi,
+  uploadAttachmentApi,
   DatabaseHealthResponse,
 } from './services/api';
 
@@ -610,7 +611,8 @@ export default function App() {
 
   const handleSaveProject = (
     projectData: Omit<Project, 'id' | 'createdAt'>,
-    projectId?: string
+    projectId?: string,
+    stagedFiles?: File[]
   ) => {
     if (currentUser?.role !== 'admin') {
       showToast('error', 'Only Admins can modify projects.');
@@ -647,7 +649,24 @@ export default function App() {
 
       setProjects((prev) => [newProject, ...prev]);
       createProjectApi(newProject, currentUser)
-        .then(() => triggerActivityRefresh())
+        .then(async () => {
+          triggerActivityRefresh();
+          if (stagedFiles && stagedFiles.length > 0) {
+            for (const file of stagedFiles) {
+              try {
+                await uploadAttachmentApi({
+                  file,
+                  projectId: newProject.id,
+                  projectName: newProject.name,
+                  currentUser,
+                });
+              } catch (uploadErr) {
+                console.error('[Upload Staged Project Attachment Error]:', uploadErr);
+              }
+            }
+            showToast('success', `Project "${newProject.name}" created with ${stagedFiles.length} document(s)!`);
+          }
+        })
         .catch((err) => console.warn('[PostgreSQL Sync] Create project error:', err));
       showToast('success', `Project "${newProject.name}" created!`);
 
@@ -823,7 +842,7 @@ export default function App() {
     }
   };
 
-  const handleSaveTask = (taskData: Partial<Task>) => {
+  const handleSaveTask = (taskData: Partial<Task>, stagedFiles?: File[]) => {
     const targetProjectId = taskData.projectId || activeProjectId || projects[0]?.id;
 
     if (!targetProjectId) {
@@ -964,7 +983,26 @@ export default function App() {
       }
 
       createTaskApi(newTask, currentUser)
-        .then(() => triggerActivityRefresh())
+        .then(async () => {
+          triggerActivityRefresh();
+          if (stagedFiles && stagedFiles.length > 0) {
+            for (const file of stagedFiles) {
+              try {
+                await uploadAttachmentApi({
+                  file,
+                  projectId: targetProjectId,
+                  taskId: newTask.id,
+                  projectName,
+                  taskTitle: newTask.title,
+                  currentUser,
+                });
+              } catch (uploadErr) {
+                console.error('[Upload Staged Task Attachment Error]:', uploadErr);
+              }
+            }
+            showToast('success', `Task "${newTask.title}" created with ${stagedFiles.length} document(s)!`);
+          }
+        })
         .catch((err) => console.warn('[PostgreSQL Sync] Create task error:', err));
       showToast('success', `Task "${newTask.title}" added to project.`);
     }
@@ -1647,6 +1685,7 @@ export default function App() {
         initialProject={editingProject}
         teamMembers={teamMembers}
         onOpenAddMember={handleOpenAddMember}
+        currentUser={currentUser}
       />
 
       {/* Task Modal */}

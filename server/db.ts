@@ -347,6 +347,32 @@ export async function runMigrationsAndSeed(): Promise<void> {
       );
 
       CREATE INDEX IF NOT EXISTS idx_in_app_notifications_created_at ON in_app_notifications(created_at DESC);
+
+      -- 11. Documents & Attachments Table (Stored in Google Drive / Local Fallback)
+      CREATE TABLE IF NOT EXISTS attachments (
+          id VARCHAR(64) PRIMARY KEY,
+          project_id VARCHAR(64) REFERENCES projects(id) ON DELETE CASCADE,
+          task_id VARCHAR(64) REFERENCES tasks(id) ON DELETE CASCADE,
+          file_name VARCHAR(255) NOT NULL,
+          file_size BIGINT NOT NULL,
+          mime_type VARCHAR(128) NOT NULL,
+          file_type VARCHAR(32) NOT NULL,
+          storage_provider VARCHAR(32) NOT NULL DEFAULT 'google_drive',
+          drive_file_id VARCHAR(128),
+          drive_file_name VARCHAR(255),
+          web_view_link TEXT NOT NULL,
+          download_link TEXT,
+          uploaded_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
+          uploaded_by_name VARCHAR(255),
+          uploaded_by_avatar TEXT,
+          created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+
+      ALTER TABLE attachments ADD COLUMN IF NOT EXISTS drive_file_name VARCHAR(255);
+
+      CREATE INDEX IF NOT EXISTS idx_attachments_project_id ON attachments(project_id);
+      CREATE INDEX IF NOT EXISTS idx_attachments_task_id ON attachments(task_id);
+      CREATE INDEX IF NOT EXISTS idx_attachments_created_at ON attachments(created_at DESC);
     `);
 
     console.log('[PostgreSQL] Database schema, credentials & initial seeds verified successfully.');

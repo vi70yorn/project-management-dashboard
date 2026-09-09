@@ -29,6 +29,7 @@ import {
   CheckSquare,
   Share2,
   Link as LinkIcon,
+  Paperclip,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
 import { getProjectShareUrl, getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
@@ -38,6 +39,8 @@ import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass 
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect } from './ui/CustomSelect';
 import { FormattedText } from './ui/FormattedText';
+import { DocumentAttachmentManager } from './DocumentAttachmentManager';
+import { fetchAttachmentsApi } from '../services/api';
 
 interface ProjectDetailProps {
   project: Project;
@@ -79,7 +82,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const isAssignedToProject =
     isAdmin || (isStaff && (project?.memberIds || []).includes(currentUser?.memberId || ''));
 
-  const [activeTab, setActiveTab] = useState<'board' | 'team'>('board');
+  const [activeTab, setActiveTab] = useState<'board' | 'team' | 'documents'>('board');
+  const [projectAttachmentCount, setProjectAttachmentCount] = useState<number>(0);
   const [filterMemberId, setFilterMemberId] = useState<string>('all');
   const [searchTaskQuery, setSearchTaskQuery] = useState('');
   const [isManagingMembers, setIsManagingMembers] = useState(false);
@@ -119,6 +123,14 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       // ignore
     }
     setCollapsedColumns({ Draft: true, Completed: true });
+  }, [project?.id]);
+
+  useEffect(() => {
+    if (project?.id) {
+      fetchAttachmentsApi(project.id)
+        .then((items) => setProjectAttachmentCount(items.length))
+        .catch(() => {});
+    }
   }, [project?.id]);
 
   const toggleColumnCollapse = (status: StatusType) => {
@@ -698,6 +710,24 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             <Users className="w-3.5 h-3.5" />
             Project Team & Workload ({projectTeam.length})
           </button>
+
+          <button
+            id="tab-btn-documents"
+            onClick={() => setActiveTab('documents')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'documents'
+                ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Paperclip className="w-3.5 h-3.5" />
+            <span>Documents & Files</span>
+            {projectAttachmentCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                {projectAttachmentCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Member filter & Search within board */}
@@ -1258,6 +1288,19 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* VIEW 3: Project Documents & Files */}
+      {activeTab === 'documents' && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
+          <DocumentAttachmentManager
+            projectId={project.id}
+            projectName={project.name}
+            currentUser={currentUser}
+            onAttachmentCountChange={setProjectAttachmentCount}
+            readOnly={!isAdmin && !isAssignedToProject}
+          />
         </div>
       )}
 

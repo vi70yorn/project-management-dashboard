@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { X, FolderPlus, Users, Briefcase, Check, UserPlus, ChevronDown, AlertCircle, Edit3, Clock } from 'lucide-react';
-import { Project, StatusType, TeamMember } from '../types';
+import { X, FolderPlus, Users, Briefcase, Check, UserPlus, ChevronDown, AlertCircle, Edit3, Clock, Paperclip } from 'lucide-react';
+import { Project, StatusType, TeamMember, AuthUser } from '../types';
 import { isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect } from './ui/CustomSelect';
 import { DatePicker } from './ui/DatePicker';
 import { RichTextEditor } from './ui/RichTextEditor';
+import { DocumentAttachmentManager } from './DocumentAttachmentManager';
 
 interface NewProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (project: Omit<Project, 'id' | 'createdAt'>, projectId?: string) => void;
+  onSave: (
+    project: Omit<Project, 'id' | 'createdAt'>,
+    projectId?: string,
+    stagedFiles?: File[]
+  ) => Promise<void> | void;
   initialProject?: Project | null;
   teamMembers: TeamMember[];
   onOpenAddMember?: () => void;
+  currentUser?: AuthUser | null;
 }
 
 const COLOR_OPTIONS = [
@@ -33,6 +39,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   initialProject,
   teamMembers,
   onOpenAddMember,
+  currentUser,
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -48,8 +55,10 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   );
   const [tagsInput, setTagsInput] = useState('Core, Sprint 1');
   const [color, setColor] = useState(COLOR_OPTIONS[0]);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
 
   useEffect(() => {
+    setStagedFiles([]);
     if (initialProject) {
       setName(initialProject.name || '');
       setDescription(initialProject.description || '');
@@ -107,7 +116,8 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
         tags: tags.length > 0 ? tags : ['General'],
         color,
       },
-      initialProject ? initialProject.id : undefined
+      initialProject ? initialProject.id : undefined,
+      stagedFiles
     );
 
     onClose();
@@ -122,7 +132,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
     >
       <div
         id="new-project-modal-card"
-        className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60">
@@ -369,6 +379,31 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Project Documents & Attachments */}
+          <div className="border-t border-slate-200/80 dark:border-slate-800 pt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Paperclip className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                Project Documents & Attachments
+              </label>
+              {stagedFiles.length > 0 && !initialProject && (
+                <span className="text-2xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                  {stagedFiles.length} file{stagedFiles.length > 1 ? 's' : ''} staged for upload
+                </span>
+              )}
+            </div>
+            <div className="bg-slate-50/50 dark:bg-slate-800/40 rounded-xl p-3 border border-slate-200 dark:border-slate-800">
+              <DocumentAttachmentManager
+                projectId={initialProject?.id}
+                projectName={initialProject?.name || name || 'Project'}
+                currentUser={currentUser}
+                isCreateMode={!initialProject}
+                stagedFiles={stagedFiles}
+                onStagedFilesChange={setStagedFiles}
+              />
             </div>
           </div>
 
