@@ -77,6 +77,7 @@ import {
   markAllNotificationsReadApi,
   dismissNotificationApi,
   uploadAttachmentApi,
+  logoutApi,
   DatabaseHealthResponse,
 } from './services/api';
 
@@ -531,6 +532,7 @@ export default function App() {
         setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
         setCurrentUser(null);
         clearAuthUser();
+        logoutApi(); // Clear JWT token from localStorage
         updateUrlParams({ projectId: null, taskId: null });
         showToast('info', 'You have been logged out.');
       },

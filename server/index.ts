@@ -1,8 +1,9 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import https from 'https';
 import { getPool, ensureDatabaseExists, runMigrationsAndSeed, checkConnection, dbConfig } from './db';
 
 // Force system and runtime timezone to UTC+7 (Asia/Bangkok, Indochina Time)
@@ -16,12 +17,261 @@ import {
   classifyFileType,
   getGoogleDriveStatus,
 } from './storage/googleDrive';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
+import cryptoModule from 'crypto';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// ==========================================
+// Auth Constants & Middleware
+// ==========================================
+
+const JWT_SECRET = process.env.JWT_SECRET || 'easymanage-default-secret-change-me';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const BCRYPT_ROUNDS = 10;
+
+// Rate Limiters
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+});
+
+const changePasswordRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many password change requests. Please try again in 15 minutes.' },
+});
+
+// JWT Auth Middleware
+interface JwtPayload {
+  memberId: string;
+  username: string;
+  role: string;
+  name: string;
+}
+
+function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) {
+    res.status(401).json({ error: 'No token provided. Please log in.' });
+    return;
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    (req as any).jwtUser = decoded;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token. Please log in again.' });
+  }
+}
+
+function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  const user = (req as any).jwtUser as JwtPayload | undefined;
+  if (!user || user.role !== 'admin') {
+    res.status(403).json({ error: 'Admin access required.' });
+    return;
+  }
+  next();
+}
+
+// ==========================================
+// AES-256-GCM Response Encryption Middleware
+// Encrypts all /api/* JSON responses (except /api/health)
+// Format: base64(iv[12] + ciphertext + authTag[16]) wrapped in { enc: "..." }
+// ==========================================
+
+const AES_KEY_HEX = process.env.API_ENCRYPTION_KEY || '';
+const AES_KEY_BUFFER = AES_KEY_HEX.length === 64
+  ? Buffer.from(AES_KEY_HEX, 'hex')
+  : null;
+
+function encryptPayloadSync(plaintext: string): string {
+  if (!AES_KEY_BUFFER) return plaintext;
+  const iv = cryptoModule.randomBytes(12);
+  const cipher = cryptoModule.createCipheriv('aes-256-gcm', AES_KEY_BUFFER, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag(); // 16 bytes
+  const combined = Buffer.concat([iv, encrypted, authTag]);
+  return combined.toString('base64');
+}
+
+// Middleware: intercept res.json() for ALL /api/* routes (registered first so it wraps everything)
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  if (req.path === '/health' || !AES_KEY_BUFFER) {
+    return next();
+  }
+  const originalJson = res.json.bind(res);
+  res.json = (data: any): Response => {
+    const plaintext = JSON.stringify(data);
+    const encryptedB64 = encryptPayloadSync(plaintext);
+    return originalJson({ enc: encryptedB64 });
+  };
+  next();
+});
+
+// ==========================================
+// Auth Routes
+// ==========================================
+
+// POST /api/auth/login — bcrypt verify + JWT issue
+app.post('/api/auth/login', loginRateLimiter, async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required.' });
+  }
+
+  try {
+    const pool = getPool();
+    const result = await pool.query(
+      `SELECT id, username, name, role, email, avatar, color, password
+       FROM team_members
+       WHERE LOWER(username) = LOWER($1)
+       LIMIT 1`,
+      [username.trim()]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(401).json({ error: 'Invalid username or password.' });
+    }
+
+    const member = result.rows[0];
+    const storedPassword: string = member.password || '';
+
+    // Detect if password is plaintext (not a bcrypt hash) and migrate it on-the-fly
+    let isMatch = false;
+    const isBcryptHash = storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$');
+
+    if (isBcryptHash) {
+      isMatch = await bcrypt.compare(password, storedPassword);
+    } else {
+      // Plaintext comparison + migrate to bcrypt
+      isMatch = storedPassword === password;
+      if (isMatch) {
+        const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        await pool.query('UPDATE team_members SET password = $1 WHERE id = $2', [hash, member.id]);
+        console.log(`[Auth] Migrated plaintext password for user: ${member.username}`);
+      }
+    }
+
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid username or password.' });
+    }
+
+    const token = jwt.sign(
+      { memberId: member.id, username: member.username, role: member.role || 'staff', name: member.name },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN } as any
+    );
+
+    return res.json({
+      token,
+      user: {
+        memberId: member.id,
+        username: member.username,
+        name: member.name,
+        role: member.role || 'staff',
+        email: member.email,
+        avatar: member.avatar,
+        color: member.color,
+      },
+    });
+  } catch (err: any) {
+    console.error('[Auth] Login error:', err.message);
+    return res.status(500).json({ error: 'Internal server error during login.' });
+  }
+});
+
+// POST /api/auth/change-password — staff/admin change own password
+app.post('/api/auth/change-password', changePasswordRateLimiter, async (req: Request, res: Response) => {
+  const { memberId, currentPassword, newPassword } = req.body;
+  if (!memberId || !currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'memberId, currentPassword, and newPassword are required.' });
+  }
+  if (newPassword.length < 4) {
+    return res.status(400).json({ error: 'New password must be at least 4 characters.' });
+  }
+
+  try {
+    const pool = getPool();
+    const result = await pool.query(
+      'SELECT id, password FROM team_members WHERE id = $1 LIMIT 1',
+      [memberId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Member not found.' });
+    }
+
+    const member = result.rows[0];
+    const storedPassword: string = member.password || '';
+    const isBcryptHash = storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2b$');
+
+    let isMatch = false;
+    if (isBcryptHash) {
+      isMatch = await bcrypt.compare(currentPassword, storedPassword);
+    } else {
+      isMatch = storedPassword === currentPassword;
+    }
+
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await pool.query('UPDATE team_members SET password = $1 WHERE id = $2', [newHash, memberId]);
+    console.log(`[Auth] Password changed for memberId: ${memberId}`);
+
+    return res.json({ message: 'Password updated successfully.' });
+  } catch (err: any) {
+    console.error('[Auth] Change password error:', err.message);
+    return res.status(500).json({ error: 'Internal server error during password change.' });
+  }
+});
+
+// POST /api/auth/admin-reset-password — admin resets any member's password
+app.post('/api/auth/admin-reset-password', async (req: Request, res: Response) => {
+  const callerRole = (req.headers['x-user-role'] as string) || '';
+  if (callerRole !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required.' });
+  }
+
+  const { memberId, newPassword } = req.body;
+  if (!memberId || !newPassword) {
+    return res.status(400).json({ error: 'memberId and newPassword are required.' });
+  }
+  if (newPassword.length < 4) {
+    return res.status(400).json({ error: 'New password must be at least 4 characters.' });
+  }
+
+  try {
+    const pool = getPool();
+    const result = await pool.query('SELECT id FROM team_members WHERE id = $1 LIMIT 1', [memberId]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Member not found.' });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await pool.query('UPDATE team_members SET password = $1 WHERE id = $2', [newHash, memberId]);
+    console.log(`[Auth] Admin reset password for memberId: ${memberId}`);
+
+    return res.json({ message: 'Password reset successfully.' });
+  } catch (err: any) {
+    console.error('[Auth] Admin reset password error:', err.message);
+    return res.status(500).json({ error: 'Internal server error during password reset.' });
+  }
+});
 
 // Serve local document uploads statically
 const localUploadsDir = path.resolve(process.cwd(), 'uploads', 'documents');
@@ -3238,14 +3488,37 @@ async function startServer() {
     console.error('[Server] If PostgreSQL credentials are needed, please verify your .env file.');
   }
 
-  app.listen(PORT, () => {
-    console.log(`=======================================================`);
-    console.log(`🚀 API Server running at: http://localhost:${PORT}`);
-    console.log(`🐘 PostgreSQL Host: ${dbConfig.host}:${dbConfig.port}`);
-    console.log(`🗄️ Database: ${dbConfig.database}`);
-    console.log(`🛠️ DBeaver can connect to this same database now!`);
-    console.log(`=======================================================`);
-  });
+  // Use HTTPS if certs exist (generated by mkcert), otherwise fall back to HTTP
+  const certPath = path.resolve(process.cwd(), 'certs/localhost+1.pem');
+  const keyPath = path.resolve(process.cwd(), 'certs/localhost+1-key.pem');
+  const certsExist = fs.existsSync(certPath) && fs.existsSync(keyPath);
+
+  if (certsExist) {
+    const sslOptions = {
+      cert: fs.readFileSync(certPath),
+      key: fs.readFileSync(keyPath),
+    };
+    https.createServer(sslOptions, app).listen(PORT, () => {
+      console.log(`=======================================================`);
+      console.log(`🔐 API Server running at: https://localhost:${PORT}`);
+      console.log(`🔒 HTTPS enabled with mkcert certificate`);
+      console.log(`🛡️  AES-256-GCM payload encryption: ${AES_KEY_BUFFER ? 'ENABLED' : 'DISABLED (no key)'}`);
+      console.log(`🐘 PostgreSQL Host: ${dbConfig.host}:${dbConfig.port}`);
+      console.log(`🗄️ Database: ${dbConfig.database}`);
+      console.log(`=======================================================`);
+    });
+  } else {
+    // Fallback to HTTP if certs are missing
+    app.listen(PORT, () => {
+      console.log(`=======================================================`);
+      console.log(`🚀 API Server running at: http://localhost:${PORT}`);
+      console.log(`⚠️  HTTPS disabled — run mkcert to enable SSL`);
+      console.log(`🛡️  AES-256-GCM payload encryption: ${AES_KEY_BUFFER ? 'ENABLED' : 'DISABLED'}`);
+      console.log(`🐘 PostgreSQL Host: ${dbConfig.host}:${dbConfig.port}`);
+      console.log(`🗄️ Database: ${dbConfig.database}`);
+      console.log(`=======================================================`);
+    });
+  }
 }
 
 startServer();

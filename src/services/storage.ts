@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   TASKS: 'pm_clean_tasks_v2',
   MEMBERS: 'pm_clean_members_v2',
   AUTH_USER: 'pm_auth_user_v2',
+  JWT_TOKEN: 'pm_jwt_token_v1',
   RECYCLE_BIN_PROJECTS: 'pm_clean_recycle_projects_v1',
   RECYCLE_BIN_TASKS: 'pm_clean_recycle_tasks_v1',
   NOTIFICATIONS: 'pm_clean_notifications_v1',
@@ -66,6 +67,32 @@ export const clearAuthUser = () => {
     localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
   } catch (e) {
     console.error('Error clearing auth user:', e);
+  }
+};
+
+// JWT Token helpers
+export const saveJwtToken = (token: string) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.JWT_TOKEN, token);
+  } catch (e) {
+    console.error('Error saving JWT token:', e);
+  }
+};
+
+export const loadJwtToken = (): string | null => {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.JWT_TOKEN);
+  } catch (e) {
+    console.error('Error loading JWT token:', e);
+    return null;
+  }
+};
+
+export const clearJwtToken = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.JWT_TOKEN);
+  } catch (e) {
+    console.error('Error clearing JWT token:', e);
   }
 };
 
