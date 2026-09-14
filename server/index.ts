@@ -135,7 +135,7 @@ app.post('/api/auth/login', loginRateLimiter, async (req: Request, res: Response
   try {
     const pool = getPool();
     const result = await pool.query(
-      `SELECT id, username, name, role, email, avatar, color, password
+      `SELECT id, username, name, role, system_role AS "systemRole", department, email, avatar, color, password
        FROM team_members
        WHERE LOWER(username) = LOWER($1)
        LIMIT 1`,
@@ -169,8 +169,10 @@ app.post('/api/auth/login', loginRateLimiter, async (req: Request, res: Response
       return res.status(401).json({ error: 'Invalid username or password.' });
     }
 
+    const systemRole = (member.systemRole || 'staff').toLowerCase();
+
     const token = jwt.sign(
-      { memberId: member.id, username: member.username, role: member.role || 'staff', name: member.name },
+      { memberId: member.id, username: member.username, role: systemRole, name: member.name },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN } as any
     );
@@ -178,10 +180,13 @@ app.post('/api/auth/login', loginRateLimiter, async (req: Request, res: Response
     return res.json({
       token,
       user: {
+        id: `usr-${member.id}`,
         memberId: member.id,
         username: member.username,
         name: member.name,
-        role: member.role || 'staff',
+        role: systemRole, // 'admin' or 'staff'
+        jobRole: member.role,
+        department: member.department,
         email: member.email,
         avatar: member.avatar,
         color: member.color,

@@ -365,6 +365,34 @@ export default function App() {
         }
         if (Array.isArray(remoteMembers)) {
           setTeamMembers(remoteMembers);
+          // Automatically synchronize current user's system role (admin vs staff) from database
+          setCurrentUser((prevUser) => {
+            if (!prevUser?.memberId) return prevUser;
+            const dbMatch = remoteMembers.find((m) => m.id === prevUser.memberId);
+            if (!dbMatch) return prevUser;
+            const dbSystemRole = (dbMatch.systemRole || 'staff').toLowerCase() as UserRole;
+            if (
+              prevUser.role !== dbSystemRole ||
+              prevUser.name !== dbMatch.name ||
+              prevUser.avatar !== dbMatch.avatar ||
+              prevUser.jobRole !== dbMatch.role ||
+              prevUser.department !== dbMatch.department
+            ) {
+              const updated: AuthUser = {
+                ...prevUser,
+                name: dbMatch.name,
+                role: dbSystemRole,
+                jobRole: dbMatch.role,
+                department: dbMatch.department,
+                avatar: dbMatch.avatar,
+                email: dbMatch.email,
+                username: dbMatch.username || prevUser.username,
+              };
+              saveAuthUser(updated);
+              return updated;
+            }
+            return prevUser;
+          });
         }
         if (remoteRecycleBin && typeof remoteRecycleBin.totalCount === 'number') {
           setRecycleBinData(remoteRecycleBin);
@@ -1733,6 +1761,8 @@ export default function App() {
         initialMember={editingMember}
         projects={projects}
         currentUser={currentUser}
+        onOpenResetPassword={() => setIsResetPasswordOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Reset Password Modal */}

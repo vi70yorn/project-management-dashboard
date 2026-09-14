@@ -4,11 +4,9 @@ import {
   Plus,
   Users,
   UserPlus,
-  LogOut,
   ShieldCheck,
   UserCheck,
   Database,
-  KeyRound,
   User,
   Sun,
   Moon,
@@ -554,28 +552,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </p>
                 </div>
               </button>
-
-              {onOpenResetPassword && (
-                <button
-                  id="navbar-change-password-btn"
-                  onClick={onOpenResetPassword}
-                  title="Reset your password"
-                  className="p-1.5 text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                >
-                  <KeyRound className="w-4 h-4" />
-                </button>
-              )}
-
-              {onLogout && (
-                <button
-                  id="navbar-logout-btn"
-                  onClick={onLogout}
-                  title={`Sign out (${currentUser.name})`}
-                  className="p-1.5 text-blue-100 hover:text-white hover:bg-rose-600/80 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              )}
             </div>
           )}
         </div>

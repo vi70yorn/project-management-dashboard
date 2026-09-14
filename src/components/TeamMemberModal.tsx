@@ -15,6 +15,8 @@ import {
   Eye,
   EyeOff,
   KeyRound,
+  LogOut,
+  Shield,
 } from 'lucide-react';
 import { TeamMember, Project, UserRole, AuthUser } from '../types';
 import { FORM_STYLES } from '../utils/formStyles';
@@ -30,6 +32,8 @@ interface TeamMemberModalProps {
   initialMember?: TeamMember | null;
   projects?: Project[];
   currentUser?: AuthUser | null;
+  onOpenResetPassword?: () => void;
+  onLogout?: () => void;
 }
 
 const PRESET_AVATARS = [
@@ -60,8 +64,11 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
   initialMember,
   projects = [],
   currentUser,
+  onOpenResetPassword,
+  onLogout,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
+  const isOwnProfile = Boolean(initialMember && currentUser && initialMember.id === currentUser.memberId);
   const safeProjects = Array.isArray(projects) ? projects : [];
 
   const [name, setName] = useState('');
@@ -731,6 +738,65 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Account Security & Session Management (Only for current user updating own profile) */}
+          {isOwnProfile && (
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Account & Security
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Reset Your Password button */}
+                {onOpenResetPassword && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenResetPassword();
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700 text-left transition-all cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <KeyRound className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate">
+                        Reset Your Password
+                      </p>
+                      <p className="text-3xs text-slate-500 dark:text-slate-400 truncate">
+                        Change login password
+                      </p>
+                    </div>
+                  </button>
+                )}
+
+                {/* Confirm Sign Out button */}
+                {onLogout && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onLogout();
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100/70 dark:hover:bg-rose-950/50 hover:border-rose-300 dark:hover:border-rose-700 text-left transition-all cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <LogOut className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-rose-700 dark:text-rose-300 group-hover:text-rose-800 dark:group-hover:text-rose-200 truncate">
+                        Confirm Sign Out
+                      </p>
+                      <p className="text-3xs text-rose-500/90 dark:text-rose-400/80 truncate">
+                        Log out of this session
+                      </p>
+                    </div>
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
