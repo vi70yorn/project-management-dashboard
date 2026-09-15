@@ -30,7 +30,11 @@ import {
   Check,
   Share2,
   Link as LinkIcon,
+  FileSpreadsheet,
+  Activity,
+  Filter,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getProjectShareUrl, getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
@@ -56,7 +60,10 @@ interface DashboardSummaryProps {
   refreshTrigger?: number;
   recycleBinCount?: number;
   onOpenRecycleBin?: () => void;
+  onOpenTeamActivities?: () => void;
+  isTeamActivitiesOpen?: boolean;
   initialDeadlineMemberFilter?: string;
+  onShowToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
@@ -76,7 +83,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   refreshTrigger,
   recycleBinCount = 0,
   onOpenRecycleBin,
+  onOpenTeamActivities,
+  isTeamActivitiesOpen,
   initialDeadlineMemberFilter,
+  onShowToast,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -85,9 +95,13 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   // Projects Directory View Mode State (Table vs Cards - Table default)
   const [projectListViewMode, setProjectListViewMode] = useState<'card' | 'table'>('table');
 
-  // Deadlines Section Filter & Pagination State
-  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Ready Review' | 'Blocked'>('all');
-  const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>(initialDeadlineMemberFilter || 'all');
+  // Deadlines Section Filter & Pagination State: Default to 'In Progress' and auto-select logged-in user
+  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Ready Review' | 'Blocked'>('In Progress');
+  const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>(
+    initialDeadlineMemberFilter && initialDeadlineMemberFilter !== 'all'
+      ? initialDeadlineMemberFilter
+      : currentUser?.memberId || initialDeadlineMemberFilter || 'all'
+  );
   const [deadlineGroupBy, setDeadlineGroupBy] = useState<'none' | 'assignee' | 'priority' | 'status'>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(10);
@@ -116,12 +130,17 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     }
   };
 
-  // Sync deadlineMemberFilter when initialDeadlineMemberFilter prop changes
+  const hasAutoSelectedUser = React.useRef(false);
+
+  // Sync deadlineMemberFilter when initialDeadlineMemberFilter changes or auto-select logged-in user
   useEffect(() => {
-    if (initialDeadlineMemberFilter !== undefined) {
+    if (initialDeadlineMemberFilter !== undefined && initialDeadlineMemberFilter !== 'all') {
       setDeadlineMemberFilter(initialDeadlineMemberFilter);
+    } else if (currentUser?.memberId && !hasAutoSelectedUser.current) {
+      setDeadlineMemberFilter(currentUser.memberId);
+      hasAutoSelectedUser.current = true;
     }
-  }, [initialDeadlineMemberFilter]);
+  }, [initialDeadlineMemberFilter, currentUser?.memberId]);
 
   const safeProjects = Array.isArray(projects) ? projects : [];
   const safeTasks = Array.isArray(tasks) ? tasks : [];
@@ -285,9 +304,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     ];
 
     safeMembers.forEach((m) => {
+      const isSelf = Boolean(currentUser && m.id === currentUser.memberId);
       options.push({
         value: m.id,
-        label: m.name,
+        label: isSelf ? `${m.name} (You)` : m.name,
         sublabel: m.role,
         color: m.color || '#2563eb',
         badge: deadlineMemberCounts[m.id] || 0,
@@ -304,6 +324,35 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
     return options;
   }, [safeMembers, deadlineMemberCounts]);
+
+  // Options for deadline status filter select
+  const deadlineStatusOptions: CustomSelectOption[] = useMemo(() => {
+    return [
+      {
+        value: 'In Progress',
+        label: 'In Progress',
+        color: '#2563eb',
+        badge: deadlineCounts.inProgress,
+      },
+      {
+        value: 'Ready Review',
+        label: 'Ready Review',
+        color: '#7c3aed',
+        badge: deadlineCounts.readyReview,
+      },
+      {
+        value: 'Blocked',
+        label: 'Blocked',
+        color: '#e11d48',
+        badge: deadlineCounts.blocked,
+      },
+      {
+        value: 'all',
+        label: 'All Statuses',
+        badge: deadlineCounts.all,
+      },
+    ];
+  }, [deadlineCounts]);
 
   // Pagination calculation
   const totalDeadlineItems = filteredDeadlines.length;
@@ -341,17 +390,88 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     };
   }, [safeProjects]);
 
-  // Filtered Projects list
+  // Options for project status filter select
+  const projectStatusOptions: CustomSelectOption[] = useMemo(() => {
+    return [
+      {
+        value: 'In Progress',
+        label: 'In Progress',
+        color: '#2563eb',
+        badge: projectStatusCounts.inProgress,
+      },
+      {
+        value: 'Ready Review',
+        label: 'Ready Review',
+        color: '#7c3aed',
+        badge: projectStatusCounts.readyReview,
+      },
+      {
+        value: 'Blocked',
+        label: 'Blocked',
+        color: '#e11d48',
+        badge: projectStatusCounts.blocked,
+      },
+      {
+        value: 'Draft',
+        label: 'Draft',
+        color: '#94a3b8',
+        badge: projectStatusCounts.draft,
+      },
+      {
+        value: 'Completed',
+        label: 'Completed',
+        color: '#10b981',
+        badge: projectStatusCounts.completed,
+      },
+      {
+        value: 'all',
+        label: 'All Projects',
+        badge: projectStatusCounts.all,
+      },
+    ];
+  }, [projectStatusCounts]);
+
+  // Priority order for sorting projects by status:
+  // In Progress -> Ready Review -> Blocked -> Draft -> Completed
+  const PROJECT_STATUS_SORT_ORDER: Record<string, number> = {
+    'in progress': 1,
+    'ready review': 2,
+    'pending': 2,
+    'blocked': 3,
+    'draft': 4,
+    'completed': 5,
+  };
+
+  const getProjectStatusRank = (status?: string): number => {
+    if (!status) return 99;
+    const key = status.toLowerCase().trim();
+    return PROJECT_STATUS_SORT_ORDER[key] ?? 99;
+  };
+
+  // Filtered and Sorted Projects list (In Progress, Ready Review, Blocked, Draft, Completed)
   const filteredProjects = useMemo(() => {
-    return safeProjects.filter((p) => {
-      const matchesStatus =
-        statusFilter === 'all' ? true : p.status.toLowerCase() === statusFilter.toLowerCase();
-      const matchesSearch =
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.tags || []).some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchesStatus && matchesSearch;
-    });
+    return safeProjects
+      .filter((p) => {
+        const matchesStatus =
+          statusFilter === 'all' ? true : p.status.toLowerCase() === statusFilter.toLowerCase();
+        const matchesSearch =
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.tags || []).some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+        return matchesStatus && matchesSearch;
+      })
+      .slice()
+      .sort((a, b) => {
+        const rankA = getProjectStatusRank(a.status);
+        const rankB = getProjectStatusRank(b.status);
+        if (rankA !== rankB) {
+          return rankA - rankB;
+        }
+        // Secondary sort: most recently created first
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
   }, [safeProjects, statusFilter, searchQuery]);
 
   const getStatusBadge = (status: StatusType) => getStatusBadgeClass(status, 'sm');
@@ -505,6 +625,326 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     { value: 'priority', label: 'Group by Priority' },
     { value: 'status', label: 'Group by Status' },
   ];
+
+  // -------------------------------------------------------------
+  // Professional Excel Export: Team Upcoming Tasks
+  // -------------------------------------------------------------
+  const handleExportUpcomingTasksExcel = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+
+      const exportList = filteredDeadlines.length > 0 ? filteredDeadlines : allActiveDeadlines;
+      const todayDateStr = new Date().toLocaleDateString(undefined, {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+      const exportTime = new Date().toLocaleTimeString();
+
+      const memberFilterLabel =
+        deadlineMemberFilter === 'all'
+          ? 'All Team Members'
+          : deadlineMemberFilter === 'unassigned'
+          ? 'Unassigned Tasks'
+          : safeMembers.find((m) => m.id === deadlineMemberFilter)?.name || 'Filtered Member';
+
+      const statusFilterLabel =
+        deadlineStatusFilter === 'all' ? 'All Active Statuses' : deadlineStatusFilter;
+
+      // Metrics
+      const totalCount = exportList.length;
+      const overdueCount = exportList.filter((d) => d.diffDays < 0).length;
+      const dueTodayCount = exportList.filter((d) => d.diffDays === 0).length;
+      const inProgressCount = exportList.filter((d) => d.status === 'In Progress').length;
+      const readyReviewCount = exportList.filter((d) => d.status === 'Ready Review' || d.status === 'Pending').length;
+      const blockedCount = exportList.filter((d) => d.status === 'Blocked').length;
+
+      // SHEET 1: Upcoming Tasks Register
+      const sheet1Data: (string | number)[][] = [
+        ['PROJECT MANAGEMENT DASHBOARD — TEAM UPCOMING TASKS REPORT'],
+        [`Generated On: ${todayDateStr} at ${exportTime}`],
+        [`Exported By: ${currentUser?.name || 'Administrator'} (${currentUser?.role ? currentUser.role.toUpperCase() : 'STAFF'})`],
+        [`Applied Scope: Member: [${memberFilterLabel}]  |  Status: [${statusFilterLabel}]  |  Total Tasks: ${totalCount}`],
+        [],
+        ['EXECUTIVE KPI METRICS'],
+        ['Metric Category', 'Task Count', 'Status Summary & Impact'],
+        ['Total Upcoming Tasks', totalCount, 'Active deliverables currently in progress, review, or blocked'],
+        ['Overdue Tasks (Attention Required)', overdueCount, overdueCount > 0 ? 'Urgent: Target completion deadline has passed' : 'All tasks currently on track'],
+        ['Due Today', dueTodayCount, dueTodayCount > 0 ? 'Action required: targeted for delivery today' : 'No deliverables due today'],
+        ['In Progress Tasks', inProgressCount, 'Tasks actively in development or execution'],
+        ['Ready for Review', readyReviewCount, 'Deliverables awaiting verification or sign-off'],
+        ['Blocked Bottlenecks', blockedCount, blockedCount > 0 ? 'Roadblocks present — immediate PM escalation needed' : 'Zero blockers identified'],
+        [],
+        ['DETAILED UPCOMING TASKS REGISTER'],
+        [
+          '#',
+          'Task / Deliverable Title',
+          'Project Name',
+          'Assignee Name',
+          'Assignee Role / Title',
+          'Priority',
+          'Status',
+          'Target Deadline',
+          'Schedule Urgency',
+          'Checklist Completed',
+          'Checklist Total',
+          'Checklist Progress (%)',
+          'Checklist Items Breakdown',
+          'Description',
+        ],
+      ];
+
+      exportList.forEach((item, idx) => {
+        const subtasks = item.subtasks || item.task?.subtasks || [];
+        const completedSubtasks = subtasks.filter((s) => s.completed).length;
+        const totalSubtasks = subtasks.length;
+        const subtaskPercent =
+          totalSubtasks > 0 ? `${Math.round((completedSubtasks / totalSubtasks) * 100)}%` : 'N/A';
+
+        const urgencyLabel =
+          item.diffDays < 0
+            ? `Overdue by ${Math.abs(item.diffDays)}d`
+            : item.diffDays === 0
+            ? 'Due Today!'
+            : `Due in ${item.diffDays}d`;
+
+        const subtaskDetails =
+          subtasks.length > 0
+            ? subtasks.map((s) => `[${s.completed ? '✓' : ' '}] ${s.title}`).join('; ')
+            : 'No checklist items';
+
+        sheet1Data.push([
+          idx + 1,
+          item.title,
+          item.projectName,
+          item.assignee?.name || 'Unassigned',
+          item.assignee?.role || '-',
+          item.priority,
+          item.status,
+          item.dueDate ? item.dueDate.slice(0, 10) : 'No Deadline',
+          urgencyLabel,
+          completedSubtasks,
+          totalSubtasks,
+          subtaskPercent,
+          subtaskDetails,
+          item.description || '',
+        ]);
+      });
+
+      const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
+
+      ws1['!cols'] = [
+        { wch: 6 },  // #
+        { wch: 34 }, // Task Title
+        { wch: 24 }, // Project Name
+        { wch: 20 }, // Assignee Name
+        { wch: 22 }, // Assignee Role
+        { wch: 14 }, // Priority
+        { wch: 16 }, // Status
+        { wch: 16 }, // Target Deadline
+        { wch: 22 }, // Schedule Urgency
+        { wch: 20 }, // Checklist Completed
+        { wch: 16 }, // Checklist Total
+        { wch: 22 }, // Checklist Progress (%)
+        { wch: 45 }, // Checklist Items Breakdown
+        { wch: 48 }, // Description
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws1, 'Upcoming Tasks');
+
+      // SHEET 2: Team Workload & Status Distribution
+      const sheet2Data: (string | number)[][] = [
+        ['TEAM WORKLOAD & STATUS DISTRIBUTION'],
+        [`Generated On: ${todayDateStr} at ${exportTime}`],
+        [],
+        ['1. STATUS BREAKDOWN'],
+        ['Status', 'Count', 'Percentage of Active Workload'],
+        ['In Progress', inProgressCount, totalCount > 0 ? `${Math.round((inProgressCount / totalCount) * 100)}%` : '0%'],
+        ['Ready Review', readyReviewCount, totalCount > 0 ? `${Math.round((readyReviewCount / totalCount) * 100)}%` : '0%'],
+        ['Blocked', blockedCount, totalCount > 0 ? `${Math.round((blockedCount / totalCount) * 100)}%` : '0%'],
+        [],
+        ['2. PRIORITY BREAKDOWN'],
+        ['Priority Level', 'Count', 'Percentage'],
+        ['Urgent', exportList.filter((d) => d.priority === 'Urgent').length, totalCount > 0 ? `${Math.round((exportList.filter((d) => d.priority === 'Urgent').length / totalCount) * 100)}%` : '0%'],
+        ['High', exportList.filter((d) => d.priority === 'High').length, totalCount > 0 ? `${Math.round((exportList.filter((d) => d.priority === 'High').length / totalCount) * 100)}%` : '0%'],
+        ['Medium', exportList.filter((d) => d.priority === 'Medium').length, totalCount > 0 ? `${Math.round((exportList.filter((d) => d.priority === 'Medium').length / totalCount) * 100)}%` : '0%'],
+        ['Low', exportList.filter((d) => d.priority === 'Low').length, totalCount > 0 ? `${Math.round((exportList.filter((d) => d.priority === 'Low').length / totalCount) * 100)}%` : '0%'],
+        [],
+        ['3. TEAM MEMBER ASSIGNMENT MATRIX'],
+        ['Member Name', 'Job Role', 'Department', 'Assigned Tasks', 'In Progress', 'Ready Review', 'Blocked'],
+      ];
+
+      safeMembers.forEach((m) => {
+        const memberTasks = exportList.filter((d) => d.assigneeId === m.id);
+        const mInProgress = memberTasks.filter((d) => d.status === 'In Progress').length;
+        const mReadyReview = memberTasks.filter((d) => d.status === 'Ready Review' || d.status === 'Pending').length;
+        const mBlocked = memberTasks.filter((d) => d.status === 'Blocked').length;
+
+        sheet2Data.push([
+          m.name,
+          m.role,
+          m.department || '-',
+          memberTasks.length,
+          mInProgress,
+          mReadyReview,
+          mBlocked,
+        ]);
+      });
+
+      const unassignedTasks = exportList.filter((d) => !d.assigneeId);
+      if (unassignedTasks.length > 0) {
+        sheet2Data.push([
+          'Unassigned',
+          '-',
+          '-',
+          unassignedTasks.length,
+          unassignedTasks.filter((d) => d.status === 'In Progress').length,
+          unassignedTasks.filter((d) => d.status === 'Ready Review' || d.status === 'Pending').length,
+          unassignedTasks.filter((d) => d.status === 'Blocked').length,
+        ]);
+      }
+
+      const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
+      ws2['!cols'] = [
+        { wch: 26 }, // Member Name
+        { wch: 24 }, // Job Role
+        { wch: 20 }, // Department
+        { wch: 18 }, // Assigned Tasks
+        { wch: 16 }, // In Progress
+        { wch: 16 }, // Ready Review
+        { wch: 16 }, // Blocked
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws2, 'Workload Summary');
+
+      // Export workbook
+      const cleanDate = new Date().toISOString().slice(0, 10);
+      const fileName = `Team_Upcoming_Tasks_${cleanDate}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      if (onShowToast) {
+        onShowToast('success', `Exported ${totalCount} upcoming tasks to "${fileName}" successfully!`);
+      }
+    } catch (err: any) {
+      console.error('Failed to export tasks Excel report:', err);
+      if (onShowToast) {
+        onShowToast('error', 'Failed to export upcoming tasks to Excel.');
+      }
+    }
+  };
+
+  // -------------------------------------------------------------
+  // Professional Excel Export: Projects Overview
+  // -------------------------------------------------------------
+  const handleExportProjectsExcel = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+      const todayDateStr = new Date().toLocaleDateString(undefined, {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+      const exportTime = new Date().toLocaleTimeString();
+
+      const baseProjects = filteredProjects.length > 0 ? filteredProjects : safeProjects;
+      const projectsToExport = baseProjects.slice().sort((a, b) => {
+        const rankA = getProjectStatusRank(a.status);
+        const rankB = getProjectStatusRank(b.status);
+        if (rankA !== rankB) return rankA - rankB;
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      });
+
+      const sheetData: (string | number)[][] = [
+        ['PROJECT MANAGEMENT DASHBOARD — PROJECTS DIRECTORY OVERVIEW'],
+        [`Generated On: ${todayDateStr} at ${exportTime}`],
+        [`Exported By: ${currentUser?.name || 'Administrator'}`],
+        [`Status Filter: [${statusFilter === 'all' ? 'All Statuses' : statusFilter}]  |  Total Listed: ${projectsToExport.length} projects`],
+        [],
+        [
+          '#',
+          'Project Name',
+          'Client / Organization',
+          'Status',
+          'Completion (%)',
+          'Total Deliverables',
+          'Completed Tasks',
+          'In Progress Tasks',
+          'Ready Review Tasks',
+          'Blocked Tasks',
+          'Target Deadline',
+          'Assigned Team Members',
+          'Tags / Categories',
+          'Description',
+        ],
+      ];
+
+      projectsToExport.forEach((p, idx) => {
+        const pTasks = safeTasks.filter((t) => t.projectId === p.id);
+        const completed = pTasks.filter((t) => t.status === 'Completed').length;
+        const inProgress = pTasks.filter((t) => t.status === 'In Progress').length;
+        const readyReview = pTasks.filter((t) => t.status === 'Ready Review' || t.status === 'Pending').length;
+        const blocked = pTasks.filter((t) => t.status === 'Blocked').length;
+        const percent = pTasks.length > 0 ? Math.round((completed / pTasks.length) * 100) : 0;
+        const memberNames =
+          safeMembers
+            .filter((m) => (p.memberIds || []).includes(m.id))
+            .map((m) => m.name)
+            .join(', ') || 'Unassigned';
+
+        sheetData.push([
+          idx + 1,
+          p.name,
+          p.client || 'Internal',
+          p.status,
+          `${percent}%`,
+          pTasks.length,
+          completed,
+          inProgress,
+          readyReview,
+          blocked,
+          p.targetDeadline || 'N/A',
+          memberNames,
+          (p.tags || []).join(', '),
+          p.description || '',
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      ws['!cols'] = [
+        { wch: 6 },  // #
+        { wch: 30 }, // Project Name
+        { wch: 22 }, // Client
+        { wch: 16 }, // Status
+        { wch: 16 }, // Completion (%)
+        { wch: 18 }, // Total Deliverables
+        { wch: 16 }, // Completed Tasks
+        { wch: 16 }, // In Progress Tasks
+        { wch: 18 }, // Ready Review Tasks
+        { wch: 16 }, // Blocked Tasks
+        { wch: 18 }, // Target Deadline
+        { wch: 36 }, // Assigned Team Members
+        { wch: 24 }, // Tags
+        { wch: 48 }, // Description
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Projects Overview');
+
+      const cleanDate = new Date().toISOString().slice(0, 10);
+      const fileName = `Projects_Overview_${cleanDate}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      if (onShowToast) {
+        onShowToast('success', `Exported ${projectsToExport.length} projects to "${fileName}" successfully!`);
+      }
+    } catch (err: any) {
+      console.error('Failed to export projects Excel:', err);
+      if (onShowToast) {
+        onShowToast('error', 'Failed to export Projects to Excel.');
+      }
+    }
+  };
 
   const renderDeadlineTaskRow = (
     item: (typeof allActiveDeadlines)[0],
@@ -710,7 +1150,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 id="portfolio-title" className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h2 id="portfolio-title" className="text-2xl font-black text-slate-900 uppercase dark:text-white tracking-tight">
             Dashboard Summary
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -741,22 +1181,41 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             </button>
           )}
  */}
-         {/*  {onOpenRecycleBin && (
+          {/* Live Team Activities Feed button */}
+          {onOpenTeamActivities && (
+            <button
+              id="dash-team-activities-btn"
+              type="button"
+              onClick={onOpenTeamActivities}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer ${
+                isTeamActivitiesOpen
+                  ? 'bg-blue-50/90 text-blue-700 border border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-700'
+                  : 'glass-panel text-slate-700 dark:text-slate-200 hover:bg-white/90 dark:hover:bg-slate-800/80'
+              }`}
+              title="Team Activities (Live update feed)"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Activities</span>
+            </button>
+          )}
+
+          {/* Recycle Bin button */}
+          {onOpenRecycleBin && (
             <button
               id="dash-recycle-bin-btn"
+              type="button"
               onClick={onOpenRecycleBin}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/40 dark:hover:border-rose-800/60 text-slate-700 hover:text-rose-600 dark:text-slate-200 dark:hover:text-rose-400 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
-              title="Recycle Bin (1-week retention for deleted items)"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 glass-panel hover:bg-rose-50/80 hover:border-rose-300/80 dark:hover:bg-rose-950/40 dark:hover:border-rose-800/60 text-slate-700 hover:text-rose-600 dark:text-slate-200 dark:hover:text-rose-400 rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+              title="Recycle Bin (Retention: 7 days)"
             >
               <Trash2 className="w-4 h-4 text-rose-500 dark:text-rose-400" />
               <span>Recycle Bin</span>
-              {recycleBinCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                  {recycleBinCount}
-                </span>
-              )}
             </button>
-          )} */}
+          )}
 
           {isAdmin && (
             <button
@@ -774,12 +1233,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
         {/* Active Projects */}
-        <div className="p-4 bg-blue-50/70 dark:bg-blue-950/25 rounded-xl border border-blue-200/80 dark:border-blue-900/40 shadow-2xs">
+        <div className="p-4 rounded-xl backdrop-blur-xl backdrop-saturate-150 bg-white/70 dark:bg-slate-900/50 border border-blue-200/70 dark:border-blue-500/25 shadow-[0_8px_32px_0_rgba(59,130,246,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_0_rgba(59,130,246,0.12),inset_0_1px_0_0_rgba(255,255,255,0.95)] dark:hover:shadow-[0_12px_40px_0_rgba(59,130,246,0.2),inset_0_1px_0_0_rgba(255,255,255,0.15)] hover:-translate-y-0.5 transition-all duration-300 group">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300">
               Active Projects
             </span>
-            <div className="w-7 h-7 rounded-lg bg-blue-100/80 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-blue-100/70 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-700/40 backdrop-blur-xs flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
               <FolderKanban className="w-4 h-4" />
             </div>
           </div>
@@ -790,12 +1249,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         </div>
 
         {/* In Progress Tasks */}
-        <div className="p-4 bg-sky-50/70 dark:bg-sky-950/25 rounded-xl border border-sky-200/80 dark:border-sky-900/40 shadow-2xs">
+        <div className="p-4 rounded-xl backdrop-blur-xl backdrop-saturate-150 bg-white/70 dark:bg-slate-900/50 border border-sky-200/70 dark:border-sky-500/25 shadow-[0_8px_32px_0_rgba(14,165,233,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_0_rgba(14,165,233,0.12),inset_0_1px_0_0_rgba(255,255,255,0.95)] dark:hover:shadow-[0_12px_40px_0_rgba(14,165,233,0.2),inset_0_1px_0_0_rgba(255,255,255,0.15)] hover:-translate-y-0.5 transition-all duration-300 group">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
               In Progress Tasks
             </span>
-            <div className="w-7 h-7 rounded-lg bg-sky-100/80 dark:bg-sky-900/60 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-sky-100/70 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 border border-sky-200/50 dark:border-sky-700/40 backdrop-blur-xs flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
               <Clock className="w-4 h-4" />
             </div>
           </div>
@@ -807,10 +1266,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
         {/* Blocked Bottlenecks */}
         <div
-          className={`p-4 rounded-xl border shadow-2xs ${
+          className={`p-4 rounded-xl backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 group hover:-translate-y-0.5 ${
             metrics.blockedTasks > 0
-              ? 'bg-rose-100/70 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900/60'
-              : 'bg-rose-50/60 dark:bg-rose-950/25 border-rose-200/70 dark:border-rose-900/40'
+              ? 'bg-rose-50/75 dark:bg-rose-950/40 border border-rose-300/80 dark:border-rose-500/40 shadow-[0_8px_32px_0_rgba(244,63,94,0.1),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.1)] hover:shadow-[0_12px_40px_0_rgba(244,63,94,0.16)] dark:hover:shadow-[0_12px_40px_0_rgba(244,63,94,0.25)]'
+              : 'bg-white/70 dark:bg-slate-900/50 border border-rose-200/70 dark:border-rose-500/25 shadow-[0_8px_32px_0_rgba(244,63,94,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_0_rgba(244,63,94,0.12)]'
           }`}
         >
           <div className="flex items-center justify-between">
@@ -822,10 +1281,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               Blocked Tasks
             </span>
             <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+              className={`w-7 h-7 rounded-lg flex items-center justify-center backdrop-blur-xs shadow-2xs group-hover:scale-105 transition-transform ${
                 metrics.blockedTasks > 0
-                  ? 'bg-rose-200/80 dark:bg-rose-900/80 text-rose-700 dark:text-rose-200'
-                  : 'bg-rose-100/80 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
+                  ? 'bg-rose-200/70 dark:bg-rose-900/70 text-rose-700 dark:text-rose-200 border border-rose-300/60 dark:border-rose-700/50'
+                  : 'bg-rose-100/70 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-800/40'
               }`}
             >
               <AlertOctagon className="w-4 h-4" />
@@ -848,12 +1307,12 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         </div>
 
         {/* Completed Deliverables */}
-        <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/25 rounded-xl border border-emerald-200/80 dark:border-emerald-900/40 shadow-2xs">
+        <div className="p-4 rounded-xl backdrop-blur-xl backdrop-saturate-150 bg-white/70 dark:bg-slate-900/50 border border-emerald-200/70 dark:border-emerald-500/25 shadow-[0_8px_32px_0_rgba(16,185,129,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_0_rgba(16,185,129,0.12),inset_0_1px_0_0_rgba(255,255,255,0.95)] dark:hover:shadow-[0_12px_40px_0_rgba(16,185,129,0.2),inset_0_1px_0_0_rgba(255,255,255,0.15)] hover:-translate-y-0.5 transition-all duration-300 group">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
               Completed Tasks
             </span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-100/80 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-700/40 backdrop-blur-xs flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
@@ -864,19 +1323,19 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         </div>
 
         {/* Team & Velocity */}
-        <div className="p-4 bg-indigo-50/70 dark:bg-indigo-950/25 rounded-xl border border-indigo-200/80 dark:border-indigo-900/40 shadow-2xs col-span-2 lg:col-span-1">
+        <div className="p-4 rounded-xl backdrop-blur-xl backdrop-saturate-150 bg-white/70 dark:bg-slate-900/50 border border-indigo-200/70 dark:border-indigo-500/25 shadow-[0_8px_32px_0_rgba(99,102,241,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_0_rgba(99,102,241,0.12),inset_0_1px_0_0_rgba(255,255,255,0.95)] dark:hover:shadow-[0_12px_40px_0_rgba(99,102,241,0.2),inset_0_1px_0_0_rgba(255,255,255,0.15)] hover:-translate-y-0.5 transition-all duration-300 group col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-semibold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
               Team Members
             </span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-100/80 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-indigo-100/70 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-700/40 backdrop-blur-xs flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{teamMembers.length}</p>
-          <div className="w-full bg-indigo-100/80 dark:bg-indigo-900/40 rounded-full h-1.5 mt-2 overflow-hidden">
+          <div className="w-full bg-indigo-100/70 dark:bg-indigo-950/60 rounded-full h-1.5 mt-2 overflow-hidden border border-indigo-200/40 dark:border-indigo-800/40">
             <div
-              className="bg-indigo-600 dark:bg-indigo-400 h-full rounded-full transition-all"
+              className="bg-indigo-600 dark:bg-indigo-400 h-full rounded-full transition-all shadow-[0_0_8px_rgba(99,102,241,0.5)]"
               style={{ width: `${metrics.overallCompletionRate}%` }}
             />
           </div>
@@ -889,7 +1348,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
       {/* Deadlines & Projects Directory */}
       <div className="space-y-8 min-w-0">
         {/* Upcoming Deadlines Section */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
+          <div className="glass-panel rounded-2xl p-4 sm:p-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -945,38 +1404,30 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                   </button>
                 )}
 
-                {/* Status Filter Tabs */}
-                <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
-                  {[
-                    { label: 'All', value: 'all', count: deadlineCounts.all },
-                    { label: 'In Progress', value: 'In Progress', count: deadlineCounts.inProgress },
-                    { label: 'Ready Review', value: 'Ready Review', count: deadlineCounts.readyReview },
-                    { label: 'Blocked', value: 'Blocked', count: deadlineCounts.blocked },
-                  ].map((tab) => (
-                    <button
-                      key={tab.value}
-                      onClick={() => handleStatusFilterChange(tab.value as any)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
-                        deadlineStatusFilter === tab.value
-                          ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      <span
-                        className={`text-3xs px-1.5 py-0.5 rounded-full font-semibold ${
-                          deadlineStatusFilter === tab.value
-                            ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
-                            : tab.value === 'Blocked' && tab.count > 0
-                            ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
-                            : 'bg-slate-200/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-400'
-                        }`}
-                      >
-                        {tab.count}
-                      </span>
-                    </button>
-                  ))}
+                {/* Status Filter Dropdown */}
+                <div className="w-full sm:w-auto min-w-[155px]">
+                  <CustomSelect
+                    id="deadline-status-filter-select"
+                    value={deadlineStatusFilter}
+                    onChange={(val) => handleStatusFilterChange(val as any)}
+                    size="sm"
+                    icon={<Filter className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />}
+                    options={deadlineStatusOptions}
+                    placeholder="Filter by Status"
+                  />
                 </div>
+
+                {/* Export Upcoming Tasks to Excel */}
+                <button
+                  type="button"
+                  id="export-upcoming-tasks-btn"
+                  onClick={handleExportUpcomingTasksExcel}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all cursor-pointer shadow-2xs shrink-0"
+                  title="Export Upcoming Tasks to Excel (.xlsx)"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Export</span>
+                </button>
               </div>
             </div>
 
@@ -1002,10 +1453,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto -mx-6">
+              <div className="overflow-x-auto -mx-4 sm:-mx-6">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-y border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <tr className="border-y border-slate-200/70 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-800/30 backdrop-blur-xs text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       <th className="py-3 pl-6 pr-3 text-center w-14">#</th>
                       <th className="py-3 px-4 min-w-[240px]">Task / Deliverable</th>
                       <th className="py-3 px-4 min-w-[150px]">Project</th>
@@ -1235,158 +1686,169 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
             )}
           </div>
 
-          {/* Projects Directory & Summary Cards */}
-      <div className="space-y-4">
-        {/* Row 1: Filter by Status + Search */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Filter by Status:</span>
-            <div className="flex items-center min-h-9 sm:h-9 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex-wrap gap-0.5">
-              {[
-                { label: 'All Projects', value: 'all', count: projectStatusCounts.all },
-                { label: 'Draft', value: 'Draft', count: projectStatusCounts.draft },
-                { label: 'In Progress', value: 'In Progress', count: projectStatusCounts.inProgress },
-                { label: 'Ready Review', value: 'Ready Review', count: projectStatusCounts.readyReview },
-                { label: 'Blocked', value: 'Blocked', count: projectStatusCounts.blocked },
-                { label: 'Completed', value: 'Completed', count: projectStatusCounts.completed },
-              ].map((st) => (
-                <button
-                  key={st.value}
-                  onClick={() => setStatusFilter(st.value)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
-                    statusFilter === st.value
-                      ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <span>{st.label}</span>
-                  <span
-                    className={`text-3xs px-1.5 py-0.5 rounded-full font-semibold ${
-                      statusFilter === st.value
-                        ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300'
-                        : st.value === 'Blocked' && st.count > 0
-                        ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300'
-                        : 'bg-slate-200/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    {st.count}
-                  </span>
-                </button>
-              ))}
+      {/* Projects Directory & Summary Cards */}
+      <div className="glass-panel rounded-2xl p-4 sm:p-6">
+        {/* Table Head: Title & Description + Controls (Filter, Search, Switch, Export) */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <FolderKanban className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 id="projects-heading" className="text-base font-bold uppercase text-slate-900 dark:text-white">
+                  Projects Directory
+                </h3>
+                <span className="text-3xs font-semibold px-2 py-0.5 rounded-full bg-blue-100/70 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/40">
+                  {filteredProjects.length} {filteredProjects.length === 1 ? 'Project' : 'Projects'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Directory of active projects, statuses, deliverables, and team assignments
+              </p>
             </div>
           </div>
 
-          <div className="relative w-full sm:w-64 shrink-0">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
-            <input
-              id="search-projects-input"
-              type="text"
-              placeholder="Search projects, clients, tags..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={FORM_STYLES.searchInput}
-            />
-            {searchQuery && (
+          {/* Controls: Filter + Search + View Switcher + Export */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            {/* Status Filter Dropdown */}
+            <div className="w-full sm:w-auto min-w-[155px]">
+              <CustomSelect
+                id="project-status-filter-select"
+                value={statusFilter}
+                onChange={(val) => setStatusFilter(val)}
+                size="sm"
+                icon={<Filter className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />}
+                options={projectStatusOptions}
+                placeholder="Filter by Status"
+              />
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full sm:w-56">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+              <input
+                id="search-projects-input"
+                type="text"
+                placeholder="Search projects, clients, tags..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-7 py-1.5 h-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* View Mode Switcher: Table vs Cards */}
+            <div className="flex items-center h-8 glass-card-subtle p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0">
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
-                title="Clear search"
+                id="projects-view-table-btn"
+                onClick={() => setProjectListViewMode('table')}
+                className={`flex items-center justify-center p-1 h-7 w-7 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                  projectListViewMode === 'table'
+                    ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Table View"
               >
-                <X className="w-3.5 h-3.5" />
+                <TableIcon className="w-3.5 h-3.5" />
               </button>
-            )}
-          </div>
-        </div>
+              <button
+                type="button"
+                id="projects-view-cards-btn"
+                onClick={() => setProjectListViewMode('card')}
+                className={`flex items-center justify-center p-1 h-7 w-7 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                  projectListViewMode === 'card'
+                    ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Card View"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-        {/* Row 2: Below Status - View Mode Switcher (Cards vs Table) & Summary Info */}
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Showing <strong className="text-slate-700 dark:text-slate-200">{filteredProjects.length}</strong> {filteredProjects.length === 1 ? 'project' : 'projects'}
-            {searchQuery && <span className="text-slate-400"> matching &ldquo;{searchQuery}&rdquo;</span>}
-          </div>
-
-          {/* View Mode Switcher: Table vs Cards */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            {/* Export Projects to Excel */}
             <button
               type="button"
-              id="projects-view-table-btn"
-              onClick={() => setProjectListViewMode('table')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                projectListViewMode === 'table'
-                  ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Table View"
+              id="export-projects-overview-btn"
+              onClick={handleExportProjectsExcel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 h-8 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all cursor-pointer shadow-2xs shrink-0"
+              title="Export Projects Overview to Excel (.xlsx)"
             >
-              <TableIcon className="w-3.5 h-3.5" />
-              <span>Table</span>
-            </button>
-            <button
-              type="button"
-              id="projects-view-cards-btn"
-              onClick={() => setProjectListViewMode('card')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                projectListViewMode === 'card'
-                  ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Card View"
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Cards</span>
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Export</span>
             </button>
           </div>
         </div>
 
         {/* Content Section: Empty state vs Table View vs Cards View */}
         {filteredProjects.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-2xs">
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No matching projects found</p>
+          <div className="py-12 text-center">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No matching projects found</p>
             <p className="text-xs text-slate-400 mt-1">Try adjusting your search query or status filter.</p>
+            {(statusFilter !== 'all' || searchQuery) && (
+              <button
+                onClick={() => {
+                  setStatusFilter('all');
+                  setSearchQuery('');
+                }}
+                className="mt-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+              >
+                Reset filters
+              </button>
+            )}
           </div>
         ) : projectListViewMode === 'table' ? (
           /* Table View */
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 text-2xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                    <th className="py-3 px-3 text-center w-10">#</th>
-                    <th className="py-3 px-4 min-w-[200px]">Project</th>
-                    <th className="py-3 px-4 min-w-[120px]">Status</th>
-                    <th className="py-3 px-4 min-w-[130px]">Progress</th>
-                    <th className="py-3 px-4 min-w-[180px]">Deliverables</th>
-                    <th className="py-3 px-4 min-w-[110px]">Deadline</th>
-                    <th className="py-3 px-4 min-w-[130px]">Team</th>
-                    <th className="py-3 px-4 text-right min-w-[110px]">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                  {filteredProjects.map((project, idx) => {
-                    const projectTasks = tasks.filter((t) => t.projectId === project.id);
-                    const draftCount = projectTasks.filter((t) => t.status === 'Draft').length;
-                    const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
-                    const inProgressCount = projectTasks.filter((t) => t.status === 'In Progress').length;
-                    const blockedCount = projectTasks.filter((t) => t.status === 'Blocked').length;
-                    const readyReviewCount = projectTasks.filter((t) => t.status === 'Ready Review' || t.status === 'Pending').length;
-                    const completionPercent =
-                      projectTasks.length > 0
-                        ? Math.round((completedCount / projectTasks.length) * 100)
-                        : 0;
-                    const projectTeam = teamMembers.filter((m) => project.memberIds?.includes(m.id));
-                    const isCurrentUserAssigned =
-                      currentUser && (project.memberIds || []).includes(currentUser.memberId);
+          <div className="overflow-x-auto -mx-4 sm:-mx-6">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-y border-slate-200/70 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-800/30 backdrop-blur-xs text-2xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="py-3 pl-6 pr-3 text-center w-12">#</th>
+                  <th className="py-3 px-4 min-w-[200px]">Project</th>
+                  <th className="py-3 px-4 min-w-[120px]">Status</th>
+                  <th className="py-3 px-4 min-w-[130px]">Progress</th>
+                  <th className="py-3 px-4 min-w-[180px]">Deliverables</th>
+                  <th className="py-3 px-4 min-w-[110px]">Deadline</th>
+                  <th className="py-3 px-4 min-w-[130px]">Team</th>
+                  <th className="py-3 pr-6 pl-4 text-right min-w-[110px]">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                {filteredProjects.map((project, idx) => {
+                  const projectTasks = tasks.filter((t) => t.projectId === project.id);
+                  const draftCount = projectTasks.filter((t) => t.status === 'Draft').length;
+                  const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
+                  const inProgressCount = projectTasks.filter((t) => t.status === 'In Progress').length;
+                  const blockedCount = projectTasks.filter((t) => t.status === 'Blocked').length;
+                  const readyReviewCount = projectTasks.filter((t) => t.status === 'Ready Review' || t.status === 'Pending').length;
+                  const completionPercent =
+                    projectTasks.length > 0
+                      ? Math.round((completedCount / projectTasks.length) * 100)
+                      : 0;
+                  const projectTeam = teamMembers.filter((m) => project.memberIds?.includes(m.id));
+                  const isCurrentUserAssigned =
+                    currentUser && (project.memberIds || []).includes(currentUser.memberId);
 
-                    return (
-                      <tr
-                        key={project.id}
-                        id={`project-row-${project.id}`}
-                        onClick={() => onSelectProject(project.id)}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
-                      >
-                        {/* # Index */}
-                        <td className="py-3.5 px-3 text-center">
+                  return (
+                    <tr
+                      key={project.id}
+                      id={`project-row-${project.id}`}
+                      onClick={() => onSelectProject(project.id)}
+                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                    >
+                      {/* # Index */}
+                      <td className="py-3.5 pl-6 pr-3 text-center">
                           <span className="text-3xs font-bold text-slate-400 dark:text-slate-500">
                             {idx + 1}
                           </span>
@@ -1553,39 +2015,41 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                         </td>
 
                         {/* Action Buttons */}
-                        <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="py-3.5 pr-6 pl-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
                             <button
                               id={`share-proj-row-btn-${project.id}`}
                               type="button"
                               onClick={(e) => handleShareProjectLink(e, project.id)}
                               title={copiedProjectId === project.id ? 'Direct link copied!' : 'Copy direct link to project'}
-                              className={`p-1 rounded-md transition-colors cursor-pointer ${
+                              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
                                 copiedProjectId === project.id
-                                  ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400'
-                                  : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                                  : 'text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-950/40 border-slate-200 dark:border-slate-700'
                               }`}
                             >
                               {copiedProjectId === project.id ? (
-                                <Check className="w-3.5 h-3.5" />
+                                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                               ) : (
-                                <Share2 className="w-3.5 h-3.5" />
+                                <LinkIcon className="w-3.5 h-3.5" />
                               )}
                             </button>
                             {isAdmin && onEditProject && (
                               <button
+                                type="button"
                                 onClick={() => onEditProject(project)}
                                 title="Edit Project"
-                                className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:border-blue-200 dark:hover:border-blue-800 transition-colors cursor-pointer"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </button>
                             )}
                             {isAdmin && onDeleteProject && (
                               <button
+                                type="button"
                                 onClick={() => onDeleteProject(project)}
                                 title="Delete Project"
-                                className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors cursor-pointer"
+                                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-slate-200 dark:border-slate-700 hover:border-rose-200 dark:hover:border-rose-800/60 transition-colors cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -1594,7 +2058,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                               id={`open-workspace-proj-btn-${project.id}`}
                               type="button"
                               onClick={() => onSelectProject(project.id)}
-                              className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 transition-colors cursor-pointer ml-1 shadow-2xs"
+                              className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 transition-colors cursor-pointer"
                               title={isAdmin ? `Open ${project.name} Workspace` : `View ${project.name} Details`}
                               aria-label={isAdmin ? `Open ${project.name} Workspace` : `View ${project.name} Details`}
                             >
@@ -1608,10 +2072,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 </tbody>
               </table>
             </div>
-          </div>
         ) : (
           /* Project Cards Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredProjects.map((project) => {
             const projectTasks = tasks.filter((t) => t.projectId === project.id);
             const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
@@ -1630,7 +2094,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               <div
                 key={project.id}
                 id={`project-card-${project.id}`}
-                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between"
+                className="glass-panel-interactive rounded-2xl p-5 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
@@ -1868,8 +2332,9 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </div>
             );
           })}
-        </div>
-      )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   </div>

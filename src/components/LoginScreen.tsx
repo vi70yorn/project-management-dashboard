@@ -14,12 +14,14 @@ import {
 import { AuthUser, TeamMember } from '../types';
 import { loginApi } from '../services/api';
 import { FORM_STYLES } from '../utils/formStyles';
+import { SkyBackground } from './SkyBackground';
 
 interface LoginScreenProps {
   onLogin: (user: AuthUser) => void;
   teamMembers?: TeamMember[];
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
+  uiStyle?: 'glass' | 'normal' | 'nothing';
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({
@@ -27,6 +29,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   teamMembers = [],
   theme = 'light',
   onToggleTheme,
+  uiStyle,
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -68,6 +71,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden font-sans transition-colors duration-300">
+      {/* Animated Celestial Sky Background */}
+      <SkyBackground theme={theme} uiStyle={uiStyle} />
+
       {/* Background glow accents */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/10 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-600/10 dark:bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
@@ -78,16 +84,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           id="login-theme-toggle-btn"
           onClick={onToggleTheme}
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          className="absolute top-4 right-4 z-20 p-2.5 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-amber-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-all cursor-pointer"
+          className="absolute top-4 right-4 z-20 p-2.5 rounded-xl glass-panel text-slate-700 dark:text-amber-400 hover:scale-105 shadow-sm transition-all cursor-pointer"
           aria-label="Toggle theme mode"
         >
           {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
       )}
 
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl dark:shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-md glass-panel rounded-3xl shadow-2xl overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200">
         {/* Header Branding */}
-        <div className="bg-slate-900 dark:bg-slate-950 text-white p-7 text-center relative border-b border-slate-800/50">
+        <div className="bg-slate-900/85 dark:bg-slate-950/75 backdrop-blur-md text-white p-7 text-center relative border-b border-slate-800/50">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg ring-4 ring-blue-500/20 mb-3">
             <FolderKanban className="w-6 h-6 stroke-[2.2]" />
           </div>

@@ -48,6 +48,8 @@ import { RecycleBinModal } from './components/RecycleBinModal';
 import { RecycleBinView } from './components/RecycleBinView';
 import { CalendarTimelineView } from './components/CalendarTimelineView';
 import { CommandPalette } from './components/CommandPalette';
+import { SkyBackground } from './components/SkyBackground';
+import { Footer } from './components/Footer';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 import {
   checkDatabaseHealth,
@@ -144,6 +146,49 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  // UI Style State: 'glass' (Glassy Effect) vs 'normal' (Normal UI) vs 'nothing' (Nothing OS Style)
+  const [uiStyle, setUiStyle] = useState<'glass' | 'normal' | 'nothing'>(() => {
+    try {
+      const saved = localStorage.getItem('ui_style');
+      if (saved === 'normal' || saved === 'glass' || saved === 'nothing') return saved;
+      return 'glass';
+    } catch {
+      return 'glass';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      document.documentElement.classList.remove('ui-normal', 'ui-nothing');
+      if (uiStyle === 'normal') {
+        document.documentElement.classList.add('ui-normal');
+        document.documentElement.setAttribute('data-ui-style', 'normal');
+        localStorage.setItem('ui_style', 'normal');
+      } else if (uiStyle === 'nothing') {
+        document.documentElement.classList.add('ui-nothing');
+        document.documentElement.setAttribute('data-ui-style', 'nothing');
+        localStorage.setItem('ui_style', 'nothing');
+      } else {
+        document.documentElement.setAttribute('data-ui-style', 'glass');
+        localStorage.setItem('ui_style', 'glass');
+      }
+    } catch (e) {
+      console.error('Error saving ui_style to localStorage:', e);
+    }
+  }, [uiStyle]);
+
+  const toggleUiStyle = () => {
+    setUiStyle((prev) => {
+      if (prev === 'glass') return 'normal';
+      if (prev === 'normal') return 'nothing';
+      return 'glass';
+    });
+  };
+
+  const handleSelectUiStyle = (style: 'glass' | 'normal' | 'nothing') => {
+    setUiStyle(style);
+  };
+
   // Navigation & Core Data States
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [activeProjectId, setActiveProjectId] = useState<string>('');
@@ -196,7 +241,15 @@ export default function App() {
 
   // Command Palette State (Ctrl + K / Cmd + K)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [dashboardMemberFilter, setDashboardMemberFilter] = useState<string>('all');
+  const [dashboardMemberFilter, setDashboardMemberFilter] = useState<string>(currentUser?.memberId || 'all');
+  const hasAutoSelectedDashboardMember = useRef(false);
+
+  useEffect(() => {
+    if (currentUser?.memberId && !hasAutoSelectedDashboardMember.current) {
+      setDashboardMemberFilter(currentUser.memberId);
+      hasAutoSelectedDashboardMember.current = true;
+    }
+  }, [currentUser?.memberId]);
 
   // Global Keyboard Shortcut: Ctrl + K or Cmd + K opens Command Palette
   useEffect(() => {
@@ -467,6 +520,10 @@ export default function App() {
   const handleLogin = (user: AuthUser) => {
     setCurrentUser(user);
     saveAuthUser(user);
+    if (user.memberId) {
+      setDashboardMemberFilter(user.memberId);
+      hasAutoSelectedDashboardMember.current = true;
+    }
     showToast('success', `Welcome back, ${user.name}! (${user.role.toUpperCase()} role active)`);
     refreshDatabase(true, user.role);
   };
@@ -560,6 +617,8 @@ export default function App() {
         setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
         setCurrentUser(null);
         clearAuthUser();
+        setDashboardMemberFilter('all');
+        hasAutoSelectedDashboardMember.current = false;
         logoutApi(); // Clear JWT token from localStorage
         updateUrlParams({ projectId: null, taskId: null });
         showToast('info', 'You have been logged out.');
@@ -1557,6 +1616,7 @@ export default function App() {
         onLogin={handleLogin}
         theme={theme}
         onToggleTheme={toggleTheme}
+        uiStyle={uiStyle}
       />
     );
   }
@@ -1564,7 +1624,10 @@ export default function App() {
   const activeProject = (projects || []).find((p) => p.id === activeProjectId);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-blue-100 dark:selection:bg-blue-900/50 selection:text-blue-900 dark:selection:text-blue-200 transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-blue-100 dark:selection:bg-blue-900/50 selection:text-blue-900 dark:selection:text-blue-200 transition-colors duration-200 relative">
+      {/* Animated Dynamic Flowing Mesh Background (Derived from Main Color Palette) */}
+      <SkyBackground theme={theme} mainColor={activeProject?.color} uiStyle={uiStyle} />
+
       {/* Top Navigation Bar */}
       <Navbar
         currentView={currentView}
@@ -1600,7 +1663,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-8 pb-8 sm:pb-12">
         {currentView === 'dashboard' ? (
           <DashboardSummary
             projects={projects}
@@ -1619,7 +1682,10 @@ export default function App() {
             refreshTrigger={activityTrigger}
             recycleBinCount={recycleBinData.totalCount}
             onOpenRecycleBin={handleGoToRecycleBin}
+            onOpenTeamActivities={() => setIsTeamActivitiesOpen(true)}
+            isTeamActivitiesOpen={isTeamActivitiesOpen}
             initialDeadlineMemberFilter={dashboardMemberFilter}
+            onShowToast={showToast}
           />
         ) : currentView === 'team' ? (
           <TeamManagement
@@ -1704,6 +1770,16 @@ export default function App() {
         )}
       </main>
 
+      {/* Application Footer with UI Style & Theme Switchers */}
+      <Footer
+        uiStyle={uiStyle}
+        onToggleUiStyle={toggleUiStyle}
+        onSelectUiStyle={handleSelectUiStyle}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+      />
+
       {/* New/Edit Project Modal */}
       <NewProjectModal
         isOpen={isNewProjectModalOpen}
@@ -1763,6 +1839,9 @@ export default function App() {
         currentUser={currentUser}
         onOpenResetPassword={() => setIsResetPasswordOpen(true)}
         onLogout={handleLogout}
+        onOpenRecycleBin={handleGoToRecycleBin}
+        onOpenTeamActivities={() => setIsTeamActivitiesOpen(true)}
+        recycleBinCount={recycleBinData.totalCount}
       />
 
       {/* Reset Password Modal */}

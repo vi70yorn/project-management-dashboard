@@ -128,23 +128,23 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   return (
     <div
       id="new-project-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-2 sm:p-4 animate-in fade-in duration-150"
     >
       <div
         id="new-project-modal-card"
-        className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-3xl glass-modal rounded-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 glass-modal-header flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               {initialProject ? <Edit3 className="w-5 h-5" /> : <FolderPlus className="w-5 h-5" />}
             </div>
             <div>
-              <h2 id="new-project-title" className="text-base font-semibold text-slate-900 dark:text-white">
+              <h2 id="new-project-title" className="text-base font-semibold text-slate-900 dark:text-white leading-tight">
                 {initialProject ? 'Edit Project Details' : 'Create New Project'}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 sm:line-clamp-none">
                 {initialProject
                   ? 'Update deliverables timeline, status, and assigned project team'
                   : 'Set timeline, status, and assign team members to this project'}
@@ -154,14 +154,14 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
           <button
             id="close-new-project-btn"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Project Name <span className="text-rose-500">*</span>
@@ -472,7 +472,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
           )}
 
           {/* Footer */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-end gap-3">
             <button
               id="cancel-new-project-btn"
               type="button"

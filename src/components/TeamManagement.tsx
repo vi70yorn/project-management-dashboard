@@ -102,7 +102,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
   return (
     <div id="team-management-view" className="space-y-6">
       {/* Top Header & Actions Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 rounded-2xl shadow-2xs">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
@@ -133,7 +133,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
 
       {/* Stats Summary Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div className="glass-panel p-3.5 rounded-xl shadow-2xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Total Roster</span>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-xl font-bold text-slate-900 dark:text-white">{teamMembers.length}</span>
@@ -141,7 +141,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div className="glass-panel p-3.5 rounded-xl shadow-2xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Active & Available</span>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{activeCount}</span>
@@ -149,7 +149,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div className="glass-panel p-3.5 rounded-xl shadow-2xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Busy / In Meetings</span>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-xl font-bold text-amber-600 dark:text-amber-400">{busyCount}</span>
@@ -157,7 +157,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <div className="glass-panel p-3.5 rounded-xl shadow-2xs">
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Away / On Leave</span>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-xl font-bold text-slate-500 dark:text-slate-400">{awayCount}</span>
@@ -167,7 +167,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="glass-panel p-3.5 rounded-xl shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
@@ -218,7 +218,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
             <div
               key={member.id}
               id={`member-card-${member.id}`}
-              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-sm transition-shadow p-5 flex flex-col justify-between"
+              className="glass-panel-interactive rounded-2xl shadow-2xs p-5 flex flex-col justify-between"
             >
               <div>
                 {/* Member Header */}
@@ -508,7 +508,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
         })}
 
         {filteredMembers.length === 0 && (
-          <div className="col-span-full py-12 text-center bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+          <div className="col-span-full py-12 text-center glass-panel rounded-2xl border-dashed">
             <Users className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">No team members found</p>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
@@ -531,10 +531,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       {managingProjectsForMember && (
         <div
           id="manage-member-projects-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-4 animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
+          <div className="w-full max-w-md glass-modal rounded-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 glass-modal-header flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   <FolderKanban className="w-4 h-4" />
@@ -596,7 +596,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               })}
             </div>
 
-            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-end gap-2">
+            <div className="px-5 py-3 glass-modal-footer flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setManagingProjectsForMember(null)}
@@ -620,10 +620,10 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
       {inspectingMemberTasks && (
         <div
           id="member-tasks-inspect-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-4 animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
+          <div className="w-full max-w-lg glass-modal rounded-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 glass-modal-header flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                   Tasks for {inspectingMemberTasks.name}
@@ -688,7 +688,7 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({
               )}
             </div>
 
-            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex justify-end">
+            <div className="px-5 py-3 glass-modal-footer flex justify-end">
               <button
                 type="button"
                 onClick={() => setInspectingMemberTasks(null)}

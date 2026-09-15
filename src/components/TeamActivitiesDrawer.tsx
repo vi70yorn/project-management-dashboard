@@ -80,7 +80,7 @@ export const TeamActivitiesDrawer: React.FC<TeamActivitiesDrawerProps> = ({
       {/* Backdrop overlay */}
       <div
         onClick={onClose}
-        className={`fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-xs transition-opacity duration-300 ease-out cursor-pointer ${
+        className={`fixed inset-0 glass-modal-backdrop transition-opacity duration-300 ease-out cursor-pointer ${
           isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         aria-hidden="true"
@@ -89,7 +89,7 @@ export const TeamActivitiesDrawer: React.FC<TeamActivitiesDrawerProps> = ({
       {/* Slide-over panel container */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 pointer-events-none">
         <div
-          className={`pointer-events-auto w-screen max-w-md sm:max-w-lg md:max-w-xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl transition-transform duration-300 ease-out transform-gpu flex flex-col ${
+          className={`pointer-events-auto w-screen max-w-md sm:max-w-lg md:max-w-xl glass-modal border-l border-slate-200/80 dark:border-slate-800 shadow-2xl transition-transform duration-300 ease-out transform-gpu flex flex-col ${
             isVisible ? 'translate-x-0' : 'translate-x-full'
           }`}
         >

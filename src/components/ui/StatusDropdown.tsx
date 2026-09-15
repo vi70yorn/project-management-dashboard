@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Check, Loader2 } from 'lucide-react';
+import { ChevronDown, Check } from 'lucide-react';
 import { StatusType } from '../../types';
 
 export interface StatusDropdownProps {
@@ -245,16 +245,9 @@ export const StatusDropdown: React.FC<StatusDropdownProps> = ({
         } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <div className="inline-flex items-center gap-1.5 min-w-0">
-          {currentKey === 'In Progress' ? (
-            <span className={`relative flex items-center justify-center shrink-0 ${size === 'xs' ? 'w-2 h-2' : 'w-2.5 h-2.5'}`}>
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400/70 dark:bg-blue-300/60" />
-              <Loader2 className={`relative text-blue-600 dark:text-blue-400 animate-spin shrink-0 ${size === 'xs' ? 'w-2 h-2' : 'w-2.5 h-2.5'}`} />
-            </span>
-          ) : (
-            <span
-              className={`rounded-full shrink-0 ${dotSizes[size]} ${currentConfig.dotColor}`}
-            />
-          )}
+          <span
+            className={`rounded-full shrink-0 ${dotSizes[size]} ${currentConfig.dotColor}`}
+          />
           <span className="truncate whitespace-nowrap">{currentConfig.label}</span>
         </div>
 
@@ -301,16 +294,9 @@ export const StatusDropdown: React.FC<StatusDropdownProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      {st === 'In Progress' ? (
-                        <span className="relative flex items-center justify-center shrink-0 w-2.5 h-2.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400/70 dark:bg-blue-300/60" />
-                          <Loader2 className="relative w-2.5 h-2.5 text-blue-600 dark:text-blue-400 animate-spin shrink-0" />
-                        </span>
-                      ) : (
-                        <span
-                          className={`w-2 h-2 rounded-full shrink-0 ${cfg.dotColor}`}
-                        />
-                      )}
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${cfg.dotColor}`}
+                      />
                       <span className="truncate">{cfg.label}</span>
                     </div>
 

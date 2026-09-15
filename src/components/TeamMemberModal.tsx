@@ -17,6 +17,8 @@ import {
   KeyRound,
   LogOut,
   Shield,
+  Trash2,
+  Activity,
 } from 'lucide-react';
 import { TeamMember, Project, UserRole, AuthUser } from '../types';
 import { FORM_STYLES } from '../utils/formStyles';
@@ -34,6 +36,9 @@ interface TeamMemberModalProps {
   currentUser?: AuthUser | null;
   onOpenResetPassword?: () => void;
   onLogout?: () => void;
+  onOpenRecycleBin?: () => void;
+  onOpenTeamActivities?: () => void;
+  recycleBinCount?: number;
 }
 
 const PRESET_AVATARS = [
@@ -66,6 +71,9 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
   currentUser,
   onOpenResetPassword,
   onLogout,
+  onOpenRecycleBin,
+  onOpenTeamActivities,
+  recycleBinCount = 0,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const isOwnProfile = Boolean(initialMember && currentUser && initialMember.id === currentUser.memberId);
@@ -182,27 +190,27 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
   return (
     <div
       id="team-member-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-2 sm:p-4 animate-in fade-in duration-150"
     >
       <div
         id="team-member-modal-card"
-        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-lg glass-modal rounded-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 glass-modal-header flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h2 id="team-member-modal-title" className="text-base font-semibold text-slate-900 dark:text-white">
+              <h2 id="team-member-modal-title" className="text-base font-semibold text-slate-900 dark:text-white leading-tight">
                 {initialMember
                   ? initialMember.id === currentUser?.memberId
                     ? 'Update Your Profile'
                     : 'Edit Team Member'
                   : 'Add Team Member'}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 sm:line-clamp-none">
                 {initialMember?.id === currentUser?.memberId
                   ? 'Update your personal name, role title, department, email, and avatar'
                   : 'Configure profile details, role, and department'}
@@ -212,14 +220,14 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
           <button
             id="close-team-member-modal-btn"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {/* Live Preview Card */}
           <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-3.5">
             <div className="relative">
@@ -741,6 +749,70 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
             </div>
           )}
 
+          {/* Workspace Utilities & Tools (Only for current user updating own profile) */}
+          {isOwnProfile && (onOpenTeamActivities || onOpenRecycleBin) && (
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Workspace Tools
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {onOpenTeamActivities && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenTeamActivities();
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-sky-50 dark:hover:bg-sky-950/40 hover:border-sky-300 dark:hover:border-sky-700 text-left transition-all cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Activity className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-sky-600 dark:group-hover:text-sky-400 truncate">
+                        Team Activities
+                      </p>
+                      <p className="text-3xs text-slate-500 dark:text-slate-400 truncate">
+                        Live updates & audit feed
+                      </p>
+                    </div>
+                  </button>
+                )}
+
+                {onOpenRecycleBin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenRecycleBin();
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 dark:hover:border-rose-700 text-left transition-all cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Trash2 className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-rose-600 dark:group-hover:text-rose-400 truncate">
+                          Recycle Bin
+                        </p>
+                        {recycleBinCount > 0 && (
+                          <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                            {recycleBinCount}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-3xs text-slate-500 dark:text-slate-400 truncate">
+                        Recover deleted items
+                      </p>
+                    </div>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Account Security & Session Management (Only for current user updating own profile) */}
           {isOwnProfile && (
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
@@ -801,7 +873,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
           )}
 
           {/* Footer */}
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-end gap-3">
             <button
               id="cancel-team-member-btn"
               type="button"

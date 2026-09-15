@@ -395,7 +395,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
       {/* Top Header & Actions Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 rounded-2xl shadow-2xs">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
@@ -415,7 +415,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
         {/* Week Selector & Stepper Controls */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Week selector toggles */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center glass-card-subtle p-1 rounded-xl">
             <button
               onClick={() => setWeekOffset(-1)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
@@ -439,7 +439,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           </div>
 
           {/* Stepper navigator */}
-          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
+          <div className="flex items-center gap-1.5 glass-card-subtle px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200">
             <button
               onClick={() => setWeekOffset((p) => p - 1)}
               className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
@@ -463,7 +463,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       </div>
 
       {/* Dedicated Actions & Export Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 rounded-2xl shadow-2xs">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
@@ -484,7 +484,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           {/* Export Excel Button */}
           <button
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-950/50 border border-emerald-300/60 dark:border-emerald-700/60 hover:bg-emerald-500/20 backdrop-blur-xs transition-colors cursor-pointer shadow-2xs"
             title="Export Weekly Report to Excel (.xlsx)"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -494,7 +494,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           {/* Telegram Auto-Report Button */}
           <button
             onClick={() => setIsTelegramModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-colors cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-sky-700 dark:text-sky-300 bg-sky-500/10 dark:bg-sky-950/50 border border-sky-300/60 dark:border-sky-700/60 hover:bg-sky-500/20 backdrop-blur-xs transition-colors cursor-pointer shadow-2xs"
             title="Configure Telegram Weekly Auto-Report"
           >
             <Send className="w-3.5 h-3.5" />
@@ -527,10 +527,16 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
 
       {/* 4 Simple KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Overall Completion
-          </span>
+        {/* Overall Completion */}
+        <div className="p-4 rounded-xl backdrop-blur-xl backdrop-saturate-150 bg-white/70 dark:bg-slate-900/50 border border-blue-200/70 dark:border-blue-500/25 shadow-[0_8px_32px_0_rgba(59,130,246,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_0_rgba(59,130,246,0.12)] hover:-translate-y-0.5 transition-all duration-300 group">
+          <div className="flex items-center justify-between">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+              Overall Completion
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-blue-100/70 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-700/40 backdrop-blur-xs flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-black text-slate-900 dark:text-white">
               {overallMetrics.overallRate}%
@@ -539,18 +545,24 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
               ({overallMetrics.totalCompleted} / {overallMetrics.totalTasks} Tasks)
             </span>
           </div>
-          <div className="mt-2.5 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+          <div className="mt-2.5 w-full bg-slate-100/80 dark:bg-slate-800/80 h-2 rounded-full overflow-hidden border border-slate-200/40 dark:border-slate-700/40">
             <div
-              className="bg-blue-600 h-full rounded-full transition-all duration-500"
+              className="bg-blue-600 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(37,99,235,0.4)]"
               style={{ width: `${overallMetrics.overallRate}%` }}
             />
           </div>
         </div>
 
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Total Projects
-          </span>
+        {/* Total Projects */}
+        <div className="p-4 rounded-xl backdrop-blur-xl backdrop-saturate-150 bg-white/70 dark:bg-slate-900/50 border border-sky-200/70 dark:border-sky-500/25 shadow-[0_8px_32px_0_rgba(14,165,233,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_0_rgba(14,165,233,0.12)] hover:-translate-y-0.5 transition-all duration-300 group">
+          <div className="flex items-center justify-between">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+              Total Projects
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-sky-100/70 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 border border-sky-200/50 dark:border-sky-700/40 backdrop-blur-xs flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+              <Calendar className="w-4 h-4" />
+            </div>
+          </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-black text-slate-900 dark:text-white">
               {overallMetrics.totalProjects}
@@ -564,10 +576,16 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           </p>
         </div>
 
-        <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 shadow-2xs">
-          <span className="text-2xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-            Tasks Completed
-          </span>
+        {/* Tasks Completed */}
+        <div className="p-4 rounded-xl backdrop-blur-xl backdrop-saturate-150 bg-white/70 dark:bg-slate-900/50 border border-emerald-200/70 dark:border-emerald-500/25 shadow-[0_8px_32px_0_rgba(16,185,129,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_0_rgba(16,185,129,0.12)] hover:-translate-y-0.5 transition-all duration-300 group">
+          <div className="flex items-center justify-between">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              Tasks Completed
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-700/40 backdrop-blur-xs flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+              <Sparkles className="w-4 h-4" />
+            </div>
+          </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
               {overallMetrics.totalCompleted}
@@ -581,22 +599,34 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           </p>
         </div>
 
+        {/* Blocked Items */}
         <div
-          className={`p-4 rounded-xl border shadow-2xs ${
+          className={`p-4 rounded-xl backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 group hover:-translate-y-0.5 ${
             overallMetrics.totalBlocked > 0
-              ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+              ? 'bg-rose-50/75 dark:bg-rose-950/40 border border-rose-300/80 dark:border-rose-500/40 shadow-[0_8px_32px_0_rgba(244,63,94,0.1),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.1)] hover:shadow-[0_12px_40px_0_rgba(244,63,94,0.16)]'
+              : 'bg-white/70 dark:bg-slate-900/50 border border-rose-200/70 dark:border-rose-500/25 shadow-[0_8px_32px_0_rgba(244,63,94,0.06),inset_0_1px_0_0_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37),inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:shadow-[0_12px_40px_0_rgba(244,63,94,0.12)]'
           }`}
         >
-          <span
-            className={`text-2xs font-semibold uppercase tracking-wider ${
-              overallMetrics.totalBlocked > 0
-                ? 'text-rose-700 dark:text-rose-400'
-                : 'text-slate-500 dark:text-slate-400'
-            }`}
-          >
-            Blocked Items
-          </span>
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-2xs font-semibold uppercase tracking-wider ${
+                overallMetrics.totalBlocked > 0
+                  ? 'text-rose-700 dark:text-rose-300'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              Blocked Items
+            </span>
+            <div
+              className={`w-7 h-7 rounded-lg flex items-center justify-center backdrop-blur-xs shadow-2xs group-hover:scale-105 transition-transform ${
+                overallMetrics.totalBlocked > 0
+                  ? 'bg-rose-200/70 dark:bg-rose-900/70 text-rose-700 dark:text-rose-200 border border-rose-300/60 dark:border-rose-700/50'
+                  : 'bg-rose-100/70 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-800/40'
+              }`}
+            >
+              <AlertOctagon className="w-4 h-4" />
+            </div>
+          </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span
               className={`text-2xl font-black ${
@@ -671,7 +701,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
             </div> */}
 
             {/* Status Filters */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+            <div className="flex items-center glass-card-subtle p-1 rounded-xl text-xs">
               {(['All', 'Draft', 'In Progress', 'Completed', 'Blocked'] as const).map((st) => (
                 <button
                   key={st}
@@ -691,7 +721,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
             {viewMode === 'table' && (
               <button
                 onClick={toggleExpandAll}
-                className="px-2.5 py-1.5 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer shadow-2xs"
+                className="px-2.5 py-1.5 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-300 glass-panel hover:bg-white/90 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs"
                 title="Expand or collapse deliverable details"
               >
                 {filteredProjectSummaries.length > 0 &&
@@ -702,7 +732,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
             )}
 
             {/* View Mode Toggle: Table (default) vs Cards */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center glass-card-subtle p-1 rounded-xl">
               <button
                 onClick={() => setViewMode('table')}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
@@ -733,7 +763,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
 
         {/* Content Section */}
         {filteredProjectSummaries.length === 0 ? (
-          <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 text-xs shadow-2xs">
+          <div className="p-12 text-center glass-panel rounded-2xl shadow-2xs text-slate-500 text-xs">
             <p className="font-semibold text-sm text-slate-700 dark:text-slate-300">
               No matching projects found
             </p>
@@ -743,11 +773,11 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           </div>
         ) : viewMode === 'table' ? (
           /* Table View */
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+          <div className="glass-panel rounded-2xl shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 text-2xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                  <tr className="border-b border-slate-200/80 dark:border-slate-800/80 bg-white/40 dark:bg-slate-800/50 backdrop-blur-xs text-2xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                     <th className="py-3 px-3 text-center w-12">#</th>
                     <th className="py-3 px-4 min-w-[210px]">Project</th>
                     <th className="py-3 px-4 min-w-[135px] whitespace-nowrap">Status</th>
@@ -782,8 +812,8 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                             onClick={() => toggleProjectExpanded(project.id)}
                             className={`group cursor-pointer transition-colors ${
                               isExpanded
-                                ? 'bg-blue-50/40 dark:bg-blue-950/20'
-                                : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
+                                ? 'bg-blue-500/10 dark:bg-blue-950/30'
+                                : 'hover:bg-white/60 dark:hover:bg-slate-800/50'
                             }`}
                           >
                             {/* # and Expand icon */}
@@ -804,7 +834,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                             <td className="py-3.5 px-4">
                               <div className="flex items-center gap-2.5">
                                 <span
-                                  className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs ring-2 ring-white dark:ring-slate-900"
+                                  className="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs ring-2 ring-white/80 dark:ring-slate-800/80"
                                   style={{ backgroundColor: project.color || '#2563eb' }}
                                 />
                                 <div className="min-w-0">
@@ -813,7 +843,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                       {project.name}
                                     </span>
                                     {project.client && (
-                                      <span className="px-1.5 py-0.2 rounded text-3xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                      <span className="px-1.5 py-0.5 rounded text-3xs font-semibold bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs border border-slate-200/60 dark:border-slate-700/60 text-slate-600 dark:text-slate-300">
                                         {project.client}
                                       </span>
                                     )}
@@ -838,7 +868,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                     {completedCount}/{totalTasks}
                                   </span>
                                 </div>
-                                <div className="w-24 bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                <div className="w-24 bg-slate-200/60 dark:bg-slate-800/80 h-1.5 rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full transition-all duration-300 ${
                                       percent === 100
@@ -858,19 +888,19 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                               <div className="space-y-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   {completedCount > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-3xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-3xs font-semibold bg-emerald-500/15 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60 backdrop-blur-xs">
                                       <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                                       {completedCount} Done
                                     </span>
                                   )}
                                   {inProgressCount + pendingCount > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-3xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-3xs font-semibold bg-blue-500/15 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300/60 dark:border-blue-700/60 backdrop-blur-xs">
                                       <Clock className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                       {inProgressCount + pendingCount} Ongoing
                                     </span>
                                   )}
                                   {blockedCount > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-3xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-3xs font-semibold bg-rose-500/15 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300/60 dark:border-rose-700/60 backdrop-blur-xs">
                                       <AlertOctagon className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                                       {blockedCount} Blocked
                                     </span>
@@ -957,7 +987,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                   e.stopPropagation();
                                   onSelectProject(project.id);
                                 }}
-                                className="inline-flex items-center justify-center p-1.5 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/50 dark:border-blue-900/40 transition-colors cursor-pointer shadow-2xs"
+                                className="inline-flex items-center justify-center p-1.5 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-950/60 hover:bg-blue-500/20 dark:hover:bg-blue-900/60 border border-blue-300/60 dark:border-blue-800/50 backdrop-blur-xs transition-colors cursor-pointer shadow-2xs"
                                 title={`Open ${project.name} Kanban Board`}
                                 aria-label={`Open ${project.name} Kanban Board`}
                               >
@@ -968,11 +998,11 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
 
                           {/* Expandable Task Detail Drawer */}
                           {isExpanded && (
-                            <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800">
+                            <tr className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xs border-b border-slate-200/80 dark:border-slate-800/80">
                               <td colSpan={8} className="py-4 px-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   {/* Completed Deliverables List */}
-                                  <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
+                                  <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/30 backdrop-blur-xs rounded-xl border border-emerald-200/60 dark:border-emerald-800/50 shadow-2xs">
                                     <div className="flex items-center justify-between text-2xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-2">
                                       <div className="flex items-center gap-1.5">
                                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -988,12 +1018,12 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                         {completedList.map((t) => (
                                           <li
                                             key={t.id}
-                                            className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/30 gap-2"
+                                            className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white/85 dark:bg-slate-800/70 backdrop-blur-xs border border-emerald-200/50 dark:border-emerald-800/40 shadow-2xs gap-2"
                                           >
                                             <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
                                               ✓ {t.title}
                                             </span>
-                                            <div className="flex items-center gap-1.5 shrink-0 text-3xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                            <div className="flex items-center gap-1.5 shrink-0 text-3xs text-slate-500 dark:text-slate-400 font-medium bg-white/60 dark:bg-slate-900/60 backdrop-blur-xs border border-slate-200/50 dark:border-slate-700/50 px-1.5 py-0.5 rounded">
                                               {t.assigneeAvatar ? (
                                                 <img
                                                   src={t.assigneeAvatar}
@@ -1017,7 +1047,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                   </div>
 
                                   {/* Ongoing & Blocked Deliverables List */}
-                                  <div className="p-3.5 bg-slate-100/60 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
+                                  <div className="p-3.5 glass-card-subtle rounded-xl border border-slate-200/80 dark:border-slate-700/60 shadow-2xs">
                                     <div className="flex items-center justify-between text-2xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                                       <div className="flex items-center gap-1.5">
                                         <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -1033,14 +1063,14 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                                         {ongoingList.map((t) => (
                                           <li
                                             key={t.id}
-                                            className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 gap-2"
+                                            className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white/85 dark:bg-slate-800/70 backdrop-blur-xs border border-slate-200/80 dark:border-slate-700/60 shadow-2xs gap-2"
                                           >
                                             <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
                                               {t.title}
                                             </span>
                                             <div className="flex items-center gap-1.5 shrink-0">
                                               <StatusBadge status={t.status} size="xs" />
-                                              <div className="flex items-center gap-1 text-3xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                              <div className="flex items-center gap-1 text-3xs text-slate-500 dark:text-slate-400 font-medium bg-white/60 dark:bg-slate-900/60 backdrop-blur-xs border border-slate-200/50 dark:border-slate-700/50 px-1.5 py-0.5 rounded">
                                                 {t.assigneeAvatar ? (
                                                   <img
                                                     src={t.assigneeAvatar}
@@ -1089,13 +1119,13 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
             }) => (
               <div
                 key={project.id}
-                className="p-5 sm:p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-all"
+                className="glass-panel-interactive p-5 sm:p-6 rounded-2xl shadow-2xs hover:shadow-xs transition-all"
               >
                 {/* Project Title, Client, Status & Completion Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200/60 dark:border-slate-800/60">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-4 h-4 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-xs shrink-0"
+                      className="w-4 h-4 rounded-full ring-2 ring-white/80 dark:ring-slate-800/80 shadow-xs shrink-0"
                       style={{ backgroundColor: project.color || '#2563eb' }}
                     />
                     <div>
@@ -1104,7 +1134,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                           {project.name}
                         </h4>
                         {project.client && (
-                          <span className="px-2 py-0.5 rounded-md text-2xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          <span className="px-2 py-0.5 rounded-md text-2xs font-semibold bg-white/60 dark:bg-slate-800/60 backdrop-blur-xs border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300">
                             {project.client}
                           </span>
                         )}
@@ -1180,7 +1210,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
 
                 {/* Progress Bar */}
                 <div className="mt-4">
-                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate-200/60 dark:bg-slate-800/80 h-2.5 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         percent === 100
@@ -1197,7 +1227,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                 {/* Simple 2-Column Task Breakdown: Completed vs Ongoing */}
                 <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   {/* Completed Tasks */}
-                  <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
+                  <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/30 backdrop-blur-xs rounded-xl border border-emerald-200/60 dark:border-emerald-800/50 shadow-2xs">
                     <div className="flex items-center justify-between text-2xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider mb-2.5">
                       <div className="flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -1211,12 +1241,12 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                         {completedList.map((t) => (
                           <li
                             key={t.id}
-                            className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white/80 dark:bg-slate-900/60 border border-emerald-100/60 dark:border-emerald-900/30 gap-2"
+                            className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white/85 dark:bg-slate-800/70 backdrop-blur-xs border border-emerald-200/50 dark:border-emerald-800/40 shadow-2xs gap-2"
                           >
                             <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
                               ✓ {t.title}
                             </span>
-                            <div className="flex items-center gap-1 text-2xs text-slate-500 dark:text-slate-400 shrink-0 font-medium">
+                            <div className="flex items-center gap-1 text-2xs text-slate-500 dark:text-slate-400 shrink-0 font-medium bg-white/60 dark:bg-slate-900/60 backdrop-blur-xs border border-slate-200/50 dark:border-slate-700/50 px-1.5 py-0.5 rounded">
                               {t.assigneeAvatar ? (
                                 <img
                                   src={t.assigneeAvatar}
@@ -1240,7 +1270,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                   </div>
 
                   {/* Ongoing Tasks */}
-                  <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                  <div className="p-3.5 glass-card-subtle rounded-xl border border-slate-200/80 dark:border-slate-700/60 shadow-2xs">
                     <div className="flex items-center justify-between text-2xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -1256,14 +1286,14 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                         {ongoingList.map((t) => (
                           <li
                             key={t.id}
-                            className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700 gap-2"
+                            className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-white/85 dark:bg-slate-800/70 backdrop-blur-xs border border-slate-200/80 dark:border-slate-700/60 shadow-2xs gap-2"
                           >
                             <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
                               {t.title}
                             </span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <StatusBadge status={t.status} size="xs" />
-                              <div className="flex items-center gap-1 text-3xs text-slate-500 dark:text-slate-400">
+                              <div className="flex items-center gap-1 text-3xs text-slate-500 dark:text-slate-400 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xs border border-slate-200/50 dark:border-slate-700/50 px-1.5 py-0.5 rounded">
                                 {t.assigneeAvatar ? (
                                   <img
                                     src={t.assigneeAvatar}
@@ -1289,7 +1319,7 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                 </div>
 
                 {/* Bottom Quick Jump Link */}
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end">
+                <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-end">
                   <button
                     onClick={() => onSelectProject(project.id)}
                     className="inline-flex items-center gap-1 text-2xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"

@@ -827,14 +827,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     return (
       <div
         id="task-modal-backdrop"
-        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+        className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-2 sm:p-4 animate-in fade-in duration-150"
       >
         <div
           id="task-modal-card"
-          className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+          className="w-full max-w-5xl glass-modal rounded-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150"
         >
           {/* Read-Only Header */}
-          <div className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 shrink-0">
+          <div className="px-4 py-3 sm:px-6 sm:py-3.5 glass-modal-header flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <Eye className="w-4 h-4" />
@@ -1234,19 +1234,19 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   return (
     <div
       id="task-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-2 sm:p-4 animate-in fade-in duration-150"
     >
       <div
         id="task-modal-card"
-        className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-5xl glass-modal rounded-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150"
       >
         {/* Header */}
-        <div className="px-6 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/60 shrink-0">
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 glass-modal-header flex items-center justify-between shrink-0">
           <div>
             <span className="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {currentProject ? currentProject.name : projectName || 'Project Task'}
             </span>
-            <h2 id="task-modal-title" className="text-base font-semibold text-slate-900 dark:text-white">
+            <h2 id="task-modal-title" className="text-base font-semibold text-slate-900 dark:text-white leading-tight">
               {initialTask
                 ? isStaff
                   ? 'Edit My Deliverable Task'
@@ -1354,7 +1354,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             activeMobileTab !== 'details' ? 'hidden lg:flex' : 'flex'
           }`}>
             <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
                 {/* Project Selector */}
           {safeProjects.length > 0 && (
             <div>
@@ -1716,7 +1716,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         </div>
 
               {/* Pinned Left Footer */}
-              <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-3 shrink-0">
+              <div className="p-3 sm:p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-2 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap">
                 <div className="flex items-center gap-2">
                   {initialTask && onDelete && canDeleteTask && (
                     <button

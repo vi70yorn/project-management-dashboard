@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Oldenburg&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: 'Noto Sans', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-oldenburg: 'Oldenburg', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --text-2xs: 0.6875rem;
   --text-3xs: 0.625rem;
 }
@@ -51,3 +53,650 @@ html.dark ::-webkit-scrollbar-thumb {
 html.dark ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* Dynamic Random Color Effect & Fluid Mesh Background Animations */
+@keyframes fluidBlob1 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(120px, 70px, 0) scale(1.15) rotate(40deg);
+  }
+  50% {
+    transform: translate3d(60px, 160px, 0) scale(0.92) rotate(85deg);
+  }
+  75% {
+    transform: translate3d(-70px, 90px, 0) scale(1.1) rotate(130deg);
+  }
+}
+
+@keyframes fluidBlob2 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(-130px, 90px, 0) scale(1.12) rotate(-45deg);
+  }
+  50% {
+    transform: translate3d(-70px, -80px, 0) scale(0.88) rotate(-95deg);
+  }
+  75% {
+    transform: translate3d(80px, -40px, 0) scale(1.18) rotate(-140deg);
+  }
+}
+
+@keyframes fluidBlob3 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(0.95) rotate(0deg);
+  }
+  33% {
+    transform: translate3d(90px, -110px, 0) scale(1.18) rotate(60deg);
+  }
+  66% {
+    transform: translate3d(-80px, -50px, 0) scale(0.92) rotate(130deg);
+  }
+}
+
+@keyframes fluidBlob4 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(0.9) rotate(0deg);
+  }
+  30% {
+    transform: translate3d(-90px, 100px, 0) scale(1.2) rotate(-55deg);
+  }
+  70% {
+    transform: translate3d(110px, -70px, 0) scale(1.05) rotate(75deg);
+  }
+}
+
+@keyframes fluidBlob5 {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  40% {
+    transform: translate3d(-60px, -100px, 0) scale(1.14);
+  }
+  80% {
+    transform: translate3d(80px, 50px, 0) scale(0.86);
+  }
+}
+
+@keyframes mainColorHueShift {
+  0%, 100% {
+    filter: hue-rotate(-18deg);
+  }
+  50% {
+    filter: hue-rotate(18deg);
+  }
+}
+
+@keyframes slowMeshSpin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.08);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-140px) translateX(25px);
+    opacity: 0;
+  }
+}
+
+.animate-fluid-blob-1 {
+  animation: fluidBlob1 22s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-fluid-blob-2 {
+  animation: fluidBlob2 26s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-fluid-blob-3 {
+  animation: fluidBlob3 30s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-fluid-blob-4 {
+  animation: fluidBlob4 24s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-fluid-blob-5 {
+  animation: fluidBlob5 28s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-main-color-hue,
+.animate-chromatic-hue {
+  animation: mainColorHueShift 24s ease-in-out infinite;
+}
+
+.animate-mesh-spin {
+  animation: slowMeshSpin 55s ease-in-out infinite;
+}
+
+.animate-particle-float {
+  animation: particleFloat 12s ease-in-out infinite;
+}
+
+/* Glassmorphism Surface Utility Classes */
+.glass-panel {
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  background-color: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+}
+
+html.dark .glass-panel {
+  background-color: rgba(15, 23, 42, 0.60);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-interactive {
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  background-color: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-interactive:hover {
+  transform: translateY(-2px);
+  background-color: rgba(255, 255, 255, 0.82);
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+}
+
+html.dark .glass-panel-interactive {
+  background-color: rgba(15, 23, 42, 0.60);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+html.dark .glass-panel-interactive:hover {
+  background-color: rgba(15, 23, 42, 0.70);
+  border-color: rgba(255, 255, 255, 0.20);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.16);
+}
+
+/* Glass Card Subtle (for inner cards, task items, and kanban columns) */
+.glass-card-subtle {
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  background-color: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(226, 232, 240, 0.75);
+}
+
+html.dark .glass-card-subtle {
+  background-color: rgba(30, 41, 59, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Glass Modal Backdrop: Soft, atmospheric ambient blur instead of harsh opaque black */
+.glass-modal-backdrop {
+  background-color: rgba(15, 23, 42, 0.32);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
+}
+
+html.dark .glass-modal-backdrop {
+  background-color: rgba(2, 6, 23, 0.65);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+/* Glass Modal Card: Ultra-clean frosted crystal glass with specular edge bevel */
+.glass-modal {
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  background-color: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 24px 64px -12px rgba(15, 23, 42, 0.18),
+    0 4px 16px -4px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(226, 232, 240, 0.8),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 1);
+}
+
+html.dark .glass-modal {
+  background-color: rgba(15, 23, 42, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 32px 72px -16px rgba(0, 0, 0, 0.8),
+    0 6px 24px -6px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+}
+
+/* Glass Modal Header: Frosted top bar that harmonizes with the modal body */
+.glass-modal-header {
+  background-color: rgba(248, 250, 252, 0.65);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+html.dark .glass-modal-header {
+  background-color: rgba(15, 23, 42, 0.55);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Glass Modal Footer: Frosted bottom action bar */
+.glass-modal-footer {
+  background-color: rgba(248, 250, 252, 0.55);
+  border-top: 1px solid rgba(226, 232, 240, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+html.dark .glass-modal-footer {
+  background-color: rgba(15, 23, 42, 0.45);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ==========================================================================
+   Normal UI Overrides (Triggered when html has .ui-normal class)
+   Switches from Glassmorphism to Classic Solid/Flat modern SaaS UI
+   ========================================================================== */
+
+/* Disable background fluid blobs and floating particles in Normal UI */
+html.ui-normal .animate-main-color-hue,
+html.ui-normal .animate-particle-float,
+html.ui-normal .animate-mesh-spin,
+html.ui-normal [class*="animate-fluid-blob"] {
+  display: none !important;
+}
+
+/* Neutralize all backdrop filters across all elements in Normal UI */
+html.ui-normal [class*="backdrop-blur"],
+html.ui-normal .glass-panel,
+html.ui-normal .glass-panel-interactive,
+html.ui-normal .glass-card-subtle,
+html.ui-normal .glass-modal,
+html.ui-normal .glass-modal-header,
+html.ui-normal .glass-modal-footer,
+html.ui-normal .glass-modal-backdrop,
+html.ui-normal header {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Solid Glass Panel in Normal UI */
+html.ui-normal .glass-panel {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.dark.ui-normal .glass-panel,
+html.ui-normal.dark .glass-panel {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Solid Interactive Panel in Normal UI */
+html.ui-normal .glass-panel-interactive {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.ui-normal .glass-panel-interactive:hover {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+html.dark.ui-normal .glass-panel-interactive,
+html.ui-normal.dark .glass-panel-interactive {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark.ui-normal .glass-panel-interactive:hover,
+html.ui-normal.dark .glass-panel-interactive:hover {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Subtle Card in Normal UI */
+html.ui-normal .glass-card-subtle {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+html.dark.ui-normal .glass-card-subtle,
+html.ui-normal.dark .glass-card-subtle {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: none !important;
+}
+
+/* Modal in Normal UI */
+html.ui-normal .glass-modal-backdrop {
+  background-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+html.dark.ui-normal .glass-modal-backdrop,
+html.ui-normal.dark .glass-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.75) !important;
+}
+
+html.ui-normal .glass-modal {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+html.dark.ui-normal .glass-modal,
+html.ui-normal.dark .glass-modal {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.ui-normal .glass-modal-header {
+  background-color: #f8fafc !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html.dark.ui-normal .glass-modal-header,
+html.ui-normal.dark .glass-modal-header {
+  background-color: #0f172a !important;
+  border-bottom-color: #1e293b !important;
+}
+
+html.ui-normal .glass-modal-footer {
+  background-color: #f8fafc !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+html.dark.ui-normal .glass-modal-footer,
+html.ui-normal.dark .glass-modal-footer {
+  background-color: #0f172a !important;
+  border-top-color: #1e293b !important;
+}
+
+/* Navbar in Normal UI */
+html.ui-normal #main-navbar {
+  background-color: #ffffff !important;
+  border-bottom-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+html.dark.ui-normal #main-navbar,
+html.ui-normal.dark #main-navbar {
+  background-color: #0f172a !important;
+  border-bottom-color: #1e293b !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ==========================================================================
+   Nothing OS Style Overrides (Triggered when html has .ui-nothing class)
+   Minimalist retro-futuristic monochrome aesthetic inspired by Nothing OS:
+   Pure OLED black / paper white, dot-matrix grid canvas, Nothing Red (#D71921)
+   accents, crisp high-contrast outlines, monospace metrics, and zero blur.
+   ========================================================================== */
+
+/* Disable background fluid blobs, floating particles, and hue animations */
+html.ui-nothing .animate-main-color-hue,
+html.ui-nothing .animate-particle-float,
+html.ui-nothing .animate-mesh-spin,
+html.ui-nothing [class*="animate-fluid-blob"] {
+  display: none !important;
+}
+
+/* Neutralize all backdrop filters in Nothing OS mode */
+html.ui-nothing [class*="backdrop-blur"],
+html.ui-nothing .glass-panel,
+html.ui-nothing .glass-panel-interactive,
+html.ui-nothing .glass-card-subtle,
+html.ui-nothing .glass-modal,
+html.ui-nothing .glass-modal-header,
+html.ui-nothing .glass-modal-footer,
+html.ui-nothing .glass-modal-backdrop,
+html.ui-nothing header,
+html.ui-nothing footer {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Background canvas in Nothing OS mode */
+html.ui-nothing body {
+  background-color: #f7f7f7 !important;
+}
+
+html.dark.ui-nothing body,
+html.ui-nothing.dark body {
+  background-color: #000000 !important;
+}
+
+/* Dot matrix grid canvas */
+html.ui-nothing .nothing-grid-canvas {
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.14) 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+
+html.dark.ui-nothing .nothing-grid-canvas,
+html.ui-nothing.dark .nothing-grid-canvas {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.16) 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+
+/* Panels in Nothing OS Style */
+html.ui-nothing .glass-panel {
+  background-color: #ffffff !important;
+  border-color: #e5e5e5 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+html.dark.ui-nothing .glass-panel,
+html.ui-nothing.dark .glass-panel {
+  background-color: #0c0c0c !important;
+  border-color: #242424 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Interactive Panels in Nothing OS Style */
+html.ui-nothing .glass-panel-interactive {
+  background-color: #ffffff !important;
+  border-color: #e5e5e5 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+html.ui-nothing .glass-panel-interactive:hover {
+  border-color: #d71921 !important;
+  box-shadow: 0 4px 12px 0 rgba(215, 25, 33, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+html.dark.ui-nothing .glass-panel-interactive,
+html.ui-nothing.dark .glass-panel-interactive {
+  background-color: #0c0c0c !important;
+  border-color: #242424 !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+html.dark.ui-nothing .glass-panel-interactive:hover,
+html.ui-nothing.dark .glass-panel-interactive:hover {
+  background-color: #121212 !important;
+  border-color: #d71921 !important;
+  box-shadow: 0 0 16px 0 rgba(215, 25, 33, 0.18) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Subtle Cards & Containers */
+html.ui-nothing .glass-card-subtle {
+  background-color: #f4f4f4 !important;
+  border-color: #e5e5e5 !important;
+  box-shadow: none !important;
+}
+
+html.dark.ui-nothing .glass-card-subtle,
+html.ui-nothing.dark .glass-card-subtle {
+  background-color: #121212 !important;
+  border-color: #262626 !important;
+  box-shadow: none !important;
+}
+
+/* Modals in Nothing OS Style */
+html.ui-nothing .glass-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.65) !important;
+}
+
+html.dark.ui-nothing .glass-modal-backdrop,
+html.ui-nothing.dark .glass-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.88) !important;
+}
+
+html.ui-nothing .glass-modal {
+  background-color: #ffffff !important;
+  border-color: #e5e5e5 !important;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.18) !important;
+}
+
+html.dark.ui-nothing .glass-modal,
+html.ui-nothing.dark .glass-modal {
+  background-color: #0c0c0c !important;
+  border-color: #262626 !important;
+  box-shadow: 0 0 0 1px #262626, 0 30px 60px -15px rgba(0, 0, 0, 0.95) !important;
+}
+
+html.ui-nothing .glass-modal-header {
+  background-color: #fafafa !important;
+  border-bottom-color: #e5e5e5 !important;
+}
+
+html.dark.ui-nothing .glass-modal-header,
+html.ui-nothing.dark .glass-modal-header {
+  background-color: #0c0c0c !important;
+  border-bottom-color: #222222 !important;
+}
+
+html.ui-nothing .glass-modal-footer {
+  background-color: #fafafa !important;
+  border-top-color: #e5e5e5 !important;
+}
+
+html.dark.ui-nothing .glass-modal-footer,
+html.ui-nothing.dark .glass-modal-footer {
+  background-color: #0c0c0c !important;
+  border-top-color: #222222 !important;
+}
+
+/* Navbar in Nothing OS Style */
+html.ui-nothing #main-navbar {
+  background-color: #ffffff !important;
+  border-bottom-color: #e5e5e5 !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+html.dark.ui-nothing #main-navbar,
+html.ui-nothing.dark #main-navbar {
+  background-color: #000000 !important;
+  border-bottom-color: #222222 !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Footer in Nothing OS Style */
+html.ui-nothing #app-footer {
+  background-color: #ffffff !important;
+  border-top-color: #e5e5e5 !important;
+}
+
+html.dark.ui-nothing #app-footer,
+html.ui-nothing.dark #app-footer {
+  background-color: #000000 !important;
+  border-top-color: #222222 !important;
+}
+
+/* Ultra-minimal Nothing scrollbar in dark mode */
+html.dark.ui-nothing ::-webkit-scrollbar-track,
+html.ui-nothing.dark ::-webkit-scrollbar-track {
+  background: #000000 !important;
+}
+
+html.dark.ui-nothing ::-webkit-scrollbar-thumb,
+html.ui-nothing.dark ::-webkit-scrollbar-thumb {
+  background: #262626 !important;
+  border-radius: 2px !important;
+}
+
+html.dark.ui-nothing ::-webkit-scrollbar-thumb:hover,
+html.ui-nothing.dark ::-webkit-scrollbar-thumb:hover {
+  background: #383838 !important;
+}
+
+/* Monospace accents & Nothing Red indicator utility */
+html.ui-nothing .font-mono-nothing {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
+.nothing-dot {
+  background-color: #d71921 !important;
+}
+
+/* Typography: Apply Oldenburg font family when switch to Nothing Style */
+html.ui-nothing {
+  --font-sans: 'Oldenburg', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+html.ui-nothing,
+html.ui-nothing body,
+html.ui-nothing button,
+html.ui-nothing input,
+html.ui-nothing select,
+html.ui-nothing textarea,
+html.ui-nothing p,
+html.ui-nothing h1,
+html.ui-nothing h2,
+html.ui-nothing h3,
+html.ui-nothing h4,
+html.ui-nothing h5,
+html.ui-nothing h6,
+html.ui-nothing table,
+html.ui-nothing th,
+html.ui-nothing td,
+html.ui-nothing label,
+html.ui-nothing a,
+html.ui-nothing span:not([class*="lucide"]):not([class*="font-mono"]) {
+  font-family: 'Oldenburg', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Retain monospace precision for code tags, shortcuts, and counters */
+html.ui-nothing [class*="font-mono"],
+html.ui-nothing kbd,
+html.ui-nothing code,
+html.ui-nothing pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
+
+

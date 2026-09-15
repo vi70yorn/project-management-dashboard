@@ -163,7 +163,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     <div
       ref={dropdownRef}
       id="inapp-notification-dropdown"
-      className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/90 dark:border-slate-800 z-50 overflow-hidden flex flex-col text-slate-800 dark:text-slate-100 animate-in fade-in zoom-in-95 duration-150"
+      className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-1.5rem)] rounded-2xl glass-panel shadow-2xl z-50 overflow-hidden flex flex-col text-slate-800 dark:text-slate-100 animate-in fade-in zoom-in-95 duration-150"
       role="menu"
       aria-label="Notification Center"
     >

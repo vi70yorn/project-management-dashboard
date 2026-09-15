@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   LayoutDashboard,
   Plus,
@@ -11,9 +11,7 @@ import {
   Sun,
   Moon,
   FileSpreadsheet,
-  Trash2,
   Calendar as CalendarIcon,
-  Activity,
   Search,
   Bell,
 } from 'lucide-react';
@@ -89,6 +87,66 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isAdmin = currentUser?.role === 'admin';
   const handleRecycleBinAction = onGoToRecycleBin || onOpenRecycleBin;
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+
+  // Scroll detection: Hide navbar when scrolling down, show when scrolling up
+  useEffect(() => {
+    let lastScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (ticking) return;
+
+      window.requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY;
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = window.innerHeight;
+
+        // Always show navbar at or near the top of the page (within 60px)
+        if (currentScrollY <= 60) {
+          setIsVisible(true);
+          lastScrollY = currentScrollY;
+          ticking = false;
+          return;
+        }
+
+        // Avoid false triggers on elastic overscroll bounce past bottom of document
+        if (currentScrollY + clientHeight >= scrollHeight - 20) {
+          ticking = false;
+          return;
+        }
+
+        const diff = currentScrollY - lastScrollY;
+
+        // Threshold of 8px to prevent jitter from trackpad micro-movements
+        if (Math.abs(diff) >= 8) {
+          if (diff > 0 && currentScrollY > 80) {
+            // Scrolling down -> hide navbar & close open dropdown
+            setIsVisible(false);
+            setIsNotificationOpen(false);
+          } else if (diff < 0) {
+            // Scrolling up -> show navbar
+            setIsVisible(true);
+          }
+          lastScrollY = currentScrollY;
+        }
+
+        ticking = false;
+      });
+
+      ticking = true;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Ensure navbar is visible when switching view or active project
+  useEffect(() => {
+    setIsVisible(true);
+  }, [currentView, activeProject?.id]);
 
   // Unread badge count for current user
   const unreadNotificationCount = useMemo(() => {
@@ -101,32 +159,34 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header
       id="main-navbar"
-      className="sticky top-0 z-30 bg-blue-700 dark:bg-slate-900 backdrop-blur-md border-b border-blue-800 dark:border-slate-800 text-white shadow-md transition-colors"
+      className={`sticky top-0 z-40 w-full bg-white/75 dark:bg-slate-900/65 backdrop-blur-xl backdrop-saturate-150 border-b border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-white shadow-[0_4px_30px_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.9)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.08)] transition-transform duration-300 ease-in-out will-change-transform ${
+        isVisible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
+      }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: Brand & Main Navigation */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2.5 sm:gap-6 shrink-0">
           <div
             id="brand-logo-btn"
             onClick={onGoToDashboard}
-            className="flex items-center gap-2.5 cursor-pointer group select-none"
+            className="flex items-center gap-2 cursor-pointer group select-none shrink-0"
           >
             <img
               src="/favicon.svg"
               alt="UX/UI Task Tracking"
-              className="w-9 h-9 shadow-xs group-hover:scale-105 transition-transform shrink-0"
+              className="w-8 h-8 sm:w-9 sm:h-9 shadow-xs group-hover:scale-105 transition-transform shrink-0"
             />
             <div className="h-9 flex flex-col justify-center -translate-y-0.5">
-              <span className="text-sm font-bold text-white tracking-tight leading-none">
+              <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-none">
                 UX/UI
               </span>
-              <span className="text-2xs text-blue-100 dark:text-slate-400 font-medium leading-none mt-1">
+              <span className="text-2xs text-slate-500 dark:text-slate-400 font-medium leading-none mt-1 hidden min-[400px]:inline">
                 Task Tracking
               </span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-1.5 sm:gap-2 pl-4 border-l border-blue-600/60 dark:border-slate-800">
+          <div className="hidden md:flex items-center gap-1.5 sm:gap-2 pl-4 border-l border-slate-200/80 dark:border-white/10">
             {/* Dashboard summary tab */}
             <button
               id="nav-dashboard-summary-btn"
@@ -134,8 +194,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Dashboard"
               className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 currentView === 'dashboard'
-                  ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
+                  ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10'
               }`}
             >
               <LayoutDashboard className="w-4 h-4 shrink-0" />
@@ -158,8 +218,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="Calendar & Project/Task Timeline"
                 className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   currentView === 'calendar'
-                    ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
-                    : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
+                    ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10'
                 }`}
               >
                 <CalendarIcon className="w-4 h-4 shrink-0" />
@@ -182,8 +242,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Team Management"
               className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 currentView === 'team'
-                  ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
+                  ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10'
               }`}
             >
               <Users className="w-4 h-4 shrink-0" />
@@ -198,8 +258,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-3xs font-bold ${
                     currentView === 'team'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-white'
-                      : 'bg-blue-800/80 text-blue-100 border border-blue-600/50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 text-slate-600 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
                   }`}
                 >
                   {teamCount}
@@ -215,8 +275,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="Project Weekly Summary & Reports"
                 className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   currentView === 'summary'
-                    ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white dark:border dark:border-blue-500 shadow-xs'
-                    : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
+                    ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10'
                 }`}
               >
                 <FileSpreadsheet className="w-4 h-4 shrink-0" />
@@ -266,7 +326,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {onOpenCommandPalette && (
               <button
                 onClick={onOpenCommandPalette}
-                className="p-1.5 rounded-lg text-xs transition-colors text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 cursor-pointer"
+                className="p-1.5 rounded-lg text-xs transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 cursor-pointer"
                 title="Search / Command Palette (Ctrl+K)"
               >
                 <Search className="w-4 h-4" />
@@ -276,8 +336,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onGoToDashboard}
               className={`p-1.5 rounded-lg text-xs transition-colors ${
                 currentView === 'dashboard'
-                  ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white shadow-xs'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                  ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10'
               }`}
               title="Dashboard"
             >
@@ -287,8 +347,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onGoToTeam}
               className={`p-1.5 rounded-lg text-xs transition-colors ${
                 currentView === 'team'
-                  ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white shadow-xs'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                  ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10'
               }`}
               title="Team"
             >
@@ -299,8 +359,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={onGoToSummary}
                 className={`p-1.5 rounded-lg text-xs transition-colors ${
                   currentView === 'summary'
-                    ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white shadow-xs'
-                    : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                    ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10'
                 }`}
                 title="Project Weekly Summary"
               >
@@ -312,48 +372,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={onGoToCalendar}
                 className={`p-1.5 rounded-lg text-xs transition-colors ${
                   currentView === 'calendar'
-                    ? 'bg-white text-blue-800 dark:bg-blue-600 dark:text-white shadow-xs'
-                    : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                    ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10'
                 }`}
                 title="Calendar"
               >
                 <CalendarIcon className="w-4 h-4" />
-              </button>
-            )}
-            {handleRecycleBinAction && (
-              <button
-                id="nav-mobile-recycle-bin-btn"
-                onClick={handleRecycleBinAction}
-                className={`relative p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                  currentView === 'recycle-bin'
-                    ? 'bg-rose-800 text-white dark:bg-rose-950/60 dark:text-rose-300'
-                    : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/40'
-                }`}
-                title={`Recycle Bin${recycleBinCount > 0 ? ` (${recycleBinCount})` : ''}`}
-              >
-                <Trash2 className="w-4 h-4" />
-                {recycleBinCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-1 ring-blue-700 dark:ring-slate-900">
-                    {recycleBinCount > 9 ? '9+' : recycleBinCount}
-                  </span>
-                )}
-              </button>
-            )}
-            {onOpenTeamActivities && (
-              <button
-                id="nav-mobile-team-activities-btn"
-                onClick={onOpenTeamActivities}
-                className={`relative p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                  isTeamActivitiesOpen
-                    ? 'bg-blue-800 text-white dark:bg-blue-950/60 dark:text-blue-300'
-                    : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
-                }`}
-                title="Team Activities"
-              >
-                <Activity className="w-4 h-4" />
-                <span className="absolute top-0.5 right-0.5 flex h-1.5 w-1.5">
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
-                </span>
               </button>
             )}
             {/* Mobile Notification Bell */}
@@ -362,15 +386,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setIsNotificationOpen((prev) => !prev)}
               className={`relative p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
                 isNotificationOpen
-                  ? 'bg-blue-800 text-white dark:bg-blue-950/60 dark:text-blue-300'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-300'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10'
               }`}
               title={`Notifications${unreadNotificationCount > 0 ? ` (${unreadNotificationCount} unread)` : ''}`}
               aria-label="Open notifications"
             >
               <Bell className="w-4 h-4" />
               {unreadNotificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-1 ring-blue-700 dark:ring-slate-900 animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-1 ring-white dark:ring-slate-900 animate-pulse">
                   {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
                 </span>
               )}
@@ -383,71 +407,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="navbar-command-palette-btn"
               onClick={onOpenCommandPalette}
               title="Quick Command Palette (Ctrl+K or Cmd+K)"
-              className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-blue-800/60 dark:bg-slate-800/70 hover:bg-blue-600 dark:hover:bg-slate-700 text-blue-100 hover:text-white dark:text-slate-300 dark:hover:text-white text-xs font-medium border border-blue-600/50 dark:border-slate-700 transition-all cursor-pointer shadow-2xs group"
+              className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-100/80 hover:bg-slate-200/70 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white text-xs font-medium border border-slate-200/80 dark:border-white/10 transition-all cursor-pointer shadow-2xs group backdrop-blur-xs"
               aria-label="Open Command Palette"
             >
-              <Search className="w-3.5 h-3.5 text-blue-200 dark:text-slate-400 group-hover:text-white transition-colors" />
-              <span className="hidden lg:inline text-2xs text-blue-200 dark:text-slate-400 group-hover:text-white font-normal">
+              <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:text-slate-400 dark:group-hover:text-white transition-colors" />
+              <span className="hidden lg:inline text-2xs text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-white font-normal">
                 Quick search...
               </span>
-              <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-3xs font-mono font-bold bg-blue-900/80 dark:bg-slate-900/90 text-blue-200 dark:text-slate-400 rounded border border-blue-500/40 dark:border-slate-700 shadow-2xs">
+              <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-3xs font-mono font-bold bg-white dark:bg-black/30 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <span>⌘</span>K
               </kbd>
-            </button>
-          )}
-
-          {/* Light / Dark Mode Toggle Button */}
-          {onToggleTheme && (
-            <button
-              id="navbar-theme-toggle-btn"
-              onClick={onToggleTheme}
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className="p-2 rounded-xl text-blue-100 hover:text-amber-200 hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-amber-300 dark:hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-blue-500/40 dark:hover:border-slate-700"
-              aria-label="Toggle theme mode"
-            >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-300 dark:text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-blue-100 dark:text-slate-300" />
-              )}
-            </button>
-          )}
-
-          {/* Recycle Bin Button */}
-          {handleRecycleBinAction && (
-            <button
-              id="navbar-recycle-bin-btn"
-              onClick={handleRecycleBinAction}
-              title="Recycle Bin (Retention: 7 days)"
-              className={`p-2 rounded-xl transition-all cursor-pointer border ${
-                currentView === 'recycle-bin'
-                  ? 'bg-rose-800 text-white border-rose-600 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800 shadow-2xs'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/40 border-transparent hover:border-blue-500/40 dark:hover:border-rose-800/60'
-              }`}
-              aria-label="Open Recycle Bin"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Team Activities Slide-over Trigger Button */}
-          {onOpenTeamActivities && (
-            <button
-              id="navbar-team-activities-btn"
-              onClick={onOpenTeamActivities}
-              title="Team Activities (Live update feed)"
-              className={`relative p-2 rounded-xl transition-all cursor-pointer border ${
-                isTeamActivitiesOpen
-                  ? 'bg-blue-800 text-white border-blue-500 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 shadow-2xs'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-800 border-transparent hover:border-blue-500/40 dark:hover:border-slate-700'
-              }`}
-              aria-label="Open Team Activities"
-            >
-              <Activity className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-              </span>
             </button>
           )}
 
@@ -459,14 +428,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={`Notification Center${unreadNotificationCount > 0 ? ` (${unreadNotificationCount} unread)` : ''}`}
               className={`relative p-2 rounded-xl transition-all cursor-pointer border ${
                 isNotificationOpen
-                  ? 'bg-blue-800 text-white border-blue-500 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 shadow-2xs'
-                  : 'text-blue-100 hover:text-white hover:bg-blue-600/60 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-800 border-transparent hover:border-blue-500/40 dark:hover:border-slate-700'
+                  ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/70 dark:text-blue-300 dark:border-blue-700 shadow-2xs'
+                  : 'text-slate-600 hover:text-blue-600 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-white/10 border-transparent hover:border-slate-200/80 dark:hover:border-white/10'
               }`}
               aria-label="Open Notifications"
             >
               <Bell className="w-4 h-4" />
               {unreadNotificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-2 ring-blue-700 dark:ring-slate-900 shadow-xs animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-rose-600 text-white text-3xs font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-xs animate-pulse">
                   {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
                 </span>
               )}
@@ -489,24 +458,24 @@ export const Navbar: React.FC<NavbarProps> = ({
           {currentUser && (
             <div 
               id="navbar-user-profile"
-              className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-blue-600/60 dark:border-slate-800"
+              className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200/80 dark:border-white/10"
             >
               <button
                 type="button"
                 id="navbar-user-profile-btn"
                 onClick={onOpenEditProfile}
                 title="Update your user profile & info"
-                className="flex items-center gap-2 p-1 -m-1 sm:px-2 sm:py-1 rounded-xl hover:bg-blue-600/60 dark:hover:bg-slate-800 transition-colors cursor-pointer group text-left"
+                className="flex items-center gap-2 p-1 -m-1 sm:px-2 sm:py-1 rounded-xl hover:bg-slate-100/80 dark:hover:bg-white/10 transition-colors cursor-pointer group text-left"
               >
                 <div className="relative shrink-0">
                   {currentUser.avatar ? (
                     <img
                       src={currentUser.avatar}
                       alt={currentUser.name}
-                      className="w-8 h-8 rounded-full object-cover border border-blue-500/60 dark:border-slate-700 shadow-2xs shrink-0 group-hover:ring-2 group-hover:ring-white/40 transition-all"
+                      className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-white/15 shadow-2xs shrink-0 group-hover:ring-2 group-hover:ring-blue-400/40 dark:group-hover:ring-white/40 transition-all"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-blue-800 dark:bg-slate-800 text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 border border-blue-500/60 dark:border-slate-700 group-hover:ring-2 group-hover:ring-white/40 transition-all">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-slate-800 text-blue-700 dark:text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0 border border-slate-200 dark:border-white/15 group-hover:ring-2 group-hover:ring-blue-400/40 dark:group-hover:ring-white/40 transition-all">
                       {currentUser.name.slice(0, 2).toUpperCase()}                    
                     </div>
                   )}
@@ -528,26 +497,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
                 <div className="hidden lg:block text-left min-w-0">
                   <div className="flex items-center gap-1.5">                    
-                    <span className="text-xs font-bold text-white group-hover:text-blue-100 truncate max-w-[105px] transition-colors">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 truncate max-w-[105px] transition-colors">
                       {currentUser.name}                     
                     </span>
                     <span
                       id="navbar-user-role-badge"
                       className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-3xs font-bold rounded-md border shadow-2xs shrink-0 tracking-wide uppercase ${
                         currentUser.role === 'admin'
-                          ? 'bg-amber-400/25 text-amber-200 border-amber-300/40 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700/60'
-                          : 'bg-emerald-400/20 text-emerald-200 border-emerald-300/40 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700/60'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700/60'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700/60'
                       }`}
                     >
                       {currentUser.role === 'admin' ? (
-                        <ShieldCheck className="w-2.5 h-2.5 text-amber-300 shrink-0" />
+                        <ShieldCheck className="w-2.5 h-2.5 text-amber-600 dark:text-amber-300 shrink-0" />
                       ) : (
-                        <UserCheck className="w-2.5 h-2.5 text-emerald-300 shrink-0" />
+                        <UserCheck className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-300 shrink-0" />
                       )}
                       {currentUser.role === 'admin' ? 'Admin' : 'Staff'}
                     </span>
                   </div>
-                  <p className="text-3xs text-blue-100/90 dark:text-slate-400 truncate max-w-[140px]">
+                  <p className="text-3xs text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
                     {currentUser.username ? `@${currentUser.username}` : currentUser.email}
                   </p>
                 </div>

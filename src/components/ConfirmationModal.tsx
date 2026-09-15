@@ -33,13 +33,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   return (
     <div
       id="confirmation-modal-backdrop"
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-[70] flex items-center justify-center glass-modal-backdrop p-3 sm:p-4 animate-in fade-in duration-150"
     >
       <div
         id="confirmation-modal-container"
-        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+        className="w-full max-w-md glass-modal rounded-2xl overflow-hidden animate-in zoom-in-95 duration-150"
       >
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="flex items-start gap-4">
             <div
               className={`p-3 rounded-full shrink-0 ${
@@ -82,7 +82,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             </button>
           </div>
 
-          <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-200/60 dark:border-slate-700/60">
             <button
               id="confirmation-cancel-btn"
               type="button"

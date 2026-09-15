@@ -449,7 +449,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
   return (
     <div id="calendar-timeline-view" className="space-y-5 animate-in fade-in duration-200">
       {/* Top Header & View Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 rounded-2xl shadow-2xs">
         <div>
          {/*  <button
             onClick={onBackToDashboard}
@@ -476,7 +476,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
         {/* View Switcher & Month Navigation Controls */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Mode Switcher: Calendar vs Timeline */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center glass-panel p-1 rounded-xl">
             <button
               onClick={() => setViewMode('calendar')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -502,7 +502,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
           </div>
 
           {/* Stepper navigator */}
-          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200">
+          <div className="flex items-center gap-1.5 glass-panel px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200">
             <button
               onClick={handlePrevMonth}
               className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
@@ -534,7 +534,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
 
       {/* Metrics Summary Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+        <div className="glass-panel p-3.5 rounded-xl shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Total Deliverables
@@ -548,7 +548,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+        <div className="glass-panel p-3.5 rounded-xl shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               In Progress
@@ -562,7 +562,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+        <div className="glass-panel p-3.5 rounded-xl shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Completed
@@ -576,7 +576,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+        <div className="glass-panel p-3.5 rounded-xl shadow-2xs flex items-center justify-between">
           <div>
             <p className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Blocked / Critical
@@ -592,7 +592,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
       </div>
 
       {/* Interactive Filters Bar */}
-      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="glass-panel p-3.5 rounded-2xl shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {/* Project Filter */}
           <CustomSelect
@@ -703,16 +703,16 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
       {/* MODE 1: MONTHLY CALENDAR GRID                                  */}
       {/* ============================================================= */}
       {viewMode === 'calendar' && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+        <div className="glass-panel rounded-2xl shadow-2xs overflow-hidden">
           {/* Day of Week Headers */}
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-center text-xs font-bold text-slate-600 dark:text-slate-400 py-3">
-            <div>Mon</div>
-            <div>Tue</div>
-            <div>Wed</div>
-            <div>Thu</div>
-            <div>Fri</div>
-            <div className="text-blue-600 dark:text-blue-400">Sat</div>
-            <div className="text-rose-600 dark:text-rose-400">Sun</div>
+          <div className="grid grid-cols-7 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xs text-center text-3xs sm:text-xs font-bold text-slate-600 dark:text-slate-400 py-2 sm:py-3">
+            <div><span className="hidden sm:inline">Mon</span><span className="sm:hidden">M</span></div>
+            <div><span className="hidden sm:inline">Tue</span><span className="sm:hidden">T</span></div>
+            <div><span className="hidden sm:inline">Wed</span><span className="sm:hidden">W</span></div>
+            <div><span className="hidden sm:inline">Thu</span><span className="sm:hidden">T</span></div>
+            <div><span className="hidden sm:inline">Fri</span><span className="sm:hidden">F</span></div>
+            <div className="text-blue-600 dark:text-blue-400"><span className="hidden sm:inline">Sat</span><span className="sm:hidden">S</span></div>
+            <div className="text-rose-600 dark:text-rose-400"><span className="hidden sm:inline">Sun</span><span className="sm:hidden">S</span></div>
           </div>
 
           {/* Calendar Day Cells */}
@@ -725,14 +725,14 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
               return (
                 <div
                   key={day.dateStr}
-                  className={`min-h-[110px] sm:min-h-[135px] p-2 flex flex-col justify-between transition-colors ${
+                  className={`min-h-[85px] sm:min-h-[135px] p-1 sm:p-2 flex flex-col justify-between transition-colors ${
                     !day.isCurrentMonth
-                      ? 'bg-slate-50/40 dark:bg-slate-900/30 text-slate-400 dark:text-slate-600'
-                      : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white hover:bg-slate-50/60 dark:hover:bg-slate-800/30'
+                      ? 'bg-slate-100/25 dark:bg-slate-950/30 text-slate-400 dark:text-slate-600'
+                      : 'bg-transparent text-slate-900 dark:text-white hover:bg-white/40 dark:hover:bg-slate-800/30'
                   }`}
                 >
                   {/* Day Header: Number + Milestone indicators */}
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-1">
                     <span
                       className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
                         isToday
@@ -867,8 +867,8 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
 
       {/* Popover Modal for Expanded Day Tasks */}
       {expandedDay && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-md glass-modal rounded-2xl p-5 space-y-4 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -900,7 +900,7 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
                       setExpandedDay(null);
                       onOpenTaskModal(task);
                     }}
-                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shadow-2xs flex items-center justify-between gap-3"
+                    className="p-3 rounded-xl glass-panel-interactive transition-all cursor-pointer shadow-2xs flex items-center justify-between gap-3"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -965,12 +965,12 @@ export const CalendarTimelineView: React.FC<CalendarTimelineViewProps> = ({
       {/* MODE 2: PROJECT & TASK TIMELINE (GANTT)                        */}
       {/* ============================================================= */}
       {viewMode === 'timeline' && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+        <div className="glass-panel rounded-2xl shadow-2xs overflow-hidden">
           {/* Timeline Table with Left Fixed Column & Right Horizontal Scroll */}
           <div className="overflow-x-auto">
             <div className="min-w-[950px]">
               {/* Timeline Header Row (Days of Month) */}
-              <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
+              <div className="flex border-b border-slate-200/80 dark:border-slate-800/80 bg-white/40 dark:bg-slate-800/50 backdrop-blur-xs">
                 {/* Left Header: Entity Labels */}
                 <div className="w-72 p-3 font-bold text-xs text-slate-700 dark:text-slate-300 shrink-0 border-r border-slate-200 dark:border-slate-800">
                   Projects & Deliverables

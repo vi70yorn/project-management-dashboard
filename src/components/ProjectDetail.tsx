@@ -315,7 +315,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors w-fit cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Back to Dashboard Summary
+          Back
         </button>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -329,7 +329,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
                 >
                   <Edit2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  Edit Project
+                  Edit
                 </button>
               )}
               {onDeleteProject && (
@@ -339,17 +339,17 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                  Delete Project
+                  Delete
                 </button>
               )}
-              <button
+             {/*  <button
                 id="manage-project-members-btn"
                 onClick={() => setIsManagingMembers(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
               >
                 <Users className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 Manage Team ({projectTeam.length})
-              </button>
+              </button> */}
               <button
                 id="header-share-project-btn"
                 type="button"
@@ -369,7 +369,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 ) : (
                   <>
                     <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span>Share Project</span>
+                    <span>Share</span>
                   </>
                 )}
               </button>
@@ -379,7 +379,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                Add Deliverable Task
+                New Task
               </button>
             </>
           ) : (
@@ -428,7 +428,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       </div>
 
       {/* Project Overview Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
+      <div className="glass-panel rounded-2xl p-6 shadow-2xs">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
           <div className="space-y-2 max-w-3xl">
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -684,7 +684,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
       {/* Tabs & Filters Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+        <div className="flex items-center glass-panel p-1 rounded-xl text-xs">
           <button
             id="tab-btn-board"
             onClick={() => setActiveTab('board')}
@@ -708,7 +708,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             }`}
           >
             <Paperclip className="w-3.5 h-3.5" />
-            <span>Documents & Files</span>
+            <span>Documents</span>
             {projectAttachmentCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
                 {projectAttachmentCount}
@@ -726,7 +726,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            Project Team & Workload ({projectTeam.length})
+            Project Team ({projectTeam.length})
           </button>
         </div>
 
@@ -792,10 +792,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   onDrop={(e) => handleDrop(e, status)}
                   onClick={() => toggleColumnCollapse(status)}
                   title={`Click to expand ${status} list (${columnTasks.length} tasks)`}
-                  className={`w-12 shrink-0 min-h-[480px] rounded-xl border p-2 flex flex-col items-center justify-between transition-all duration-200 cursor-pointer select-none group ${
+                  className={`w-12 shrink-0 min-h-[480px] rounded-xl p-2 flex flex-col items-center justify-between transition-all duration-200 cursor-pointer select-none group ${
                     dragOverColumn === status
-                      ? 'border-blue-400 dark:border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 ring-2 ring-blue-300 shadow-xs'
-                      : 'bg-slate-50/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100/70 dark:hover:bg-slate-800/50'
+                      ? 'border border-blue-400 dark:border-blue-500 bg-blue-50/80 dark:bg-blue-950/60 ring-2 ring-blue-300 shadow-xs'
+                      : 'glass-card-subtle hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white/50 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   {/* Top Header: Expand Icon on top right & Count Badge */}
@@ -854,10 +854,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 onDragOver={(e) => handleDragOver(e, status)}
                 onDragLeave={(e) => handleDragLeave(e, status)}
                 onDrop={(e) => handleDrop(e, status)}
-                className={`flex-1 min-w-[240px] rounded-xl border p-3 flex flex-col gap-3 min-h-[460px] transition-all duration-200 ${
+                className={`flex-1 min-w-[240px] rounded-xl p-3 flex flex-col gap-3 min-h-[460px] transition-all duration-200 ${
                   dragOverColumn === status
-                    ? 'border-blue-400 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-300/40 shadow-xs'
-                    : 'bg-slate-50/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
+                    ? 'border border-blue-400 dark:border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-2 ring-blue-300/40 shadow-xs'
+                    : 'glass-card-subtle'
                 }`}
               >
                 {/* Column Header */}
@@ -906,7 +906,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         draggable={canModifyTask}
                         onDragStart={(e) => handleDragStart(e, task.id)}
                         onDragEnd={handleDragEnd}
-                        className={`bg-white dark:bg-slate-800/90 rounded-lg border border-slate-200/90 dark:border-slate-700/80 p-3 shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-xs transition-all space-y-2.5 select-none ${
+                        className={`glass-panel-interactive rounded-xl p-3 shadow-2xs space-y-2.5 select-none ${
                           canModifyTask ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
                         } group ${
                           draggedTaskId === task.id ? 'opacity-40 scale-[0.98] ring-2 ring-blue-400' : ''
@@ -1173,7 +1173,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       {/* VIEW 2: Project Team & Workload */}
       {activeTab === 'team' && (
         <div id="project-team-workload-view" className="space-y-4">
-          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex items-center justify-between glass-panel p-4 rounded-2xl shadow-2xs">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Team Workload & Assignment Distribution
@@ -1203,7 +1203,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               return (
                 <div
                   key={member.id}
-                  className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-2xs space-y-3"
+                  className="glass-panel-interactive rounded-2xl p-4 shadow-2xs space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1293,7 +1293,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
       {/* VIEW 3: Project Documents & Files */}
       {activeTab === 'documents' && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
+        <div className="glass-panel rounded-2xl p-6 shadow-2xs">
           <DocumentAttachmentManager
             projectId={project.id}
             projectName={project.name}
@@ -1308,10 +1308,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       {isManagingMembers && (
         <div
           id="manage-project-members-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center glass-modal-backdrop p-4 animate-in fade-in duration-150"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/60">
+          <div className="w-full max-w-md glass-modal rounded-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 glass-modal-header flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   <Users className="w-4 h-4" />
@@ -1395,7 +1395,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               })}
             </div>
 
-            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-end gap-2">
+            <div className="px-5 py-3 glass-modal-footer flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsManagingMembers(false)}
