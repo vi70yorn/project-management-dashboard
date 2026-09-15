@@ -146,20 +146,20 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // UI Style State: 'glass' (Glassy Effect) vs 'normal' (Normal UI) vs 'nothing' (Nothing OS Style)
+  // UI Style State: 'normal' (Default Normal UI) vs 'glass' (Glassy Effect) vs 'nothing' (Nothing OS Style)
   const [uiStyle, setUiStyle] = useState<'glass' | 'normal' | 'nothing'>(() => {
     try {
       const saved = localStorage.getItem('ui_style');
       if (saved === 'normal' || saved === 'glass' || saved === 'nothing') return saved;
-      return 'glass';
+      return 'normal';
     } catch {
-      return 'glass';
+      return 'normal';
     }
   });
 
   useEffect(() => {
     try {
-      document.documentElement.classList.remove('ui-normal', 'ui-nothing');
+      document.documentElement.classList.remove('ui-normal', 'ui-nothing', 'ui-glass');
       if (uiStyle === 'normal') {
         document.documentElement.classList.add('ui-normal');
         document.documentElement.setAttribute('data-ui-style', 'normal');
@@ -169,6 +169,7 @@ export default function App() {
         document.documentElement.setAttribute('data-ui-style', 'nothing');
         localStorage.setItem('ui_style', 'nothing');
       } else {
+        document.documentElement.classList.add('ui-glass');
         document.documentElement.setAttribute('data-ui-style', 'glass');
         localStorage.setItem('ui_style', 'glass');
       }
@@ -179,9 +180,9 @@ export default function App() {
 
   const toggleUiStyle = () => {
     setUiStyle((prev) => {
-      if (prev === 'glass') return 'normal';
-      if (prev === 'normal') return 'nothing';
-      return 'glass';
+      if (prev === 'normal') return 'glass';
+      if (prev === 'glass') return 'nothing';
+      return 'normal';
     });
   };
 

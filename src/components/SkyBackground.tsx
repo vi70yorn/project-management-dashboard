@@ -88,13 +88,13 @@ export const SkyBackground: React.FC<SkyBackgroundProps> = ({
 }) => {
   const isDark = theme === 'dark';
 
-  // Determine active style mode
+  // Determine active style mode (defaults to 'normal')
   const activeStyle =
     propUiStyle ||
     (typeof document !== 'undefined'
       ? (document.documentElement.getAttribute('data-ui-style') as 'glass' | 'normal' | 'nothing')
-      : 'glass') ||
-    'glass';
+      : 'normal') ||
+    'normal';
 
   // Compute cohesive palette derived strictly from Main Color (for glass mode)
   const palette = useMemo(() => generateMainColorPalette(mainColor), [mainColor]);

@@ -136,25 +136,7 @@ export const Footer: React.FC<FooterProps> = ({
               role="radiogroup"
               aria-label="Interface Style"
             >
-              {/* Glassy Effect Switch Option */}
-              <button
-                type="button"
-                id="switch-ui-glassy-btn"
-                onClick={() => handleSelectStyle('glass')}
-                role="radio"
-                aria-checked={uiStyle === 'glass'}
-                className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  uiStyle === 'glass'
-                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-2xs border border-blue-200/60 dark:border-blue-500/30 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Apply Glassmorphic surfaces with frosted blur and ambient lighting"
-              >
-                <Sparkles className={`w-3.5 h-3.5 ${uiStyle === 'glass' ? 'text-amber-500 animate-pulse' : 'text-slate-400'}`} />
-                <span>Glassy</span>
-              </button>
-
-              {/* Normal UI Switch Option */}
+              {/* 1. Normal UI Switch Option */}
               <button
                 type="button"
                 id="switch-ui-normal-btn"
@@ -172,7 +154,25 @@ export const Footer: React.FC<FooterProps> = ({
                 <span>Normal</span>
               </button>
 
-              {/* Nothing OS Style Switch Option */}
+              {/* 2. Glassy Effect Switch Option */}
+              <button
+                type="button"
+                id="switch-ui-glassy-btn"
+                onClick={() => handleSelectStyle('glass')}
+                role="radio"
+                aria-checked={uiStyle === 'glass'}
+                className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  uiStyle === 'glass'
+                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-2xs border border-blue-200/60 dark:border-blue-500/30 font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Apply Glassmorphic surfaces with frosted blur and ambient lighting"
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${uiStyle === 'glass' ? 'text-amber-500 animate-pulse' : 'text-slate-400'}`} />
+                <span>Glassy</span>
+              </button>
+
+              {/* 3. Nothing OS Style Switch Option */}
               <button
                 type="button"
                 id="switch-ui-nothing-btn"

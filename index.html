@@ -12,7 +12,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Noto+Sans+Khmer:wght@100..900&family=Oldenburg&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Noto+Sans+Khmer:wght@100..900&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Oldenburg&display=swap" rel="stylesheet" />
     <script>
       (function() {
         try {
@@ -22,6 +22,18 @@
             document.documentElement.classList.add('dark');
           } else {
             document.documentElement.classList.remove('dark');
+          }
+
+          var savedStyle = localStorage.getItem('ui_style');
+          if (savedStyle === 'nothing') {
+            document.documentElement.classList.add('ui-nothing');
+            document.documentElement.setAttribute('data-ui-style', 'nothing');
+          } else if (savedStyle === 'glass') {
+            document.documentElement.classList.add('ui-glass');
+            document.documentElement.setAttribute('data-ui-style', 'glass');
+          } else {
+            document.documentElement.classList.add('ui-normal');
+            document.documentElement.setAttribute('data-ui-style', 'normal');
           }
         } catch (e) {}
       })();

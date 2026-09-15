@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Oldenburg&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Oldenburg&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: 'Noto Sans', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-nunito: 'Nunito', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-oldenburg: 'Oldenburg', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --text-2xs: 0.6875rem;
   --text-3xs: 0.625rem;
@@ -697,6 +698,68 @@ html.ui-nothing code,
 html.ui-nothing pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
 }
+
+/* ==========================================================================
+   Typography: Apply Nunito font family when switch to Glassy Style
+   ========================================================================== */
+html.ui-glass,
+html[data-ui-style="glass"] {
+  --font-sans: 'Nunito', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+html.ui-glass,
+html.ui-glass body,
+html.ui-glass button,
+html.ui-glass input,
+html.ui-glass select,
+html.ui-glass textarea,
+html.ui-glass p,
+html.ui-glass h1,
+html.ui-glass h2,
+html.ui-glass h3,
+html.ui-glass h4,
+html.ui-glass h5,
+html.ui-glass h6,
+html.ui-glass table,
+html.ui-glass th,
+html.ui-glass td,
+html.ui-glass label,
+html.ui-glass a,
+html.ui-glass span:not([class*="lucide"]):not([class*="font-mono"]),
+html[data-ui-style="glass"],
+html[data-ui-style="glass"] body,
+html[data-ui-style="glass"] button,
+html[data-ui-style="glass"] input,
+html[data-ui-style="glass"] select,
+html[data-ui-style="glass"] textarea,
+html[data-ui-style="glass"] p,
+html[data-ui-style="glass"] h1,
+html[data-ui-style="glass"] h2,
+html[data-ui-style="glass"] h3,
+html[data-ui-style="glass"] h4,
+html[data-ui-style="glass"] h5,
+html[data-ui-style="glass"] h6,
+html[data-ui-style="glass"] table,
+html[data-ui-style="glass"] th,
+html[data-ui-style="glass"] td,
+html[data-ui-style="glass"] label,
+html[data-ui-style="glass"] a,
+html[data-ui-style="glass"] span:not([class*="lucide"]):not([class*="font-mono"]) {
+  font-family: 'Nunito', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Retain monospace precision for code tags, shortcuts, and counters in Glassy mode */
+html.ui-glass [class*="font-mono"],
+html.ui-glass kbd,
+html.ui-glass code,
+html.ui-glass pre,
+html[data-ui-style="glass"] [class*="font-mono"],
+html[data-ui-style="glass"] kbd,
+html[data-ui-style="glass"] code,
+html[data-ui-style="glass"] pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
 
 
 
