@@ -60,6 +60,7 @@ export interface Task {
   daysLeft?: number;
   commentCount?: number;
   subtasks?: TaskSubtask[];
+  links?: AttachedLink[];
 }
 
 export interface TaskSubtask {
@@ -132,6 +133,15 @@ export interface Project {
   deletedByAvatar?: string;
   expiresAt?: string;
   daysLeft?: number;
+  links?: AttachedLink[];
+}
+
+export interface AttachedLink {
+  id: string;
+  url: string;
+  title?: string;
+  platform?: string;
+  createdAt: string;
 }
 
 export interface RecycleBinData {

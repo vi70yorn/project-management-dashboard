@@ -113,12 +113,14 @@ export async function runMigrationsAndSeed(): Promise<void> {
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_by VARCHAR(64);
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
+          ALTER TABLE projects ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
         END IF;
         IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tasks') THEN
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_by VARCHAR(64);
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
+          ALTER TABLE tasks ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
         END IF;
       END $$;
     `).catch(() => {});
@@ -126,10 +128,14 @@ export async function runMigrationsAndSeed(): Promise<void> {
     console.log('[PostgreSQL] Executing database/init.sql schema and seed data...');
     await client.query(sql);
 
-    // Apply migrations for username and password columns if existing table didn't have them
+    // Apply migrations for username, password, and links columns if existing table didn't have them
     await client.query(`
       ALTER TABLE team_members ADD COLUMN IF NOT EXISTS username VARCHAR(64) UNIQUE;
       ALTER TABLE team_members ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT '123456';
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
+      ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_ready_review BOOLEAN DEFAULT true;
+      ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_completed BOOLEAN DEFAULT true;
     `);
 
     // Ensure known existing members have clean usernames and passwords

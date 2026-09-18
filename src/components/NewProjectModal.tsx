@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, FolderPlus, Users, Briefcase, Check, UserPlus, ChevronDown, AlertCircle, Edit3, Clock, Paperclip } from 'lucide-react';
-import { Project, StatusType, TeamMember, AuthUser } from '../types';
+import { X, FolderPlus, Users, Briefcase, Check, UserPlus, ChevronDown, AlertCircle, Edit3, Clock, Paperclip, Pipette } from 'lucide-react';
+import { Project, StatusType, TeamMember, AuthUser, AttachedLink } from '../types';
 import { isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusDropdown } from './ui/StatusDropdown';
@@ -8,6 +8,7 @@ import { CustomSelect } from './ui/CustomSelect';
 import { DatePicker } from './ui/DatePicker';
 import { RichTextEditor } from './ui/RichTextEditor';
 import { DocumentAttachmentManager } from './DocumentAttachmentManager';
+import { LinkAttachmentManager } from './LinkAttachmentManager';
 
 interface NewProjectModalProps {
   isOpen: boolean;
@@ -49,16 +50,45 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   const [targetDeadline, setTargetDeadline] = useState(
     new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
   );
-  const [managerId, setManagerId] = useState(teamMembers[0]?.id || '');
-  const [selectedMembers, setSelectedMembers] = useState<string[]>(
-    teamMembers.slice(0, 3).map((m) => m.id)
-  );
+  // Helper to find the Admin member ID for automatic Project Lead / Manager assignment
+  const findAdminMemberId = () => {
+    // 1. If currentUser is logged in as Admin, use their memberId
+    if (currentUser?.role === 'admin' && currentUser.memberId) {
+      const match = teamMembers.find((m) => m.id === currentUser.memberId);
+      if (match) return match.id;
+    }
+    // 2. Find any team member with admin systemRole
+    const adminBySystem = teamMembers.find(
+      (m) => m.systemRole === 'admin' || (m as any).system_role === 'admin'
+    );
+    if (adminBySystem) return adminBySystem.id;
+
+    // 3. Find any member whose role or name indicates Admin / Lead
+    const adminByRole = teamMembers.find(
+      (m) =>
+        m.role?.toLowerCase() === 'admin' ||
+        m.role?.toLowerCase().includes('lead') ||
+        m.name?.toLowerCase().includes('vichet')
+    );
+    if (adminByRole) return adminByRole.id;
+
+    return teamMembers[0]?.id || '';
+  };
+
+  const [managerId, setManagerId] = useState(() => findAdminMemberId());
+  const [selectedMembers, setSelectedMembers] = useState<string[]>(() => {
+    const adminId = findAdminMemberId();
+    const initialList = [adminId, ...teamMembers.filter((m) => m.id !== adminId).slice(0, 2).map((m) => m.id)].filter(Boolean);
+    return initialList.length > 0 ? initialList : teamMembers.slice(0, 3).map((m) => m.id);
+  });
   const [tagsInput, setTagsInput] = useState('Core, Sprint 1');
   const [color, setColor] = useState(COLOR_OPTIONS[0]);
+  const [links, setLinks] = useState<AttachedLink[]>([]);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
 
   useEffect(() => {
     setStagedFiles([]);
+    const defaultAdminId = findAdminMemberId();
     if (initialProject) {
       setName(initialProject.name || '');
       setDescription(initialProject.description || '');
@@ -66,10 +96,15 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
       setStatus(initialProject.status || 'In Progress');
       setStartDate(initialProject.startDate || new Date().toISOString().split('T')[0]);
       setTargetDeadline(initialProject.targetDeadline || new Date().toISOString().split('T')[0]);
-      setManagerId(initialProject.managerId || teamMembers[0]?.id || '');
-      setSelectedMembers(initialProject.memberIds && initialProject.memberIds.length > 0 ? initialProject.memberIds : [teamMembers[0]?.id || '']);
+      setManagerId(initialProject.managerId || defaultAdminId);
+      setSelectedMembers(
+        initialProject.memberIds && initialProject.memberIds.length > 0
+          ? initialProject.memberIds
+          : [defaultAdminId || teamMembers[0]?.id || '']
+      );
       setTagsInput(Array.isArray(initialProject.tags) ? initialProject.tags.join(', ') : 'Core');
       setColor(initialProject.color || COLOR_OPTIONS[0]);
+      setLinks(Array.isArray(initialProject.links) ? initialProject.links : []);
     } else {
       setName('');
       setDescription('');
@@ -77,12 +112,17 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
       setStatus('In Progress');
       setStartDate(new Date().toISOString().split('T')[0]);
       setTargetDeadline(new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]);
-      setManagerId(teamMembers[0]?.id || '');
-      setSelectedMembers(teamMembers.slice(0, 3).map((m) => m.id));
+      setManagerId(defaultAdminId);
+      const initialList = [
+        defaultAdminId,
+        ...teamMembers.filter((m) => m.id !== defaultAdminId).slice(0, 2).map((m) => m.id),
+      ].filter(Boolean);
+      setSelectedMembers(initialList.length > 0 ? initialList : teamMembers.slice(0, 3).map((m) => m.id));
       setTagsInput('Core, Sprint 1');
       setColor(COLOR_OPTIONS[0]);
+      setLinks([]);
     }
-  }, [initialProject, isOpen, teamMembers]);
+  }, [initialProject, isOpen, teamMembers, currentUser]);
 
   const toggleMember = (id: string) => {
     if (selectedMembers.includes(id)) {
@@ -114,7 +154,8 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
         managerId: managerId || selectedMembers[0] || teamMembers[0]?.id || '',
         memberIds: selectedMembers.length > 0 ? selectedMembers : [teamMembers[0]?.id || ''],
         tags: tags.length > 0 ? tags : ['General'],
-        color,
+        color: color.trim().startsWith('#') ? color.trim() : color.trim() ? `#${color.trim()}` : COLOR_OPTIONS[0],
+        links,
       },
       initialProject ? initialProject.id : undefined,
       stagedFiles
@@ -186,6 +227,13 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
               value={description}
               onChange={setDescription}
               placeholder="Key project goals, deliverables, and scope..."
+            />
+          </div>
+
+          <div>
+            <LinkAttachmentManager
+              links={links}
+              onChange={setLinks}
             />
           </div>
 
@@ -268,12 +316,32 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
               onChange={setManagerId}
               fullWidth
               size="md"
-              options={teamMembers.map((m) => ({
-                value: m.id,
-                label: m.name,
-                sublabel: m.role,
-                color: m.color || '#2563eb',
-              }))}
+              options={[...teamMembers]
+                .sort((a, b) => {
+                  const aIsAdmin =
+                    a.systemRole === 'admin' ||
+                    (a as any).system_role === 'admin' ||
+                    a.id === currentUser?.memberId;
+                  const bIsAdmin =
+                    b.systemRole === 'admin' ||
+                    (b as any).system_role === 'admin' ||
+                    b.id === currentUser?.memberId;
+                  if (aIsAdmin && !bIsAdmin) return -1;
+                  if (!aIsAdmin && bIsAdmin) return 1;
+                  return a.name.localeCompare(b.name);
+                })
+                .map((m) => {
+                  const isAdmin =
+                    m.systemRole === 'admin' ||
+                    (m as any).system_role === 'admin' ||
+                    m.role?.toLowerCase() === 'admin';
+                  return {
+                    value: m.id,
+                    label: m.name,
+                    sublabel: isAdmin ? `${m.role} • Admin` : m.role,
+                    color: m.color || '#2563eb',
+                  };
+                })}
             />
           </div>
 
@@ -361,23 +429,91 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Project Color Accent
-              </label>
-              <div className="flex items-center gap-2 pt-1">
-                {COLOR_OPTIONS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    style={{ backgroundColor: c }}
-                    className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center text-white cursor-pointer ${
-                      color === c ? 'scale-110 ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-900' : 'opacity-80 hover:opacity-100'
-                    }`}
-                  >
-                    {color === c && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Project Color Accent
+                </label>
+                <span className="text-3xs font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 uppercase">
+                  {color.startsWith('#') ? color : `#${color}`}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 pt-1 flex-wrap">
+                {COLOR_OPTIONS.map((c) => {
+                  const isSelected = color.toLowerCase() === c.toLowerCase();
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setColor(c)}
+                      style={{ backgroundColor: c }}
+                      className={`w-7 h-7 rounded-full transition-all flex items-center justify-center text-white cursor-pointer ${
+                        isSelected
+                          ? 'scale-110 ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-900 shadow-xs'
+                          : 'opacity-80 hover:opacity-100 hover:scale-105'
+                      }`}
+                      title={c}
+                    >
+                      {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </button>
+                  );
+                })}
+
+                {/* Custom Color Swatch with Native Spectrum Color Picker */}
+                {(() => {
+                  const isCustomColor = !COLOR_OPTIONS.some((c) => c.toLowerCase() === color.trim().toLowerCase());
+                  const validPickerColor = /^#[0-9A-Fa-f]{6}$/.test(color.trim())
+                    ? color.trim()
+                    : /^#[0-9A-Fa-f]{3}$/.test(color.trim())
+                    ? `#${color.trim()[1]}${color.trim()[1]}${color.trim()[2]}${color.trim()[2]}${color.trim()[3]}${color.trim()[3]}`
+                    : COLOR_OPTIONS[0];
+
+                  return (
+                    <>
+                      <div className="relative flex items-center">
+                        <label
+                          htmlFor="custom-project-color-picker"
+                          className={`w-7 h-7 rounded-full transition-all flex items-center justify-center cursor-pointer shadow-xs relative ${
+                            isCustomColor
+                              ? 'scale-110 ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-900 text-white'
+                              : 'border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:scale-105'
+                          }`}
+                          style={isCustomColor ? { backgroundColor: color } : undefined}
+                          title="Pick custom color from spectrum palette"
+                        >
+                          {isCustomColor ? (
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          ) : (
+                            <Pipette className="w-3.5 h-3.5" />
+                          )}
+                          <input
+                            id="custom-project-color-picker"
+                            type="color"
+                            value={validPickerColor}
+                            onChange={(e) => setColor(e.target.value)}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                          />
+                        </label>
+                      </div>
+
+                      {/* Direct HEX code text input */}
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={color}
+                          onChange={(e) => {
+                            let val = e.target.value.trim();
+                            if (val && !val.startsWith('#')) val = '#' + val;
+                            setColor(val);
+                          }}
+                          placeholder="#2563EB"
+                          maxLength={7}
+                          className="w-[78px] px-2 py-1 text-xs font-mono font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 uppercase shadow-2xs"
+                          title="Type or paste custom HEX color"
+                        />
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>

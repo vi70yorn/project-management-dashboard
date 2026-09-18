@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import {
   Calendar,
   ChevronLeft,
@@ -22,8 +21,11 @@ import {
   X,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType } from '../types';
-import { TelegramSettingsModal } from './TelegramSettingsModal';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
+
+const TelegramSettingsModal = React.lazy(() =>
+  import('./TelegramSettingsModal').then((m) => ({ default: m.TelegramSettingsModal }))
+);
 
 interface ProjectWeeklyReportProps {
   projects: Project[];
@@ -249,8 +251,9 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     try {
+      const XLSX = await import('xlsx');
       const wb = XLSX.utils.book_new();
 
       // -------------------------------------------------------------
@@ -1335,11 +1338,13 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       </div>
 
       {/* Telegram Automation Settings Modal */}
-      <TelegramSettingsModal
-        isOpen={isTelegramModalOpen}
-        onClose={() => setIsTelegramModalOpen(false)}
-        onShowToast={onShowToast}
-      />
+      <React.Suspense fallback={null}>
+        <TelegramSettingsModal
+          isOpen={isTelegramModalOpen}
+          onClose={() => setIsTelegramModalOpen(false)}
+          onShowToast={onShowToast}
+        />
+      </React.Suspense>
     </div>
   );
 };

@@ -26,6 +26,8 @@ import {
   loadAuthUser,
   saveAuthUser,
   clearAuthUser,
+  loadJwtToken,
+  clearJwtToken,
   loadRecycleBinData,
   saveRecycleBinData,
   loadNotifications,
@@ -36,18 +38,40 @@ import { DashboardSummary } from './components/DashboardSummary';
 import { TeamActivitiesDrawer } from './components/TeamActivitiesDrawer';
 import { ProjectDetail } from './components/ProjectDetail';
 import { TeamManagement } from './components/TeamManagement';
-import { TeamMemberModal } from './components/TeamMemberModal';
-import { TaskModal } from './components/TaskModal';
-import { NewProjectModal } from './components/NewProjectModal';
-import { ConfirmationModal } from './components/ConfirmationModal';
 import { LoginScreen } from './components/LoginScreen';
-import { ResetPasswordModal } from './components/ResetPasswordModal';
-import { DatabaseStatusModal } from './components/DatabaseStatusModal';
-import { ProjectWeeklyReport } from './components/ProjectWeeklyReport';
-import { RecycleBinModal } from './components/RecycleBinModal';
-import { RecycleBinView } from './components/RecycleBinView';
-import { CalendarTimelineView } from './components/CalendarTimelineView';
 import { CommandPalette } from './components/CommandPalette';
+import { ConfirmationModal } from './components/ConfirmationModal';
+
+// Lazy-loaded secondary views for bundle optimization
+const ProjectWeeklyReport = React.lazy(() =>
+  import('./components/ProjectWeeklyReport').then((m) => ({ default: m.ProjectWeeklyReport }))
+);
+const RecycleBinView = React.lazy(() =>
+  import('./components/RecycleBinView').then((m) => ({ default: m.RecycleBinView }))
+);
+const CalendarTimelineView = React.lazy(() =>
+  import('./components/CalendarTimelineView').then((m) => ({ default: m.CalendarTimelineView }))
+);
+
+// Lazy-loaded modal components for bundle optimization
+const TeamMemberModal = React.lazy(() =>
+  import('./components/TeamMemberModal').then((m) => ({ default: m.TeamMemberModal }))
+);
+const TaskModal = React.lazy(() =>
+  import('./components/TaskModal').then((m) => ({ default: m.TaskModal }))
+);
+const NewProjectModal = React.lazy(() =>
+  import('./components/NewProjectModal').then((m) => ({ default: m.NewProjectModal }))
+);
+const ResetPasswordModal = React.lazy(() =>
+  import('./components/ResetPasswordModal').then((m) => ({ default: m.ResetPasswordModal }))
+);
+const DatabaseStatusModal = React.lazy(() =>
+  import('./components/DatabaseStatusModal').then((m) => ({ default: m.DatabaseStatusModal }))
+);
+const RecycleBinModal = React.lazy(() =>
+  import('./components/RecycleBinModal').then((m) => ({ default: m.RecycleBinModal }))
+);
 import { SkyBackground } from './components/SkyBackground';
 import { Footer } from './components/Footer';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
@@ -115,7 +139,16 @@ const updateUrlParams = (params: { projectId?: string | null; taskId?: string | 
 
 export default function App() {
   // Authentication State
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(loadAuthUser);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    const user = loadAuthUser();
+    const token = loadJwtToken();
+    if (user && !token) {
+      clearAuthUser();
+      clearJwtToken();
+      return null;
+    }
+    return user;
+  });
 
   // Theme State (Light / Dark Mode)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -1031,6 +1064,7 @@ export default function App() {
             : (taskData.assigneeId || teamMembers[0]?.id || 'mem-1'),
         startDate: taskData.startDate,
         dueDate: taskData.dueDate || new Date().toISOString().split('T')[0],
+        links: taskData.links || [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -1342,7 +1376,7 @@ export default function App() {
         };
       });
 
-      const result = await permanentlyDeleteItemApi(type, id);
+      const result = await permanentlyDeleteItemApi(type, id, currentUser);
       showToast('success', result.message || 'Item permanently deleted.');
       await refreshRecycleBin();
       triggerActivityRefresh();
@@ -1355,7 +1389,7 @@ export default function App() {
   const handleEmptyRecycleBin = async () => {
     try {
       setRecycleBinData({ projects: [], tasks: [], totalCount: 0 });
-      const result = await emptyRecycleBinApi();
+      const result = await emptyRecycleBinApi(currentUser);
       showToast('success', result.message || 'Recycle Bin emptied successfully.');
       await refreshRecycleBin();
       triggerActivityRefresh();
@@ -1708,13 +1742,15 @@ export default function App() {
           />
         ) : currentView === 'summary' ? (
           currentUser?.role === 'admin' ? (
-            <ProjectWeeklyReport
-              projects={projects}
-              tasks={tasks}
-              teamMembers={teamMembers}
-              onSelectProject={handleSelectProject}
-              onShowToast={showToast}
-            />
+            <React.Suspense fallback={<div className="py-24 text-center text-slate-400">Loading weekly summary...</div>}>
+              <ProjectWeeklyReport
+                projects={projects}
+                tasks={tasks}
+                teamMembers={teamMembers}
+                onSelectProject={handleSelectProject}
+                onShowToast={showToast}
+              />
+            </React.Suspense>
           ) : (
             <div className="py-20 text-center text-slate-500 dark:text-slate-400">
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -1729,24 +1765,28 @@ export default function App() {
             </div>
           )
         ) : currentView === 'recycle-bin' ? (
-          <RecycleBinView
-            recycleBinData={recycleBinData}
-            isLoading={isLoadingRecycleBin}
-            onRestoreItem={handleRestoreRecycleBinItem}
-            onPermanentDeleteItem={handlePermanentDeleteRecycleBinItem}
-            onEmptyRecycleBin={handleEmptyRecycleBin}
-            onBackToDashboard={handleGoToDashboard}
-            onRefresh={refreshRecycleBin}
-          />
+          <React.Suspense fallback={<div className="py-24 text-center text-slate-400">Loading recycle bin...</div>}>
+            <RecycleBinView
+              recycleBinData={recycleBinData}
+              isLoading={isLoadingRecycleBin}
+              onRestoreItem={handleRestoreRecycleBinItem}
+              onPermanentDeleteItem={handlePermanentDeleteRecycleBinItem}
+              onEmptyRecycleBin={handleEmptyRecycleBin}
+              onBackToDashboard={handleGoToDashboard}
+              onRefresh={refreshRecycleBin}
+            />
+          </React.Suspense>
         ) : currentView === 'calendar' ? (
-          <CalendarTimelineView
-            projects={projects}
-            tasks={tasks}
-            teamMembers={teamMembers}
-            onSelectProject={handleSelectProject}
-            onOpenTaskModal={handleOpenTaskModal}
-            onBackToDashboard={handleGoToDashboard}
-          />
+          <React.Suspense fallback={<div className="py-24 text-center text-slate-400">Loading calendar view...</div>}>
+            <CalendarTimelineView
+              projects={projects}
+              tasks={tasks}
+              teamMembers={teamMembers}
+              onSelectProject={handleSelectProject}
+              onOpenTaskModal={handleOpenTaskModal}
+              onBackToDashboard={handleGoToDashboard}
+            />
+          </React.Suspense>
         ) : activeProject ? (
           <ProjectDetail
             project={activeProject}
@@ -1787,114 +1827,122 @@ export default function App() {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
-      {/* New/Edit Project Modal */}
-      <NewProjectModal
-        isOpen={isNewProjectModalOpen}
-        onClose={() => {
-          setIsNewProjectModalOpen(false);
-          setEditingProject(null);
-        }}
-        onSave={handleSaveProject}
-        initialProject={editingProject}
-        teamMembers={teamMembers}
-        onOpenAddMember={handleOpenAddMember}
-        currentUser={currentUser}
-      />
+      {/* Modals & Dialogs (Lazy-loaded via React.Suspense) */}
+      <React.Suspense fallback={null}>
+        {isNewProjectModalOpen && (
+          <NewProjectModal
+            isOpen={isNewProjectModalOpen}
+            onClose={() => {
+              setIsNewProjectModalOpen(false);
+              setEditingProject(null);
+            }}
+            onSave={handleSaveProject}
+            initialProject={editingProject}
+            teamMembers={teamMembers}
+            onOpenAddMember={handleOpenAddMember}
+            currentUser={currentUser}
+          />
+        )}
 
-      {/* Task Modal */}
-      <TaskModal
-        isOpen={isTaskModalOpen}
-        onClose={() => {
-          setIsTaskModalOpen(false);
-          setEditingTask(null);
-          updateUrlParams({ taskId: null });
-        }}
-        onSave={handleSaveTask}
-        initialTask={editingTask}
-        projectId={editingTask?.projectId || activeProject?.id || activeProjectId || projects[0]?.id || ''}
-        projectName={projects.find((p) => p.id === (editingTask?.projectId || activeProjectId))?.name || activeProject?.name || projects[0]?.name || 'Project'}
-        projectMembers={teamMembers}
-        projects={projects}
-        teamMembers={teamMembers}
-        onOpenAddMember={handleOpenAddMember}
-        currentUser={currentUser}
-        onDelete={handleDeleteTaskRequest}
-        onCommentCountChange={(taskId, count) => {
-          setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, commentCount: count } : t)));
-          if (editingTask && editingTask.id === taskId) {
-            setEditingTask((prev) => (prev ? { ...prev, commentCount: count } : prev));
-          }
-        }}
-        onSubtasksChange={(taskId, updatedSubtasks) => {
-          setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t)));
-          if (editingTask && editingTask.id === taskId) {
-            setEditingTask((prev) => (prev ? { ...prev, subtasks: updatedSubtasks } : prev));
-          }
-        }}
-      />
+        {isTaskModalOpen && (
+          <TaskModal
+            isOpen={isTaskModalOpen}
+            onClose={() => {
+              setIsTaskModalOpen(false);
+              setEditingTask(null);
+              updateUrlParams({ taskId: null });
+            }}
+            onSave={handleSaveTask}
+            initialTask={editingTask}
+            projectId={editingTask?.projectId || activeProject?.id || activeProjectId || projects[0]?.id || ''}
+            projectName={projects.find((p) => p.id === (editingTask?.projectId || activeProjectId))?.name || activeProject?.name || projects[0]?.name || 'Project'}
+            projectMembers={teamMembers}
+            projects={projects}
+            teamMembers={teamMembers}
+            onOpenAddMember={handleOpenAddMember}
+            currentUser={currentUser}
+            onDelete={handleDeleteTaskRequest}
+            onCommentCountChange={(taskId, count) => {
+              setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, commentCount: count } : t)));
+              if (editingTask && editingTask.id === taskId) {
+                setEditingTask((prev) => (prev ? { ...prev, commentCount: count } : prev));
+              }
+            }}
+            onSubtasksChange={(taskId, updatedSubtasks) => {
+              setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t)));
+              if (editingTask && editingTask.id === taskId) {
+                setEditingTask((prev) => (prev ? { ...prev, subtasks: updatedSubtasks } : prev));
+              }
+            }}
+          />
+        )}
 
-      {/* Team Member Modal */}
-      <TeamMemberModal
-        isOpen={isTeamMemberModalOpen}
-        onClose={() => {
-          setIsTeamMemberModalOpen(false);
-          setEditingMember(null);
-        }}
-        onSave={handleSaveMember}
-        initialMember={editingMember}
-        projects={projects}
-        currentUser={currentUser}
-        onOpenResetPassword={() => setIsResetPasswordOpen(true)}
-        onLogout={handleLogout}
-        onOpenRecycleBin={handleGoToRecycleBin}
-        onOpenTeamActivities={() => setIsTeamActivitiesOpen(true)}
-        recycleBinCount={recycleBinData.totalCount}
-      />
+        {isTeamMemberModalOpen && (
+          <TeamMemberModal
+            isOpen={isTeamMemberModalOpen}
+            onClose={() => {
+              setIsTeamMemberModalOpen(false);
+              setEditingMember(null);
+            }}
+            onSave={handleSaveMember}
+            initialMember={editingMember}
+            projects={projects}
+            currentUser={currentUser}
+            onOpenResetPassword={() => setIsResetPasswordOpen(true)}
+            onLogout={handleLogout}
+            onOpenRecycleBin={handleGoToRecycleBin}
+            onOpenTeamActivities={() => setIsTeamActivitiesOpen(true)}
+            recycleBinCount={recycleBinData.totalCount}
+          />
+        )}
 
-      {/* Reset Password Modal */}
-      {currentUser && (
-        <ResetPasswordModal
-          isOpen={isResetPasswordOpen}
-          onClose={() => setIsResetPasswordOpen(false)}
-          memberId={currentUser.memberId}
-          userName={currentUser.name}
-          onSuccessToast={(msg) => showToast('success', msg)}
-        />
-      )}
+        {currentUser && isResetPasswordOpen && (
+          <ResetPasswordModal
+            isOpen={isResetPasswordOpen}
+            onClose={() => setIsResetPasswordOpen(false)}
+            memberId={currentUser.memberId}
+            userName={currentUser.name}
+            onSuccessToast={(msg) => showToast('success', msg)}
+          />
+        )}
 
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={confirmationModal.isOpen}
-        title={confirmationModal.title}
-        message={confirmationModal.message}
-        details={confirmationModal.details}
-        confirmLabel={confirmationModal.confirmLabel}
-        cancelLabel={confirmationModal.cancelLabel}
-        isDestructive={confirmationModal.isDestructive}
-        iconType={confirmationModal.iconType}
-        onConfirm={confirmationModal.onConfirm}
-        onCancel={() => setConfirmationModal((prev) => ({ ...prev, isOpen: false }))}
-      />
+        {confirmationModal.isOpen && (
+          <ConfirmationModal
+            isOpen={confirmationModal.isOpen}
+            title={confirmationModal.title}
+            message={confirmationModal.message}
+            details={confirmationModal.details}
+            confirmLabel={confirmationModal.confirmLabel}
+            cancelLabel={confirmationModal.cancelLabel}
+            isDestructive={confirmationModal.isDestructive}
+            iconType={confirmationModal.iconType}
+            onConfirm={confirmationModal.onConfirm}
+            onCancel={() => setConfirmationModal((prev) => ({ ...prev, isOpen: false }))}
+          />
+        )}
 
-      {/* PostgreSQL & DBeaver Status Modal */}
-      <DatabaseStatusModal
-        isOpen={isDbModalOpen}
-        onClose={() => setIsDbModalOpen(false)}
-        health={dbHealth}
-        onRefresh={() => refreshDatabase(false)}
-        isRefreshing={isCheckingDb}
-      />
+        {isDbModalOpen && (
+          <DatabaseStatusModal
+            isOpen={isDbModalOpen}
+            onClose={() => setIsDbModalOpen(false)}
+            health={dbHealth}
+            onRefresh={() => refreshDatabase(false)}
+            isRefreshing={isCheckingDb}
+          />
+        )}
 
-      {/* Recycle Bin Modal */}
-      <RecycleBinModal
-        isOpen={isRecycleBinOpen}
-        onClose={() => setIsRecycleBinOpen(false)}
-        recycleBinData={recycleBinData}
-        isLoading={isLoadingRecycleBin}
-        onRestoreItem={handleRestoreRecycleBinItem}
-        onPermanentDeleteItem={handlePermanentDeleteRecycleBinItem}
-        onEmptyRecycleBin={handleEmptyRecycleBin}
-      />
+        {isRecycleBinOpen && (
+          <RecycleBinModal
+            isOpen={isRecycleBinOpen}
+            onClose={() => setIsRecycleBinOpen(false)}
+            recycleBinData={recycleBinData}
+            isLoading={isLoadingRecycleBin}
+            onRestoreItem={handleRestoreRecycleBinItem}
+            onPermanentDeleteItem={handlePermanentDeleteRecycleBinItem}
+            onEmptyRecycleBin={handleEmptyRecycleBin}
+          />
+        )}
+      </React.Suspense>
 
       {/* Global Command Palette (Cmd + K / Ctrl + K) */}
       <CommandPalette

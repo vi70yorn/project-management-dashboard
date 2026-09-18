@@ -34,7 +34,6 @@ import {
   Activity,
   Filter,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getProjectShareUrl, getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
@@ -643,8 +642,9 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   // -------------------------------------------------------------
   // Professional Excel Export: Team Upcoming Tasks
   // -------------------------------------------------------------
-  const handleExportUpcomingTasksExcel = () => {
+  const handleExportUpcomingTasksExcel = async () => {
     try {
+      const XLSX = await import('xlsx');
       const wb = XLSX.utils.book_new();
 
       const exportList = filteredDeadlines.length > 0 ? filteredDeadlines : allActiveDeadlines;
@@ -851,8 +851,9 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   // -------------------------------------------------------------
   // Professional Excel Export: Projects Overview
   // -------------------------------------------------------------
-  const handleExportProjectsExcel = () => {
+  const handleExportProjectsExcel = async () => {
     try {
+      const XLSX = await import('xlsx');
       const wb = XLSX.utils.book_new();
       const todayDateStr = new Date().toLocaleDateString(undefined, {
         weekday: 'short',

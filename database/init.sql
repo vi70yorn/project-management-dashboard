@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS projects (
     manager_id VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     tags TEXT[] DEFAULT '{}',
     color VARCHAR(32) DEFAULT '#2563eb',
+    links JSONB DEFAULT '[]',
     deleted_at TIMESTAMPTZ DEFAULT NULL,
     deleted_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     created_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
@@ -61,6 +62,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     updated_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     start_date VARCHAR(32),
     due_date VARCHAR(32),
+    links JSONB DEFAULT '[]',
     deleted_at TIMESTAMPTZ DEFAULT NULL,
     deleted_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -130,6 +132,8 @@ CREATE TABLE IF NOT EXISTS telegram_settings (
     bot_token TEXT,
     chat_id TEXT,
     enabled BOOLEAN DEFAULT false,
+    notify_ready_review BOOLEAN DEFAULT true,
+    notify_completed BOOLEAN DEFAULT true,
     send_day VARCHAR(16) DEFAULT 'Monday',
     send_time VARCHAR(8) DEFAULT '08:00',
     last_sent_at TIMESTAMPTZ,
@@ -137,8 +141,8 @@ CREATE TABLE IF NOT EXISTS telegram_settings (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO telegram_settings (id, enabled, send_day, send_time)
-VALUES ('default', false, 'Monday', '08:00')
+INSERT INTO telegram_settings (id, enabled, notify_ready_review, notify_completed, send_day, send_time)
+VALUES ('default', false, true, true, 'Monday', '08:00')
 ON CONFLICT (id) DO NOTHING;
 
 -- 7. Team Activity Logs Table

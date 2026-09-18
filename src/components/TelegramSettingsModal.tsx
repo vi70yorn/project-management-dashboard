@@ -37,6 +37,8 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
   const [botToken, setBotToken] = useState('');
   const [chatId, setChatId] = useState('');
   const [enabled, setEnabled] = useState(false);
+  const [notifyReadyReview, setNotifyReadyReview] = useState(true);
+  const [notifyCompleted, setNotifyCompleted] = useState(true);
   const [sendDay, setSendDay] = useState('Monday');
   const [sendTime, setSendTime] = useState('08:00');
 
@@ -59,6 +61,8 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
       setSettings(data);
       setChatId(data.chatId || '');
       setEnabled(data.enabled);
+      setNotifyReadyReview(data.notifyReadyReview !== false);
+      setNotifyCompleted(data.notifyCompleted !== false);
       setSendDay(data.sendDay || 'Monday');
       setSendTime(data.sendTime || '08:00');
       setBotToken(''); // Don't expose token; user leaves blank to keep existing
@@ -76,6 +80,8 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
         botToken: botToken.trim() || undefined,
         chatId: chatId.trim(),
         enabled,
+        notifyReadyReview,
+        notifyCompleted,
         sendDay,
         sendTime,
       });
@@ -269,6 +275,68 @@ export const TelegramSettingsModal: React.FC<TelegramSettingsModalProps> = ({
                   </>
                 )}
               </button>
+            </div>
+
+            {/* Instant Real-Time Notifications Section */}
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Bell className="w-3.5 h-3.5 text-sky-500" />
+                  <span>Instant Notifications</span>
+                </h4>
+              </div>
+
+              {/* Notify Ready Review Toggle */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Task "Ready Review" Alert
+                    </span>
+                    <span className="text-3xs font-semibold px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                      Real-Time
+                    </span>
+                  </div>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">
+                    Instantly notify your Telegram bot when any task is updated to <b>Ready Review</b>
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
+                  <input
+                    type="checkbox"
+                    checked={notifyReadyReview}
+                    onChange={(e) => setNotifyReadyReview(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                </label>
+              </div>
+
+              {/* Notify Completed Toggle */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Task "Completed" Alert
+                    </span>
+                    <span className="text-3xs font-semibold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      Real-Time
+                    </span>
+                  </div>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">
+                    Instantly notify your Telegram bot when any task is marked as <b>Completed</b>
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
+                  <input
+                    type="checkbox"
+                    checked={notifyCompleted}
+                    onChange={(e) => setNotifyCompleted(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
             </div>
 
             <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-4">

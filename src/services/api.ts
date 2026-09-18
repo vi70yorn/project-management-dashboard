@@ -269,7 +269,7 @@ export async function adminResetPasswordApi(
   const res = await apiFetch(`${API_BASE}/auth/admin-reset-password`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       'x-user-role': callerRole,
     },
     body: JSON.stringify({ memberId, newPassword }),
@@ -287,7 +287,7 @@ export async function adminResetPasswordApi(
 // -------------------------------------------------------------
 
 export async function fetchMembersApi(userRole?: string): Promise<TeamMember[]> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...getAuthHeaders() };
   if (userRole) {
     headers['x-user-role'] = userRole;
   }
@@ -304,7 +304,7 @@ export async function createMemberApi(
   const res = await apiFetch(`${API_BASE}/members`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       'x-user-role': userRole,
     },
     body: JSON.stringify(memberData),
@@ -321,7 +321,7 @@ export async function updateMemberApi(
   userRole?: string,
   callerMemberId?: string
 ): Promise<TeamMember> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { ...getAuthHeaders() };
   if (userRole) {
     headers['x-user-role'] = userRole;
   }
@@ -348,7 +348,7 @@ export async function updateMemberProjectsApi(
   const res = await apiFetch(`${API_BASE}/members/${memberId}/projects`, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       'x-user-role': userRole,
     },
     body: JSON.stringify({ projectIds }),
@@ -360,11 +360,14 @@ export async function updateMemberProjectsApi(
 }
 
 export async function deleteMemberApi(id: string, userRole: string = 'admin'): Promise<void> {
+  const headers = getAuthHeaders();
+  delete headers['Content-Type'];
+  if (userRole) {
+    headers['x-user-role'] = userRole;
+  }
   const res = await apiFetch(`${API_BASE}/members/${id}`, {
     method: 'DELETE',
-    headers: {
-      'x-user-role': userRole,
-    },
+    headers,
   });
 
   if (!res.ok) {
@@ -379,6 +382,8 @@ export async function deleteMemberApi(id: string, userRole: string = 'admin'): P
 
 export interface TelegramSettings {
   enabled: boolean;
+  notifyReadyReview?: boolean;
+  notifyCompleted?: boolean;
   hasToken: boolean;
   botTokenMasked: string;
   chatId: string;
@@ -392,7 +397,9 @@ export interface TelegramSettings {
 }
 
 export async function fetchTelegramSettingsApi(): Promise<TelegramSettings> {
-  const res = await apiFetch(`${API_BASE}/telegram/settings`);
+  const res = await apiFetch(`${API_BASE}/telegram/settings`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error('Failed to fetch Telegram settings');
   return res.json();
 }
@@ -401,12 +408,14 @@ export async function updateTelegramSettingsApi(settings: {
   botToken?: string;
   chatId?: string;
   enabled?: boolean;
+  notifyReadyReview?: boolean;
+  notifyCompleted?: boolean;
   sendDay?: string;
   sendTime?: string;
 }): Promise<TelegramSettings> {
   const res = await apiFetch(`${API_BASE}/telegram/settings`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify(settings),
   });
   const data = await res.json();
@@ -417,7 +426,7 @@ export async function updateTelegramSettingsApi(settings: {
 export async function testTelegramApi(botToken?: string, chatId?: string): Promise<{ success: boolean; message: string }> {
   const res = await apiFetch(`${API_BASE}/telegram/test`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ botToken, chatId }),
   });
   const data = await res.json();
@@ -428,6 +437,7 @@ export async function testTelegramApi(botToken?: string, chatId?: string): Promi
 export async function sendTelegramWeeklyReportApi(): Promise<{ success: boolean; message: string }> {
   const res = await apiFetch(`${API_BASE}/telegram/send-report`, {
     method: 'POST',
+    headers: getAuthHeaders(),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to send weekly report to Telegram');
@@ -466,7 +476,9 @@ export async function fetchActivitiesApi(limit: number = 50): Promise<ActivityLo
 // -------------------------------------------------------------
 
 export async function fetchRecycleBinApi(): Promise<RecycleBinData> {
-  const res = await apiFetch(`${API_BASE}/recycle-bin`);
+  const res = await apiFetch(`${API_BASE}/recycle-bin`, {
+    headers: getAuthHeaders(),
+  });
   if (!res.ok) throw new Error(`Failed to fetch recycle bin (${res.status})`);
   return res.json();
 }
@@ -488,19 +500,28 @@ export async function restoreRecycleBinItemApi(
 
 export async function permanentlyDeleteItemApi(
   type: 'project' | 'task',
-  id: string
+  id: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
 ): Promise<{ success: boolean; message: string }> {
+  const headers = getAuthHeaders(currentUser);
+  delete headers['Content-Type'];
   const res = await apiFetch(`${API_BASE}/recycle-bin/${type}/${id}`, {
     method: 'DELETE',
+    headers,
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to permanently delete item');
   return data;
 }
 
-export async function emptyRecycleBinApi(): Promise<{ success: boolean; message: string }> {
+export async function emptyRecycleBinApi(
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ success: boolean; message: string }> {
+  const headers = getAuthHeaders(currentUser);
+  delete headers['Content-Type'];
   const res = await apiFetch(`${API_BASE}/recycle-bin`, {
     method: 'DELETE',
+    headers,
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to empty recycle bin');
@@ -649,9 +670,15 @@ export async function markAllNotificationsReadApi(
   return res.json();
 }
 
-export async function dismissNotificationApi(id: string): Promise<{ success: boolean }> {
+export async function dismissNotificationApi(
+  id: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ success: boolean }> {
+  const headers = getAuthHeaders(currentUser);
+  delete headers['Content-Type'];
   const res = await apiFetch(`${API_BASE}/notifications/${id}`, {
     method: 'DELETE',
+    headers,
   });
   if (!res.ok) throw new Error('Failed to dismiss notification');
   return res.json();

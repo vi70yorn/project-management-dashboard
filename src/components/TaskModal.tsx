@@ -31,7 +31,7 @@ import {
   Share2,
   Paperclip,
 } from 'lucide-react';
-import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser, TaskTimelineEvent, TaskSubtask } from '../types';
+import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser, TaskTimelineEvent, TaskSubtask, AttachedLink } from '../types';
 import { getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
@@ -42,6 +42,7 @@ import { DatePicker } from './ui/DatePicker';
 import { FormattedText } from './ui/FormattedText';
 import { RichTextEditor } from './ui/RichTextEditor';
 import { DocumentAttachmentManager } from './DocumentAttachmentManager';
+import { LinkAttachmentManager } from './LinkAttachmentManager';
 import {
   fetchTaskTimelineApi,
   addTaskCommentApi,
@@ -134,6 +135,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [activeRightTab, setActiveRightTab] = useState<'documents' | 'discussion'>('documents');
   const [attachmentCount, setAttachmentCount] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [links, setLinks] = useState<AttachedLink[]>([]);
 
   useEffect(() => {
     if (isOpen && initialTask?.id) {
@@ -407,6 +409,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setStartDate(initialTask.startDate || '');
       setDueDate(initialTask.dueDate);
       setSubtasks(initialTask.subtasks || []);
+      setLinks(Array.isArray(initialTask.links) ? initialTask.links : []);
     } else {
       const activeProjId = defaultProjectId || safeProjects[0]?.id || '';
       setSelectedProjectId(activeProjId);
@@ -415,6 +418,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setStatus('In Progress');
       setPriority('Medium');
       setSubtasks([]);
+      setLinks([]);
       const activeProj = safeProjects.find((p) => p.id === activeProjId);
       const defaultAssignee =
         isStaff && currentUser?.memberId
@@ -449,6 +453,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         startDate: startDate || undefined,
         dueDate,
         subtasks,
+        links,
       },
       stagedFiles
     );
@@ -1011,6 +1016,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </div>
             </div>
 
+            {/* Attached Links (Read-Only) */}
+            {initialTask.links && initialTask.links.length > 0 && (
+              <div>
+                <LinkAttachmentManager
+                  links={initialTask.links}
+                  readOnly
+                />
+              </div>
+            )}
+
             {/* Assignee Card */}
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">
@@ -1403,6 +1418,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               value={description}
               onChange={setDescription}
               placeholder="Deliverables, scope, notes..."
+            />
+          </div>
+
+          <div>
+            <LinkAttachmentManager
+              links={links}
+              onChange={setLinks}
             />
           </div>
 

@@ -40,6 +40,7 @@ import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect } from './ui/CustomSelect';
 import { FormattedText } from './ui/FormattedText';
 import { DocumentAttachmentManager } from './DocumentAttachmentManager';
+import { LinkAttachmentManager } from './LinkAttachmentManager';
 import { fetchAttachmentsApi } from '../services/api';
 
 interface ProjectDetailProps {
@@ -461,6 +462,17 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               content={project.description}
               className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed"
             />
+
+            {/* Project Attached Links */}
+            {project.links && project.links.length > 0 && (
+              <div className="pt-2">
+                <LinkAttachmentManager
+                  links={project.links}
+                  readOnly
+                  titleLabel="Project Links"
+                />
+              </div>
+            )}
 
             {/* Tags & Manager */}
             <div className="flex items-center gap-2 pt-1 flex-wrap text-2xs">
