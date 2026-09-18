@@ -892,13 +892,18 @@ html[data-ui-style="glass"] pre {
   body {
     background: #ffffff !important;
     color: #0f172a !important;
-    font-size: 10.5pt !important;
+    font-size: 10pt !important;
     line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Hide app shell and navigation elements */
+  /* Hide app chrome, navigation, background effects, and interactive elements */
   #main-navbar,
   #app-footer,
   #sky-bg,
@@ -907,26 +912,86 @@ html[data-ui-style="glass"] pre {
   .modal-action-bar,
   aside,
   [class*="animate-fluid-blob"],
-  .nothing-grid-canvas {
+  .nothing-grid-canvas,
+  [role="tooltip"],
+  .portal-dropdown,
+  .dropdown-menu {
     display: none !important;
   }
 
-  /* Modal wrapper override during printing */
+  /* =======================================================================
+     EXECUTIVE REPORT ISOLATION:
+     When printing the Project Report modal, completely hide #root,
+     #project-detail-workspace, and all background page sections so that
+     ONLY the clean executive report document is printed.
+     ======================================================================= */
+  body:has(#printable-report-area) #root,
+  body.report-modal-open #root,
+  body.report-modal-pdf-active #root,
+  body:has(#printable-report-area) #project-detail-workspace,
+  body.report-modal-open #project-detail-workspace,
+  body.report-modal-pdf-active #project-detail-workspace {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Unfold modal wrapper completely into standard page flow */
   .printable-modal-backdrop {
     position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    height: auto !important;
     overflow: visible !important;
-    display: block !important;
+    inset: auto !important;
+    transform: none !important;
+    z-index: auto !important;
   }
 
+  .printable-modal-backdrop > div {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+
+  .printable-modal-backdrop [class*="overflow-y-auto"],
+  .printable-modal-backdrop [class*="max-h-"] {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* The Printable Executive Report Document Sheet */
+  #printable-report-area,
   .printable-report-sheet {
     position: static !important;
+    display: block !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -935,10 +1000,112 @@ html[data-ui-style="glass"] pre {
     color: #0f172a !important;
     box-shadow: none !important;
     border: none !important;
+    border-radius: 0 !important;
     overflow: visible !important;
   }
 
-  /* Ensure card / table row elements do not get split across page breaks */
+  /* Dark mode overrides: maintain crisp dark ink on white paper */
+  .dark #printable-report-area,
+  html.dark #printable-report-area {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .dark #printable-report-area h1,
+  .dark #printable-report-area h2,
+  .dark #printable-report-area h3,
+  .dark #printable-report-area strong,
+  html.dark #printable-report-area h1,
+  html.dark #printable-report-area h2,
+  html.dark #printable-report-area h3,
+  html.dark #printable-report-area strong {
+    color: #0f172a !important;
+  }
+
+  .dark #printable-report-area p,
+  .dark #printable-report-area td,
+  html.dark #printable-report-area p,
+  html.dark #printable-report-area td {
+    color: #1e293b !important;
+  }
+
+  /* Executive Callout Note */
+  #printable-report-area [class*="bg-slate-50"],
+  #printable-report-area [class*="dark:bg-slate-950"],
+  .dark #printable-report-area [class*="dark:bg-slate-950"] {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #1e293b !important;
+  }
+  #printable-report-area [class*="bg-slate-50"] p,
+  #printable-report-area [class*="dark:bg-slate-950"] p {
+    color: #334155 !important;
+  }
+  #printable-report-area [class*="bg-slate-50"] [class*="font-bold"],
+  #printable-report-area [class*="dark:bg-slate-950"] [class*="font-bold"] {
+    color: #0f172a !important;
+  }
+
+  /* Table Header & Borders */
+  #printable-report-area table thead tr {
+    background-color: #f1f5f9 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+  }
+  #printable-report-area table thead th {
+    color: #1e293b !important;
+  }
+  #printable-report-area table tbody tr {
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+  #printable-report-area table tbody td {
+    color: #0f172a !important;
+  }
+  #printable-report-area table tbody td span {
+    color: inherit;
+  }
+  #printable-report-area table tbody td [class*="font-semibold"],
+  #printable-report-area table tbody td strong {
+    color: #0f172a !important;
+  }
+  #printable-report-area table tbody td [class*="text-slate-500"],
+  #printable-report-area table tbody td [class*="text-3xs"] {
+    color: #475569 !important;
+  }
+
+  /* KPI Cards Paper Colors */
+  #printable-report-area .kpi-card:nth-child(1) {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+  }
+  #printable-report-area .kpi-card:nth-child(2) {
+    background-color: #ecfdf5 !important;
+    border-color: #a7f3d0 !important;
+  }
+  #printable-report-area .kpi-card:nth-child(3) {
+    background-color: #eff6ff !important;
+    border-color: #bfdbfe !important;
+  }
+  #printable-report-area .kpi-card:nth-child(4) {
+    background-color: #fff1f2 !important;
+    border-color: #fecdd3 !important;
+  }
+
+  .dark #printable-report-area .border-slate-900,
+  html.dark #printable-report-area .border-slate-900,
+  .dark #printable-report-area .dark\:border-slate-100,
+  html.dark #printable-report-area .dark\:border-slate-100 {
+    border-color: #0f172a !important;
+  }
+
+  /* Progress bar track */
+  #printable-report-area [class*="rounded-full bg-slate-100"],
+  #printable-report-area [class*="dark:bg-slate-800"] {
+    background-color: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Ensure card / table row elements do not get awkwardly split across pages */
   .print-break-inside-avoid,
   .printable-report-sheet tr,
   .printable-report-sheet .kpi-card {

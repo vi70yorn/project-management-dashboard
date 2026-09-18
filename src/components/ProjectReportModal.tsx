@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Printer,
@@ -47,6 +48,30 @@ export const ProjectReportModal: React.FC<ProjectReportModalProps> = ({
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
+  // Synchronize document.title and body class for print isolation & default PDF filename
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalTitle = document.title;
+    // Set document.title to the current project name so the browser's "Save as PDF" dialog
+    // automatically defaults the suggested file name to the project name.
+    const cleanProjectName = (project.name || 'Project').trim().replace(/[/\\?%*:|"<>]/g, '-');
+    document.title = cleanProjectName;
+
+    document.body.classList.add('report-modal-open');
+    if (activeTab === 'pdf') {
+      document.body.classList.add('report-modal-pdf-active');
+    } else {
+      document.body.classList.remove('report-modal-pdf-active');
+    }
+
+    return () => {
+      document.title = originalTitle;
+      document.body.classList.remove('report-modal-open');
+      document.body.classList.remove('report-modal-pdf-active');
+    };
+  }, [isOpen, activeTab, project.name]);
+
   // Filter tasks belonging to this project
   const projectTasks = useMemo(() => {
     let list = tasks.filter((t) => t.projectId === project.id);
@@ -83,9 +108,16 @@ export const ProjectReportModal: React.FC<ProjectReportModalProps> = ({
   const cleanDate = new Date().toISOString().split('T')[0];
   const safeFilenameBase = (project.name || 'Project').replace(/[^a-z0-9_-]/gi, '_');
 
-  // Trigger Browser Print / Save as PDF
+  // Trigger Browser Print / Save as PDF with clean document isolation & project file name
   const handlePrintPdf = () => {
-    window.print();
+    const cleanProjectName = (project.name || 'Project').trim().replace(/[/\\?%*:|"<>]/g, '-');
+    document.title = cleanProjectName;
+    setActiveTab('pdf');
+    document.body.classList.add('report-modal-open');
+    document.body.classList.add('report-modal-pdf-active');
+    setTimeout(() => {
+      window.print();
+    }, 60);
   };
 
   // Export to Excel (.xlsx) using dynamic import of xlsx
@@ -137,10 +169,11 @@ export const ProjectReportModal: React.FC<ProjectReportModalProps> = ({
 
       const taskRows = projectTasks.map((t) => {
         const mem = teamMembers.find((m) => m.id === t.assigneeId);
+        const subtasks = t.subtasks || [];
         const checklistSummary =
-          t.checklists && t.checklists.length > 0
-            ? `${t.checklists.filter((c) => c.completed).length}/${t.checklists.length} done: ` +
-              t.checklists.map((c) => `${c.text} [${c.completed ? '✓' : '✗'}]`).join(', ')
+          subtasks.length > 0
+            ? `${subtasks.filter((c) => c.completed).length}/${subtasks.length} done: ` +
+              subtasks.map((c) => `${c.title} [${c.completed ? '✓' : '✗'}]`).join(', ')
             : 'None';
 
         return [
@@ -191,9 +224,10 @@ export const ProjectReportModal: React.FC<ProjectReportModalProps> = ({
       const headers = ['ID', 'Title', 'Status', 'Priority', 'Assignee', 'Start Date', 'Due Date', 'Checklist'];
       const rows = projectTasks.map((t) => {
         const mem = teamMembers.find((m) => m.id === t.assigneeId);
+        const subtasks = t.subtasks || [];
         const checklistSummary =
-          t.checklists && t.checklists.length > 0
-            ? `${t.checklists.filter((c) => c.completed).length}/${t.checklists.length} done`
+          subtasks.length > 0
+            ? `${subtasks.filter((c) => c.completed).length}/${subtasks.length} done`
             : '';
 
         return [
@@ -236,7 +270,7 @@ export const ProjectReportModal: React.FC<ProjectReportModalProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto bg-slate-900/60 backdrop-blur-sm printable-modal-backdrop animate-in fade-in duration-200">
       <div className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden">
         {/* Modal Top Header (Hidden when printing) */}
@@ -493,8 +527,9 @@ export const ProjectReportModal: React.FC<ProjectReportModalProps> = ({
                         ) : (
                           projectTasks.map((task, idx) => {
                             const assignee = teamMembers.find((m) => m.id === task.assigneeId);
-                            const doneChecklists = (task.checklists || []).filter((c) => c.completed).length;
-                            const totalChecklists = (task.checklists || []).length;
+                            const subtasks = task.subtasks || [];
+                            const doneSubtasks = subtasks.filter((s) => s.completed).length;
+                            const totalSubtasks = subtasks.length;
 
                             return (
                               <tr key={task.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
@@ -537,18 +572,26 @@ export const ProjectReportModal: React.FC<ProjectReportModalProps> = ({
                                 </td>
                                 {includeDoD && (
                                   <td className="py-2 px-3">
-                                    {totalChecklists > 0 ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <div className="w-12 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                    {totalSubtasks > 0 ? (
+                                      <div className="flex items-center gap-1.5 min-w-[70px]">
+                                        <div className="w-12 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200 dark:border-slate-700">
                                           <div
-                                            className="h-full bg-emerald-500 rounded-full"
+                                            className={`h-full rounded-full transition-all ${
+                                              doneSubtasks === totalSubtasks ? 'bg-emerald-500' : 'bg-blue-600'
+                                            }`}
                                             style={{
-                                              width: `${Math.round((doneChecklists / totalChecklists) * 100)}%`,
+                                              width: `${Math.round((doneSubtasks / totalSubtasks) * 100)}%`,
                                             }}
                                           />
                                         </div>
-                                        <span className="text-3xs text-slate-500 font-mono">
-                                          {doneChecklists}/{totalChecklists}
+                                        <span
+                                          className={`text-3xs font-mono font-semibold ${
+                                            doneSubtasks === totalSubtasks
+                                              ? 'text-emerald-600 dark:text-emerald-400'
+                                              : 'text-slate-600 dark:text-slate-400'
+                                          }`}
+                                        >
+                                          {doneSubtasks}/{totalSubtasks}
                                         </span>
                                       </div>
                                     ) : (
@@ -720,6 +763,8 @@ export const ProjectReportModal: React.FC<ProjectReportModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
+
