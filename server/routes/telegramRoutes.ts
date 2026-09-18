@@ -13,42 +13,32 @@ const router = Router();
 router.get('/settings', requireAdmin, async (_req: Request, res: Response) => {
   try {
     const pool = getPool();
-    const result = await pool.query('SELECT * FROM telegram_settings WHERE id = $1', ['default']);
+    const result = await pool.query(
+      `SELECT * FROM telegram_settings ORDER BY (CASE WHEN id = 'default' THEN 0 ELSE 1 END), created_at DESC LIMIT 1`
+    );
     const utc7 = getNowInUtcPlus7();
     const serverCurrentDay = utc7.dayName;
     const serverCurrentTime = utc7.timeStr;
     const serverTimezone = 'UTC+7 (Asia/Bangkok)';
 
-    if (result.rowCount === 0) {
-      return res.json({
-        enabled: false,
-        notifyReadyReview: true,
-        notifyCompleted: true,
-        hasToken: false,
-        botTokenMasked: '',
-        chatId: '',
-        sendDay: 'Monday',
-        sendTime: '08:00',
-        lastSentAt: null,
-        lastAutoSentDate: null,
-        serverCurrentDay,
-        serverCurrentTime,
-        serverTimezone,
-      });
-    }
-    const row = result.rows[0];
-    const hasToken = !!(row.bot_token && row.bot_token.trim().length > 0);
+    const row = result.rows[0] || {};
+    const envToken = (process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || '').trim();
+    const envChat = (process.env.TELEGRAM_CHAT_ID || '').trim();
+
+    const rawToken = (row.bot_token || envToken || '').trim();
+    const hasToken = rawToken.length > 0;
     const botTokenMasked = hasToken
-      ? `${row.bot_token.slice(0, 6)}••••••••${row.bot_token.slice(-4)}`
+      ? `${rawToken.slice(0, 6)}••••••••${rawToken.slice(-4)}`
       : '';
+    const chatId = (row.chat_id || envChat || '').trim();
 
     res.json({
-      enabled: !!row.enabled,
+      enabled: row.enabled !== undefined ? !!row.enabled : (hasToken && chatId.length > 0),
       notifyReadyReview: row.notify_ready_review !== false,
       notifyCompleted: row.notify_completed !== false,
       hasToken,
       botTokenMasked,
-      chatId: row.chat_id || '',
+      chatId,
       sendDay: row.send_day || 'Monday',
       sendTime: row.send_time || '08:00',
       lastSentAt: row.last_sent_at || null,
@@ -67,8 +57,22 @@ router.post('/settings', requireAdmin, async (req: Request, res: Response) => {
   const { botToken, chatId, enabled, notifyReadyReview, notifyCompleted, sendDay, sendTime } = req.body;
   try {
     const pool = getPool();
+
+    // Ensure columns exist on legacy database schemas
+    await pool.query(`
+      ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_ready_review BOOLEAN DEFAULT true;
+      ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_completed BOOLEAN DEFAULT true;
+    `).catch(() => {});
+
     let query: string;
     let params: any[];
+
+    const effectiveChatId = (chatId || '').trim();
+    const isEnabled = enabled !== undefined ? !!enabled : true;
+    const isNotifyReview = notifyReadyReview !== false;
+    const isNotifyCompleted = notifyCompleted !== false;
+    const effectiveDay = sendDay || 'Monday';
+    const effectiveTime = sendTime || '08:00';
 
     if (botToken !== undefined && botToken.trim().length > 0) {
       query = `
@@ -86,23 +90,35 @@ router.post('/settings', requireAdmin, async (req: Request, res: Response) => {
           updated_at = CURRENT_TIMESTAMP
         RETURNING id, chat_id AS "chatId", enabled, notify_ready_review AS "notifyReadyReview", notify_completed AS "notifyCompleted", send_day AS "sendDay", send_time AS "sendTime", last_sent_at AS "lastSentAt", last_auto_sent_date AS "lastAutoSentDate"
       `;
-      params = [botToken.trim(), (chatId || '').trim(), !!enabled, notifyReadyReview !== false, notifyCompleted !== false, sendDay || 'Monday', sendTime || '08:00'];
+      params = [botToken.trim(), effectiveChatId, isEnabled, isNotifyReview, isNotifyCompleted, effectiveDay, effectiveTime];
     } else {
-      query = `
-        UPDATE telegram_settings
-        SET 
-          chat_id = COALESCE($1, chat_id),
-          enabled = COALESCE($2, enabled),
-          notify_ready_review = COALESCE($3, notify_ready_review),
-          notify_completed = COALESCE($4, notify_completed),
-          send_day = COALESCE($5, send_day),
-          send_time = COALESCE($6, send_time),
-          last_auto_sent_date = NULL,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = 'default'
-        RETURNING id, chat_id AS "chatId", enabled, notify_ready_review AS "notifyReadyReview", notify_completed AS "notifyCompleted", send_day AS "sendDay", send_time AS "sendTime", last_sent_at AS "lastSentAt", last_auto_sent_date AS "lastAutoSentDate"
-      `;
-      params = [(chatId || '').trim(), !!enabled, notifyReadyReview !== undefined ? Boolean(notifyReadyReview) : null, notifyCompleted !== undefined ? Boolean(notifyCompleted) : null, sendDay || 'Monday', sendTime || '08:00'];
+      // Upsert: update existing or insert row 'default' with existing/env token
+      const existing = await pool.query(`SELECT id, bot_token FROM telegram_settings WHERE id = 'default' LIMIT 1`);
+      if (existing.rowCount === 0) {
+        const envToken = (process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || '').trim();
+        query = `
+          INSERT INTO telegram_settings (id, bot_token, chat_id, enabled, notify_ready_review, notify_completed, send_day, send_time, last_auto_sent_date, updated_at)
+          VALUES ('default', $1, $2, $3, $4, $5, $6, $7, NULL, CURRENT_TIMESTAMP)
+          RETURNING id, chat_id AS "chatId", enabled, notify_ready_review AS "notifyReadyReview", notify_completed AS "notifyCompleted", send_day AS "sendDay", send_time AS "sendTime", last_sent_at AS "lastSentAt", last_auto_sent_date AS "lastAutoSentDate"
+        `;
+        params = [envToken, effectiveChatId, isEnabled, isNotifyReview, isNotifyCompleted, effectiveDay, effectiveTime];
+      } else {
+        query = `
+          UPDATE telegram_settings
+          SET 
+            chat_id = COALESCE($1, chat_id),
+            enabled = COALESCE($2, enabled),
+            notify_ready_review = COALESCE($3, notify_ready_review),
+            notify_completed = COALESCE($4, notify_completed),
+            send_day = COALESCE($5, send_day),
+            send_time = COALESCE($6, send_time),
+            last_auto_sent_date = NULL,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = 'default'
+          RETURNING id, chat_id AS "chatId", enabled, notify_ready_review AS "notifyReadyReview", notify_completed AS "notifyCompleted", send_day AS "sendDay", send_time AS "sendTime", last_sent_at AS "lastSentAt", last_auto_sent_date AS "lastAutoSentDate"
+        `;
+        params = [effectiveChatId, isEnabled, isNotifyReview, isNotifyCompleted, effectiveDay, effectiveTime];
+      }
     }
 
     const result = await pool.query(query, params);
@@ -121,11 +137,15 @@ router.post('/test', requireAdmin, async (req: Request, res: Response) => {
     let chat = chatId?.trim();
 
     if (!token || !chat) {
-      const dbSettings = await pool.query('SELECT bot_token, chat_id FROM telegram_settings WHERE id = $1', ['default']);
+      const dbSettings = await pool.query(
+        `SELECT * FROM telegram_settings ORDER BY (CASE WHEN id = 'default' THEN 0 ELSE 1 END), created_at DESC LIMIT 1`
+      );
       if (dbSettings.rowCount > 0) {
         if (!token) token = dbSettings.rows[0].bot_token;
         if (!chat) chat = dbSettings.rows[0].chat_id;
       }
+      if (!token) token = (process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || '').trim();
+      if (!chat) chat = (process.env.TELEGRAM_CHAT_ID || '').trim();
     }
 
     if (!token || !chat) {
@@ -149,12 +169,17 @@ router.post('/test', requireAdmin, async (req: Request, res: Response) => {
 router.post('/send-report', requireAdmin, async (req: Request, res: Response) => {
   try {
     const pool = getPool();
-    const result = await pool.query('SELECT bot_token, chat_id FROM telegram_settings WHERE id = $1', ['default']);
-    if (result.rowCount === 0 || !result.rows[0].bot_token || !result.rows[0].chat_id) {
+    const result = await pool.query(
+      `SELECT * FROM telegram_settings ORDER BY (CASE WHEN id = 'default' THEN 0 ELSE 1 END), created_at DESC LIMIT 1`
+    );
+    const row = result.rows[0] || {};
+    const bot_token = (row.bot_token || process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || '').trim();
+    const chat_id = (row.chat_id || process.env.TELEGRAM_CHAT_ID || '').trim();
+
+    if (!bot_token || !chat_id) {
       return res.status(400).json({ error: 'Telegram is not configured yet. Please configure your Bot Token and Chat ID first.' });
     }
 
-    const { bot_token, chat_id } = result.rows[0];
     const reportText = await generateTelegramWeeklyReport(pool);
     const sendResult = await sendTelegramMessage(bot_token, chat_id, reportText);
 
@@ -162,7 +187,10 @@ router.post('/send-report', requireAdmin, async (req: Request, res: Response) =>
       return res.status(400).json({ error: sendResult.message });
     }
 
-    await pool.query('UPDATE telegram_settings SET last_sent_at = CURRENT_TIMESTAMP WHERE id = $1', ['default']);
+    await pool.query(
+      `UPDATE telegram_settings SET last_sent_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [row.id || 'default']
+    );
     res.json({ success: true, message: 'Weekly Project Summary sent to Telegram successfully!' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -170,4 +198,3 @@ router.post('/send-report', requireAdmin, async (req: Request, res: Response) =>
 });
 
 export default router;
-

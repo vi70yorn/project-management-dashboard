@@ -141,9 +141,15 @@ CREATE TABLE IF NOT EXISTS telegram_settings (
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_ready_review BOOLEAN DEFAULT true;
+ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_completed BOOLEAN DEFAULT true;
+
 INSERT INTO telegram_settings (id, enabled, notify_ready_review, notify_completed, send_day, send_time)
 VALUES ('default', false, true, true, 'Monday', '08:00')
 ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+    notify_ready_review = COALESCE(telegram_settings.notify_ready_review, true),
+    notify_completed = COALESCE(telegram_settings.notify_completed, true);
 
 -- 7. Team Activity Logs Table
 CREATE TABLE IF NOT EXISTS activity_logs (

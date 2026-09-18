@@ -159,7 +159,11 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
         actorAvatar,
       });
     }
-    if (status === 'Ready Review') {
+    const normStatus = (status || '').trim();
+    const isReadyReview = normStatus.toLowerCase() === 'ready review' || normStatus.toLowerCase() === 'ready for review';
+    const isCompleted = normStatus.toLowerCase() === 'completed';
+
+    if (isReadyReview) {
       createServerNotification(pool, {
         type: 'task_ready_review',
         title: 'Task Ready for Review',
@@ -174,11 +178,9 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
         actorAvatar,
       });
       notifyTelegramTaskStatusUpdate(pool, createdTask, 'Ready Review', actorName);
-    }
-    if (status === 'Completed') {
+    } else if (isCompleted) {
       notifyTelegramTaskStatusUpdate(pool, createdTask, 'Completed', actorName);
-    }
-    if (status === 'Blocked') {
+    } else if (normStatus.toLowerCase() === 'blocked') {
       createServerNotification(pool, {
         type: 'task_blocked',
         title: 'Task Marked Blocked',
@@ -280,14 +282,19 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
       await syncProjectStatus(pool, updatedTask.projectId);
     }
 
-    if (status && oldStatus && status !== oldStatus) {
+    const normStatus = (status || '').trim();
+    const isReadyReview = normStatus.toLowerCase() === 'ready review' || normStatus.toLowerCase() === 'ready for review';
+    const isCompleted = normStatus.toLowerCase() === 'completed';
+    const isStatusChanged = normStatus.length > 0 && (!oldStatus || normStatus.toLowerCase() !== oldStatus.trim().toLowerCase());
+
+    if (isStatusChanged) {
       recordActivity(pool, {
         actionType: 'update_task_status',
         entityType: 'task',
         entityId: id,
         entityName: updatedTask?.title || title,
         projectId: updatedTask?.projectId || projectId,
-        details: { fromStatus: oldStatus, toStatus: status, newStatus: status },
+        details: { fromStatus: oldStatus || 'Draft', toStatus: status, newStatus: status },
       }, req);
     } else {
       recordActivity(pool, {
@@ -301,7 +308,7 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
     }
 
     // Trigger Server-side Notifications on Task Update
-    const actorName = req.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : 'A team member';
+    const actorName = (req as any).jwtUser?.name || (req.headers['x-user-name'] ? decodeURIComponent(req.headers['x-user-name'] as string) : 'A team member');
     const actorAvatar = req.headers['x-user-avatar'] ? decodeURIComponent(req.headers['x-user-avatar'] as string) : null;
     const taskTitle = updatedTask?.title || title || 'Task';
     const projId = updatedTask?.projectId || projectId;
@@ -323,8 +330,8 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
       });
     }
 
-    if (status && oldStatus && status !== oldStatus) {
-      if (status === 'Ready Review') {
+    if (isStatusChanged) {
+      if (isReadyReview) {
         createServerNotification(pool, {
           type: 'task_ready_review',
           title: 'Task Ready for Review',
@@ -339,9 +346,9 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
           actorAvatar,
         });
         notifyTelegramTaskStatusUpdate(pool, updatedTask, 'Ready Review', actorName);
-      } else if (status === 'Completed') {
+      } else if (isCompleted) {
         notifyTelegramTaskStatusUpdate(pool, updatedTask, 'Completed', actorName);
-      } else if (status === 'Blocked') {
+      } else if (normStatus.toLowerCase() === 'blocked') {
         createServerNotification(pool, {
           type: 'task_blocked',
           title: 'Task Marked Blocked',
@@ -407,8 +414,13 @@ router.patch('/:id/status', requireAuth, async (req: Request, res: Response) => 
     const projId = updatedTask?.projectId || result.rows[0].projectId;
     const projName = updatedTask?.projectName || '';
 
-    if (status && oldStatus && status !== oldStatus) {
-      if (status === 'Ready Review') {
+    const normStatus = (status || '').trim();
+    const isReadyReview = normStatus.toLowerCase() === 'ready review' || normStatus.toLowerCase() === 'ready for review';
+    const isCompleted = normStatus.toLowerCase() === 'completed';
+    const isStatusChanged = normStatus.length > 0 && (!oldStatus || normStatus.toLowerCase() !== oldStatus.trim().toLowerCase());
+
+    if (isStatusChanged) {
+      if (isReadyReview) {
         createServerNotification(pool, {
           type: 'task_ready_review',
           title: 'Task Ready for Review',
@@ -423,9 +435,9 @@ router.patch('/:id/status', requireAuth, async (req: Request, res: Response) => 
           actorAvatar,
         });
         notifyTelegramTaskStatusUpdate(pool, updatedTask, 'Ready Review', actorName);
-      } else if (status === 'Completed') {
+      } else if (isCompleted) {
         notifyTelegramTaskStatusUpdate(pool, updatedTask, 'Completed', actorName);
-      } else if (status === 'Blocked') {
+      } else if (normStatus.toLowerCase() === 'blocked') {
         createServerNotification(pool, {
           type: 'task_blocked',
           title: 'Task Marked Blocked',

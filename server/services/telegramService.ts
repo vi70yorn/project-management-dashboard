@@ -108,7 +108,7 @@ export async function sendTelegramMessage(botToken: string, chatId: string, text
 
   try {
     for (const chunk of chunks) {
-      const res = await fetch(url, {
+      let res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -117,9 +117,28 @@ export async function sendTelegramMessage(botToken: string, chatId: string, text
           parse_mode: 'HTML',
           disable_web_page_preview: true,
         }),
+        signal: AbortSignal.timeout(10000),
       });
-      const data: any = await res.json();
+      let data: any = await res.json();
+
+      // Fallback: If Telegram rejects HTML formatting entities, retry in plain text
+      if (!data.ok && typeof data.description === 'string' && data.description.toLowerCase().includes('entities')) {
+        console.warn(`[Telegram API] HTML parse failed (${data.description}). Retrying message as plain text...`);
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: cleanChatId,
+            text: stripHtmlTags(chunk),
+            disable_web_page_preview: true,
+          }),
+          signal: AbortSignal.timeout(10000),
+        });
+        data = await res.json();
+      }
+
       if (!data.ok) {
+        console.warn(`[Telegram API Error] chat_id=${cleanChatId} code=${data.error_code} description="${data.description}"`);
         return { ok: false, message: data.description || 'Telegram API rejected message' };
       }
       if (chunks.length > 1) {
@@ -128,6 +147,7 @@ export async function sendTelegramMessage(botToken: string, chatId: string, text
     }
     return { ok: true };
   } catch (err: any) {
+    console.error(`[Telegram Network Error]:`, err.message);
     return { ok: false, message: err.message || 'Network error reaching Telegram API' };
   }
 }
@@ -172,21 +192,38 @@ export function getPlatformEmoji(platform?: string): string {
 export async function notifyTelegramTaskStatusUpdate(
   pool: any,
   task: any,
-  status: 'Ready Review' | 'Completed',
+  status: 'Ready Review' | 'Completed' | string,
   actorName?: string
 ): Promise<void> {
   if (!task) return;
-  try {
-    const settingsRes = await pool.query(
-      'SELECT bot_token, chat_id, notify_ready_review, notify_completed FROM telegram_settings WHERE id = $1',
-      ['default']
-    );
-    if (settingsRes.rowCount === 0) return;
-    const row = settingsRes.rows[0];
-    if (!row.bot_token || !row.chat_id) return;
+  const normStatus = (status || '').trim();
+  const isReadyReview = normStatus.toLowerCase() === 'ready review' || normStatus.toLowerCase() === 'ready for review';
+  const isCompleted = normStatus.toLowerCase() === 'completed';
 
-    if (status === 'Ready Review' && row.notify_ready_review === false) return;
-    if (status === 'Completed' && row.notify_completed === false) return;
+  if (!isReadyReview && !isCompleted) return;
+
+  try {
+    // Resilient lookup: works whether or not columns exist yet and regardless of ID
+    const settingsRes = await pool.query(
+      `SELECT * FROM telegram_settings ORDER BY (CASE WHEN id = 'default' THEN 0 ELSE 1 END), created_at DESC LIMIT 1`
+    );
+    const row = settingsRes.rows[0] || {};
+    const botToken = (row.bot_token || process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || '').trim();
+    const chatId = (row.chat_id || process.env.TELEGRAM_CHAT_ID || '').trim();
+
+    if (!botToken || !chatId) {
+      console.warn(`[Telegram Alert] Skipped "${normStatus}" alert for task "${task.title}": Telegram Bot Token or Chat ID is not configured (checked DB and .env).`);
+      return;
+    }
+
+    if (isReadyReview && (row.notify_ready_review === false || row.notify_ready_review === 'false')) {
+      console.log(`[Telegram Alert] Skipped "Ready Review" alert: notify_ready_review is disabled in settings.`);
+      return;
+    }
+    if (isCompleted && (row.notify_completed === false || row.notify_completed === 'false')) {
+      console.log(`[Telegram Alert] Skipped "Completed" alert: notify_completed is disabled in settings.`);
+      return;
+    }
 
     // Resolve project name if missing
     let projectName = task.projectName || '';
@@ -243,11 +280,11 @@ export async function notifyTelegramTaskStatusUpdate(
       linksPreview = `\n🔗 <b>Attached Deliverables:</b>\n${lines.join('\n')}\n`;
     }
 
-    const header = status === 'Completed'
+    const header = isCompleted
       ? `🎉 <b>TASK COMPLETED</b>`
       : `📋 <b>TASK READY FOR REVIEW</b>`;
 
-    const actorLine = status === 'Completed'
+    const actorLine = isCompleted
       ? `🏁 <b>Completed by:</b> ${escapeTelegramHtml(actorName || 'Team Member')}`
       : `✍️ <b>Moved by:</b> ${escapeTelegramHtml(actorName || 'Team Member')}`;
 
@@ -266,11 +303,12 @@ export async function notifyTelegramTaskStatusUpdate(
       `<i>🚀 UX/UI Management Dashboard • Instant Alert</i>`,
     ].filter(Boolean).join('\n');
 
-    const sendRes = await sendTelegramMessage(row.bot_token, row.chat_id, message);
+    console.log(`[Telegram Alert] Sending "${isCompleted ? 'Completed' : 'Ready Review'}" alert for task "${task.title}" to chat ${chatId}...`);
+    const sendRes = await sendTelegramMessage(botToken, chatId, message);
     if (sendRes.ok) {
-      console.log(`[Telegram Alert] "${status}" alert sent for task "${task.title}" to chat ${row.chat_id}`);
+      console.log(`[Telegram Alert] Successfully delivered "${isCompleted ? 'Completed' : 'Ready Review'}" alert for task "${task.title}" to chat ${chatId}`);
     } else {
-      console.warn(`[Telegram Alert] Could not deliver "${status}" message: ${sendRes.message}`);
+      console.warn(`[Telegram Alert] Could not deliver alert to chat ${chatId}: ${sendRes.message}`);
     }
   } catch (err: any) {
     console.error('[Telegram Alert Exception]:', err.message);

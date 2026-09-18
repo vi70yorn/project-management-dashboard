@@ -122,6 +122,10 @@ export async function runMigrationsAndSeed(): Promise<void> {
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
         END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'telegram_settings') THEN
+          ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_ready_review BOOLEAN DEFAULT true;
+          ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_completed BOOLEAN DEFAULT true;
+        END IF;
       END $$;
     `).catch(() => {});
 
@@ -177,10 +181,17 @@ export async function runMigrationsAndSeed(): Promise<void> {
       );
 
       ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS last_auto_sent_date VARCHAR(16);
+      ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_ready_review BOOLEAN DEFAULT true;
+      ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_completed BOOLEAN DEFAULT true;
 
       INSERT INTO telegram_settings (id, enabled, send_day, send_time)
       VALUES ('default', false, 'Monday', '08:00')
       ON CONFLICT (id) DO NOTHING;
+      INSERT INTO telegram_settings (id, enabled, notify_ready_review, notify_completed, send_day, send_time)
+      VALUES ('default', false, true, true, 'Monday', '08:00')
+      ON CONFLICT (id) DO UPDATE SET
+        notify_ready_review = COALESCE(telegram_settings.notify_ready_review, true),
+        notify_completed = COALESCE(telegram_settings.notify_completed, true);
 
       -- 7. Team Activity Logs Table
       CREATE TABLE IF NOT EXISTS activity_logs (
@@ -380,6 +391,24 @@ export async function runMigrationsAndSeed(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_attachments_task_id ON attachments(task_id);
       CREATE INDEX IF NOT EXISTS idx_attachments_created_at ON attachments(created_at DESC);
     `);
+
+    // Auto-sync Telegram credentials from environment variables if present in .env
+    const envTgToken = (process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN || '').trim();
+    const envTgChat = (process.env.TELEGRAM_CHAT_ID || '').trim();
+    if (envTgToken) {
+      await client.query(`
+        INSERT INTO telegram_settings (id, bot_token, chat_id, enabled, notify_ready_review, notify_completed, send_day, send_time)
+        VALUES ('default', $1, $2, true, true, true, 'Monday', '08:00')
+        ON CONFLICT (id) DO UPDATE SET
+          bot_token = CASE WHEN telegram_settings.bot_token IS NULL OR telegram_settings.bot_token = '' THEN EXCLUDED.bot_token ELSE telegram_settings.bot_token END,
+          chat_id = CASE WHEN telegram_settings.chat_id IS NULL OR telegram_settings.chat_id = '' THEN EXCLUDED.chat_id ELSE telegram_settings.chat_id END,
+          notify_ready_review = COALESCE(telegram_settings.notify_ready_review, true),
+          notify_completed = COALESCE(telegram_settings.notify_completed, true);
+      `, [envTgToken, envTgChat]).catch((err) => {
+        console.warn('[PostgreSQL] Could not auto-sync Telegram from .env:', err.message);
+      });
+      console.log('[PostgreSQL] Telegram credentials synchronized from environment variables.');
+    }
 
     console.log('[PostgreSQL] Database schema, credentials & initial seeds verified successfully.');
   } finally {
