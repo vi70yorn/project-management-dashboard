@@ -19,6 +19,7 @@ import recycleBinRoutes from './routes/recycleBinRoutes';
 import telegramRoutes from './routes/telegramRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import attachmentRoutes from './routes/attachmentRoutes';
+import shareRoutes from './routes/shareRoutes';
 
 // Force system and runtime timezone to UTC+7 (Asia/Bangkok, Indochina Time)
 process.env.TZ = 'Asia/Bangkok';
@@ -58,6 +59,7 @@ app.use('/api/recycle-bin', recycleBinRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/attachments', attachmentRoutes);
+app.use('/api/share', shareRoutes);
 
 // ==========================================
 // Serve Static Frontend (Single-Service Deployment)

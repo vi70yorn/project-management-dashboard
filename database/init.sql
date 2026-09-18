@@ -254,3 +254,22 @@ CREATE INDEX IF NOT EXISTS idx_attachments_project_id ON attachments(project_id)
 CREATE INDEX IF NOT EXISTS idx_attachments_task_id ON attachments(task_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_created_at ON attachments(created_at DESC);
 
+-- 12. Project Share Links Table (Client Read-Only Portal)
+CREATE TABLE IF NOT EXISTS project_share_links (
+    id VARCHAR(64) PRIMARY KEY,
+    project_id VARCHAR(64) UNIQUE NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    share_token VARCHAR(64) UNIQUE NOT NULL,
+    is_enabled BOOLEAN DEFAULT TRUE,
+    password_hash VARCHAR(255),
+    expires_at TIMESTAMPTZ,
+    show_tasks BOOLEAN DEFAULT TRUE,
+    show_attachments BOOLEAN DEFAULT TRUE,
+    view_count INT DEFAULT 0,
+    last_viewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_share_links_token ON project_share_links(share_token);
+CREATE INDEX IF NOT EXISTS idx_project_share_links_project_id ON project_share_links(project_id);
+

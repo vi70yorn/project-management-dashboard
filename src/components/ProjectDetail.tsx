@@ -41,6 +41,7 @@ import { CustomSelect } from './ui/CustomSelect';
 import { FormattedText } from './ui/FormattedText';
 import { DocumentAttachmentManager } from './DocumentAttachmentManager';
 import { LinkAttachmentManager } from './LinkAttachmentManager';
+import { ShareProjectModal } from './ShareProjectModal';
 import { fetchAttachmentsApi } from '../services/api';
 
 interface ProjectDetailProps {
@@ -284,15 +285,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  const handleShareProjectLink = async () => {
-    if (!project?.id) return;
-    const url = getProjectShareUrl(project.id);
-    const success = await copyTextToClipboard(url);
-    if (success) {
-      setCopiedProjectLink(true);
-      setTimeout(() => setCopiedProjectLink(false), 2000);
-    }
+  const handleShareProjectLink = () => {
+    setIsShareModalOpen(true);
   };
 
   const handleShareTaskDirectLink = async (e: React.MouseEvent, taskId: string) => {
@@ -355,24 +351,11 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 id="header-share-project-btn"
                 type="button"
                 onClick={handleShareProjectLink}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer border ${
-                  copiedProjectLink
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
-                }`}
-                title="Copy direct shareable link to this project"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                title="Share project with team or generate Client Portal link"
               >
-                {copiedProjectLink ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>Link Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span>Share</span>
-                  </>
-                )}
+                <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Share</span>
               </button>
               <button
                 id="header-add-task-btn"
@@ -396,24 +379,11 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 id="staff-share-project-btn"
                 type="button"
                 onClick={handleShareProjectLink}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer border ${
-                  copiedProjectLink
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
-                }`}
-                title="Copy direct shareable link to this project"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                title="Share project with team or generate Client Portal link"
               >
-                {copiedProjectLink ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>Link Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    <span>Share Project</span>
-                  </>
-                )}
+                <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Share Project</span>
               </button>
               <button
                 id="header-add-task-btn"
@@ -1425,6 +1395,16 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Client & Internal Project Share Modal */}
+      {isShareModalOpen && (
+        <ShareProjectModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          project={project}
+          currentUser={currentUser}
+        />
       )}
     </div>
   );

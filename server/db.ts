@@ -140,6 +140,31 @@ export async function runMigrationsAndSeed(): Promise<void> {
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
       ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_ready_review BOOLEAN DEFAULT true;
       ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_completed BOOLEAN DEFAULT true;
+
+      CREATE TABLE IF NOT EXISTS project_share_links (
+        id VARCHAR(64) PRIMARY KEY,
+        project_id VARCHAR(64) UNIQUE NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        share_token VARCHAR(64) UNIQUE NOT NULL,
+        is_enabled BOOLEAN DEFAULT TRUE,
+        password_hash VARCHAR(255),
+        expires_at TIMESTAMPTZ,
+        show_tasks BOOLEAN DEFAULT TRUE,
+        show_attachments BOOLEAN DEFAULT TRUE,
+        view_count INT DEFAULT 0,
+        last_viewed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_project_share_links_token ON project_share_links(share_token);
+      CREATE INDEX IF NOT EXISTS idx_project_share_links_project_id ON project_share_links(project_id);
+
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_project_share_links_project') THEN
+          ALTER TABLE project_share_links ADD CONSTRAINT uq_project_share_links_project UNIQUE (project_id);
+        END IF;
+      EXCEPTION
+        WHEN others THEN NULL;
+      END $$;
     `);
 
     // Ensure known existing members have clean usernames and passwords

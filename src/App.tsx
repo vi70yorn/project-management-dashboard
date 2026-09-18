@@ -39,6 +39,7 @@ import { TeamActivitiesDrawer } from './components/TeamActivitiesDrawer';
 import { ProjectDetail } from './components/ProjectDetail';
 import { TeamManagement } from './components/TeamManagement';
 import { LoginScreen } from './components/LoginScreen';
+import { ClientPortalView } from './components/ClientPortalView';
 import { CommandPalette } from './components/CommandPalette';
 import { ConfirmationModal } from './components/ConfirmationModal';
 
@@ -149,6 +150,22 @@ export default function App() {
     }
     return user;
   });
+
+  // Public Client Share Portal state (?shareToken=...)
+  const [clientShareToken, setClientShareToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('shareToken');
+  });
+
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('shareToken');
+      setClientShareToken(token);
+    };
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
+  }, []);
 
   // Theme State (Light / Dark Mode)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -1648,6 +1665,24 @@ export default function App() {
         showToast('error', err.message || 'Failed to update project assignments');
       });
   };
+
+  // If viewing via client share token, bypass auth and render dedicated read-only portal
+  if (clientShareToken) {
+    return (
+      <ClientPortalView
+        shareToken={clientShareToken}
+        onExit={() => {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('shareToken');
+          window.history.replaceState(null, '', url.pathname + (url.search ? `?${url.search}` : ''));
+          setClientShareToken(null);
+        }}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        uiStyle={uiStyle}
+      />
+    );
+  }
 
   // If not logged in, render the login screen before project management
   if (!currentUser) {

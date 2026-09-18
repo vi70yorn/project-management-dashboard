@@ -1,4 +1,18 @@
-import { Project, Task, TeamMember, StatusType, RecycleBinData, TaskComment, TaskTimelineResponse, TaskSubtask, InAppNotification, DocumentAttachment, StorageConfigStatus } from '../types';
+import {
+  Project,
+  Task,
+  TeamMember,
+  StatusType,
+  RecycleBinData,
+  TaskComment,
+  TaskTimelineResponse,
+  TaskSubtask,
+  InAppNotification,
+  DocumentAttachment,
+  StorageConfigStatus,
+  ProjectShareConfig,
+  ClientProjectResponse,
+} from '../types';
 import { loadAuthUser, loadJwtToken, saveJwtToken, clearJwtToken } from './storage';
 import { apiFetch } from '../utils/crypto';
 
@@ -763,6 +777,127 @@ export async function deleteAttachmentApi(
 
   return res.json();
 }
+
+// -------------------------------------------------------------
+// Client Read-Only Share Portal API
+// -------------------------------------------------------------
+
+/**
+ * Public: Fetch shared project data by token (with optional passcode header)
+ */
+export async function fetchClientSharedProjectApi(
+  token: string,
+  passcode?: string
+): Promise<ClientProjectResponse> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (passcode) {
+    headers['x-client-passcode'] = passcode;
+  }
+
+  const res = await apiFetch(`${API_BASE}/share/${encodeURIComponent(token)}`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to load client project portal (${res.status})`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Public: Verify client passcode for a shared project token
+ */
+export async function verifyClientSharePasscodeApi(
+  token: string,
+  passcode: string
+): Promise<{ success: boolean; message?: string }> {
+  const res = await apiFetch(`${API_BASE}/share/${encodeURIComponent(token)}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ passcode }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Incorrect passcode. Please try again.');
+  }
+
+  return res.json();
+}
+
+/**
+ * Authenticated (PM/Admin): Fetch share link configuration for a project
+ */
+export async function fetchProjectShareConfigApi(
+  projectId: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ exists: boolean; config: ProjectShareConfig | null }> {
+  const res = await apiFetch(`${API_BASE}/share/manage/${encodeURIComponent(projectId)}`, {
+    method: 'GET',
+    headers: getAuthHeaders(currentUser),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch project share settings');
+  }
+
+  return res.json();
+}
+
+/**
+ * Authenticated (PM/Admin): Save or update share link configuration
+ */
+export async function saveProjectShareConfigApi(
+  projectId: string,
+  config: {
+    isEnabled?: boolean;
+    passcode?: string;
+    removePassword?: boolean;
+    expiresAt?: string | null;
+    showTasks?: boolean;
+    showAttachments?: boolean;
+    regenerateToken?: boolean;
+  },
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ success: boolean; config: ProjectShareConfig; message: string }> {
+  const res = await apiFetch(`${API_BASE}/share/manage/${encodeURIComponent(projectId)}`, {
+    method: 'POST',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify(config),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to save project share settings');
+  }
+
+  return res.json();
+}
+
+/**
+ * Authenticated (PM/Admin): Revoke/disable share link
+ */
+export async function revokeProjectShareLinkApi(
+  projectId: string,
+  currentUser?: { memberId?: string; name?: string; avatar?: string; role?: string } | null
+): Promise<{ success: boolean; message: string }> {
+  const res = await apiFetch(`${API_BASE}/share/manage/${encodeURIComponent(projectId)}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(currentUser),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to disable share link');
+  }
+
+  return res.json();
+}
+
 
 
 

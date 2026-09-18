@@ -195,3 +195,92 @@ export interface StorageConfigStatus {
   folderId?: string;
   message: string;
 }
+
+export interface ProjectShareConfig {
+  id: string;
+  projectId: string;
+  shareToken: string;
+  isEnabled: boolean;
+  hasPassword: boolean;
+  expiresAt?: string | null;
+  showTasks: boolean;
+  showAttachments: boolean;
+  viewCount: number;
+  lastViewedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ClientProjectData {
+  id: string;
+  name: string;
+  description: string;
+  client: string;
+  status: StatusType;
+  startDate?: string;
+  targetDeadline?: string;
+  tags: string[];
+  color: string;
+  links: AttachedLink[];
+  createdAt: string;
+  updatedAt?: string;
+  managerName?: string;
+  managerRole?: string;
+  managerAvatar?: string;
+}
+
+export interface ClientTaskData {
+  id: string;
+  title: string;
+  description: string;
+  status: StatusType;
+  priority: PriorityType;
+  startDate?: string;
+  dueDate?: string;
+  createdAt: string;
+  links?: AttachedLink[];
+  subtasks?: {
+    id: string;
+    title: string;
+    completed: boolean;
+    position: number;
+  }[];
+}
+
+export interface ClientAttachmentData {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileType: string;
+  webViewLink: string;
+  downloadLink?: string | null;
+  createdAt: string;
+}
+
+export interface ClientMetrics {
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  reviewTasks: number;
+  blockedTasks: number;
+  progressPercent: number;
+  daysLeft: number | null;
+  isOverdue: boolean;
+}
+
+export interface ClientProjectResponse {
+  requiresPassword: boolean;
+  projectName?: string;
+  clientName?: string;
+  project?: ClientProjectData;
+  metrics?: ClientMetrics;
+  tasks?: ClientTaskData[];
+  attachments?: ClientAttachmentData[];
+  shareSettings?: {
+    showTasks: boolean;
+    showAttachments: boolean;
+    expiresAt?: string | null;
+  };
+}
+

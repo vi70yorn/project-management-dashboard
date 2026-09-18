@@ -1,12 +1,102 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Oldenburg&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,100..1000&family=Google+Sans+Text:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: 'Noto Sans', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-google-sans: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-nunito: 'Nunito', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-oldenburg: 'Oldenburg', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --text-2xs: 0.6875rem;
   --text-3xs: 0.625rem;
+}
+
+/* Local Google Sans & Google Sans Flex Web Font Definitions */
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Flex.woff2') format('woff2-variations'),
+       url('/fonts/GoogleSans-Flex.woff2') format('woff2'),
+       url('/fonts/GoogleSans-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Medium.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Bold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Bold.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Flex.woff2') format('woff2-variations'),
+       url('/fonts/GoogleSans-Flex.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Google Sans Text';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Regular.ttf') format('truetype'),
+       url('/fonts/GoogleSans-Flex.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Google Sans Text';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Medium.ttf') format('truetype'),
+       url('/fonts/GoogleSans-Flex.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Google Sans Text';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Bold.ttf') format('truetype'),
+       url('/fonts/GoogleSans-Flex.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Google Sans Text';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/GoogleSans-Bold.ttf') format('truetype'),
+       url('/fonts/GoogleSans-Flex.woff2') format('woff2');
 }
 
 html,
@@ -465,6 +555,65 @@ html.ui-normal.dark #main-navbar {
    accents, crisp high-contrast outlines, monospace metrics, and zero blur.
    ========================================================================== */
 
+/* Typography override: Google Sans font for Nothing OS style */
+html.ui-nothing,
+html[data-ui-style="nothing"] {
+  --font-sans: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  --default-font-family: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+html.ui-nothing,
+html.ui-nothing body,
+html.ui-nothing div,
+html.ui-nothing span,
+html.ui-nothing span:not([class*="lucide"]):not([class*="font-mono"]),
+html.ui-nothing p,
+html.ui-nothing h1,
+html.ui-nothing h2,
+html.ui-nothing h3,
+html.ui-nothing h4,
+html.ui-nothing h5,
+html.ui-nothing h6,
+html.ui-nothing button,
+html.ui-nothing input,
+html.ui-nothing select,
+html.ui-nothing textarea,
+html.ui-nothing a,
+html.ui-nothing label,
+html.ui-nothing table,
+html.ui-nothing th,
+html.ui-nothing td,
+html.ui-nothing [class*="font-sans"],
+html[data-ui-style="nothing"],
+html[data-ui-style="nothing"] body,
+html[data-ui-style="nothing"] div,
+html[data-ui-style="nothing"] span,
+html[data-ui-style="nothing"] span:not([class*="lucide"]):not([class*="font-mono"]),
+html[data-ui-style="nothing"] p,
+html[data-ui-style="nothing"] h1,
+html[data-ui-style="nothing"] h2,
+html[data-ui-style="nothing"] h3,
+html[data-ui-style="nothing"] h4,
+html[data-ui-style="nothing"] h5,
+html[data-ui-style="nothing"] h6,
+html[data-ui-style="nothing"] button,
+html[data-ui-style="nothing"] input,
+html[data-ui-style="nothing"] select,
+html[data-ui-style="nothing"] textarea,
+html[data-ui-style="nothing"] a,
+html[data-ui-style="nothing"] label,
+html[data-ui-style="nothing"] table,
+html[data-ui-style="nothing"] th,
+html[data-ui-style="nothing"] td,
+html[data-ui-style="nothing"] [class*="font-sans"] {
+  font-family: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+html.ui-nothing {
+  --font-sans: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
 /* Disable background fluid blobs, floating particles, and hue animations */
 html.ui-nothing .animate-main-color-hue,
 html.ui-nothing .animate-particle-float,
@@ -667,10 +816,17 @@ html.ui-nothing .font-mono-nothing {
 /* Typography: Apply Oldenburg font family when switch to Nothing Style */
 html.ui-nothing {
   --font-sans: 'Oldenburg', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+/* Typography: Apply Google Sans font family when switch to Nothing Style */
+html.ui-nothing,
+html[data-ui-style="nothing"] {
+  --font-sans: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  --default-font-family: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-family: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 html.ui-nothing,
 html.ui-nothing body,
+html.ui-nothing div,
 html.ui-nothing button,
 html.ui-nothing input,
 html.ui-nothing select,
@@ -689,6 +845,30 @@ html.ui-nothing label,
 html.ui-nothing a,
 html.ui-nothing span:not([class*="lucide"]):not([class*="font-mono"]) {
   font-family: 'Oldenburg', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+html.ui-nothing span:not([class*="lucide"]):not([class*="font-mono"]),
+html.ui-nothing [class*="font-sans"],
+html[data-ui-style="nothing"],
+html[data-ui-style="nothing"] body,
+html[data-ui-style="nothing"] div,
+html[data-ui-style="nothing"] button,
+html[data-ui-style="nothing"] input,
+html[data-ui-style="nothing"] select,
+html[data-ui-style="nothing"] textarea,
+html[data-ui-style="nothing"] p,
+html[data-ui-style="nothing"] h1,
+html[data-ui-style="nothing"] h2,
+html[data-ui-style="nothing"] h3,
+html[data-ui-style="nothing"] h4,
+html[data-ui-style="nothing"] h5,
+html[data-ui-style="nothing"] h6,
+html[data-ui-style="nothing"] table,
+html[data-ui-style="nothing"] th,
+html[data-ui-style="nothing"] td,
+html[data-ui-style="nothing"] label,
+html[data-ui-style="nothing"] a,
+html[data-ui-style="nothing"] span:not([class*="lucide"]):not([class*="font-mono"]),
+html[data-ui-style="nothing"] [class*="font-sans"] {
+  font-family: 'Google Sans', 'Google Sans Flex', 'Google Sans Text', 'Noto Sans Khmer', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 /* Retain monospace precision for code tags, shortcuts, and counters */
