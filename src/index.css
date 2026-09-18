@@ -878,6 +878,85 @@ html[data-ui-style="glass"] pre {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
 }
 
+/* ==========================================================================
+   Executive Printable Reports & PDF Export Styles
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  /* Reset body colors and ensure background graphics are preserved */
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10.5pt !important;
+    line-height: 1.4 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide app shell and navigation elements */
+  #main-navbar,
+  #app-footer,
+  #sky-bg,
+  .no-print,
+  button,
+  .modal-action-bar,
+  aside,
+  [class*="animate-fluid-blob"],
+  .nothing-grid-canvas {
+    display: none !important;
+  }
+
+  /* Modal wrapper override during printing */
+  .printable-modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .printable-report-sheet {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure card / table row elements do not get split across page breaks */
+  .print-break-inside-avoid,
+  .printable-report-sheet tr,
+  .printable-report-sheet .kpi-card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .printable-report-sheet table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .printable-report-sheet th,
+  .printable-report-sheet td {
+    border-color: #cbd5e1 !important;
+  }
+}
+
 
 
 

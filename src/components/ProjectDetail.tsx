@@ -30,6 +30,7 @@ import {
   Share2,
   Link as LinkIcon,
   Paperclip,
+  FileText,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
 import { getProjectShareUrl, getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
@@ -42,6 +43,7 @@ import { FormattedText } from './ui/FormattedText';
 import { DocumentAttachmentManager } from './DocumentAttachmentManager';
 import { LinkAttachmentManager } from './LinkAttachmentManager';
 import { ShareProjectModal } from './ShareProjectModal';
+import { ProjectReportModal } from './ProjectReportModal';
 import { fetchAttachmentsApi } from '../services/api';
 
 interface ProjectDetailProps {
@@ -286,6 +288,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [copiedProjectLink, setCopiedProjectLink] = useState(false);
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const handleShareProjectLink = () => {
     setIsShareModalOpen(true);
@@ -358,6 +361,16 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 <span>Share</span>
               </button>
               <button
+                id="header-export-project-btn"
+                type="button"
+                onClick={() => setIsReportModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                title="Export project to Excel, CSV, or Executive PDF Report"
+              >
+                <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Export Report</span>
+              </button>
+              <button
                 id="header-add-task-btn"
                 onClick={() => onOpenTaskModal(null, 'In Progress')}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
@@ -384,6 +397,16 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               >
                 <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 <span>Share Project</span>
+              </button>
+              <button
+                id="staff-export-project-btn"
+                type="button"
+                onClick={() => setIsReportModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                title="Export project to Excel, CSV, or Executive PDF Report"
+              >
+                <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Export Report</span>
               </button>
               <button
                 id="header-add-task-btn"
@@ -1404,6 +1427,17 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           onClose={() => setIsShareModalOpen(false)}
           project={project}
           currentUser={currentUser}
+        />
+      )}
+
+      {/* Project Export & Executive Report Modal */}
+      {isReportModalOpen && (
+        <ProjectReportModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          project={project}
+          tasks={tasks}
+          teamMembers={teamMembers}
         />
       )}
     </div>

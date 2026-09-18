@@ -19,6 +19,7 @@ import {
   LayoutGrid,
   Search,
   X,
+  Printer,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType } from '../types';
 import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
@@ -492,6 +493,16 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Export Excel</span>
+          </button>
+
+          {/* Print / Save as PDF Button */}
+          <button
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 dark:bg-blue-950/50 border border-blue-300/60 dark:border-blue-700/60 hover:bg-blue-500/20 backdrop-blur-xs transition-colors cursor-pointer shadow-2xs"
+            title="Print or Save Weekly Summary as PDF"
+          >
+            <Printer className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span>Print / PDF</span>
           </button>
 
           {/* Telegram Auto-Report Button */}
