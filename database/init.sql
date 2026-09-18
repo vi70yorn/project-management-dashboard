@@ -146,7 +146,6 @@ ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_completed BOOLEAN 
 
 INSERT INTO telegram_settings (id, enabled, notify_ready_review, notify_completed, send_day, send_time)
 VALUES ('default', false, true, true, 'Monday', '08:00')
-ON CONFLICT (id) DO NOTHING;
 ON CONFLICT (id) DO UPDATE SET
     notify_ready_review = COALESCE(telegram_settings.notify_ready_review, true),
     notify_completed = COALESCE(telegram_settings.notify_completed, true);
