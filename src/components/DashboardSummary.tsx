@@ -88,20 +88,28 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   initialDeadlineMemberFilter,
   onShowToast,
 }) => {
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role?.toLowerCase() === 'admin';
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Projects Directory View Mode State (Table vs Cards - Table default)
   const [projectListViewMode, setProjectListViewMode] = useState<'card' | 'table'>('table');
 
-  // Deadlines Section Filter & Pagination State: Default to 'In Progress' and auto-select logged-in user
-  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Ready Review' | 'Blocked'>('In Progress');
-  const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>(
-    initialDeadlineMemberFilter && initialDeadlineMemberFilter !== 'all'
-      ? initialDeadlineMemberFilter
-      : currentUser?.memberId || initialDeadlineMemberFilter || 'all'
+  // Deadlines Section Filter & Pagination State:
+  // Admin role defaults to 'all' status and 'all' members.
+  // Non-admin roles default to 'In Progress' and auto-select logged-in user.
+  const [deadlineStatusFilter, setDeadlineStatusFilter] = useState<'all' | 'In Progress' | 'Ready Review' | 'Blocked'>(
+    isAdmin ? 'all' : 'In Progress'
   );
+  const [deadlineMemberFilter, setDeadlineMemberFilter] = useState<string>(() => {
+    if (initialDeadlineMemberFilter && initialDeadlineMemberFilter !== 'all') {
+      return initialDeadlineMemberFilter;
+    }
+    if (isAdmin) {
+      return 'all';
+    }
+    return currentUser?.memberId || initialDeadlineMemberFilter || 'all';
+  });
   const [deadlineGroupBy, setDeadlineGroupBy] = useState<'none' | 'assignee' | 'priority' | 'status'>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [deadlinePageSize, setDeadlinePageSize] = useState<number | 'all'>(10);
@@ -132,15 +140,21 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
   const hasAutoSelectedUser = React.useRef(false);
 
-  // Sync deadlineMemberFilter when initialDeadlineMemberFilter changes or auto-select logged-in user
+  // Sync deadline filters when initialDeadlineMemberFilter changes or auto-select based on role
   useEffect(() => {
     if (initialDeadlineMemberFilter !== undefined && initialDeadlineMemberFilter !== 'all') {
       setDeadlineMemberFilter(initialDeadlineMemberFilter);
-    } else if (currentUser?.memberId && !hasAutoSelectedUser.current) {
-      setDeadlineMemberFilter(currentUser.memberId);
+    } else if (currentUser && !hasAutoSelectedUser.current) {
+      if (isAdmin) {
+        setDeadlineMemberFilter('all');
+        setDeadlineStatusFilter('all');
+      } else if (currentUser.memberId) {
+        setDeadlineMemberFilter(currentUser.memberId);
+        setDeadlineStatusFilter('In Progress');
+      }
       hasAutoSelectedUser.current = true;
     }
-  }, [initialDeadlineMemberFilter, currentUser?.memberId]);
+  }, [initialDeadlineMemberFilter, currentUser, isAdmin]);
 
   const safeProjects = Array.isArray(projects) ? projects : [];
   const safeTasks = Array.isArray(tasks) ? tasks : [];
@@ -329,6 +343,11 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   const deadlineStatusOptions: CustomSelectOption[] = useMemo(() => {
     return [
       {
+        value: 'all',
+        label: 'All Statuses',
+        badge: deadlineCounts.all,
+      },
+      {
         value: 'In Progress',
         label: 'In Progress',
         color: '#2563eb',
@@ -345,11 +364,6 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         label: 'Blocked',
         color: '#e11d48',
         badge: deadlineCounts.blocked,
-      },
-      {
-        value: 'all',
-        label: 'All Statuses',
-        badge: deadlineCounts.all,
       },
     ];
   }, [deadlineCounts]);

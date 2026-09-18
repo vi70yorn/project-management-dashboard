@@ -242,15 +242,21 @@ export default function App() {
 
   // Command Palette State (Ctrl + K / Cmd + K)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [dashboardMemberFilter, setDashboardMemberFilter] = useState<string>(currentUser?.memberId || 'all');
+  const [dashboardMemberFilter, setDashboardMemberFilter] = useState<string>(
+    currentUser?.role?.toLowerCase() === 'admin' ? 'all' : (currentUser?.memberId || 'all')
+  );
   const hasAutoSelectedDashboardMember = useRef(false);
 
   useEffect(() => {
     if (currentUser?.memberId && !hasAutoSelectedDashboardMember.current) {
-      setDashboardMemberFilter(currentUser.memberId);
+      if (currentUser?.role?.toLowerCase() === 'admin') {
+        setDashboardMemberFilter('all');
+      } else {
+        setDashboardMemberFilter(currentUser.memberId);
+      }
       hasAutoSelectedDashboardMember.current = true;
     }
-  }, [currentUser?.memberId]);
+  }, [currentUser?.memberId, currentUser?.role]);
 
   // Global Keyboard Shortcut: Ctrl + K or Cmd + K opens Command Palette
   useEffect(() => {
