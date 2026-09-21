@@ -23,6 +23,7 @@ router.get('/', async (_req: Request, res: Response) => {
         p.tags,
         p.color,
         COALESCE(p.links, '[]'::jsonb) AS links,
+        COALESCE(p.project_for, ARRAY['Mobile App UI', 'Web UI']::text[]) AS "projectFor",
         p.created_by AS "createdBy",
         COALESCE(cb_m.name, cb_u.name, 'Admin') AS "createdByName",
         COALESCE(cb_m.avatar, cb_u.avatar) AS "createdByAvatar",
@@ -66,6 +67,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     color = '#2563eb',
     memberIds = [],
     links = [],
+    projectFor = ['Mobile App UI', 'Web UI'],
     createdBy,
   } = req.body;
 
@@ -80,8 +82,8 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     await dbClient.query('BEGIN');
 
     const insertProjectQuery = `
-      INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, links, created_by, updated_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $12)
+      INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, links, project_for, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $13)
       RETURNING *;
     `;
     const result = await dbClient.query(insertProjectQuery, [
@@ -96,6 +98,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       tags,
       color,
       JSON.stringify(links),
+      Array.isArray(projectFor) && projectFor.length > 0 ? projectFor : ['Mobile App UI', 'Web UI'],
       effectiveCreatedBy,
     ]);
 
@@ -163,6 +166,7 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
     tags,
     color,
     links,
+    projectFor,
     memberIds,
     updatedBy,
   } = req.body;
@@ -190,9 +194,10 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
         tags = COALESCE($8, tags),
         color = COALESCE($9, color),
         links = COALESCE($10::jsonb, links),
-        updated_by = COALESCE($11, updated_by),
+        project_for = COALESCE($11, project_for),
+        updated_by = COALESCE($12, updated_by),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $12
+      WHERE id = $13
       RETURNING *;
     `;
 
@@ -207,6 +212,7 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
       tags,
       color,
       links !== undefined ? JSON.stringify(links) : null,
+      Array.isArray(projectFor) ? projectFor : null,
       effectiveUpdatedBy,
       id,
     ]);

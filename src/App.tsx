@@ -1074,6 +1074,7 @@ export default function App() {
         description: taskData.description || '',
         status: taskData.status || defaultTaskStatus,
         priority: taskData.priority || 'Medium',
+        taskFor: taskData.taskFor || 'Mobile App UI',
         createdBy: currentUser?.memberId || 'mem-2',
         assigneeId:
           currentUser?.role === 'staff'

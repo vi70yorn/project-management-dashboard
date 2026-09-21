@@ -17,8 +17,6 @@ import {
   KeyRound,
   LogOut,
   Shield,
-  Trash2,
-  Activity,
 } from 'lucide-react';
 import { TeamMember, Project, UserRole, AuthUser } from '../types';
 import { FORM_STYLES } from '../utils/formStyles';
@@ -749,69 +747,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
             </div>
           )}
 
-          {/* Workspace Utilities & Tools (Only for current user updating own profile) */}
-          {isOwnProfile && (onOpenTeamActivities || onOpenRecycleBin) && (
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Workspace Tools
-              </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {onOpenTeamActivities && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onOpenTeamActivities();
-                    }}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-sky-50 dark:hover:bg-sky-950/40 hover:border-sky-300 dark:hover:border-sky-700 text-left transition-all cursor-pointer group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Activity className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-sky-600 dark:group-hover:text-sky-400 truncate">
-                        Team Activities
-                      </p>
-                      <p className="text-3xs text-slate-500 dark:text-slate-400 truncate">
-                        Live updates & audit feed
-                      </p>
-                    </div>
-                  </button>
-                )}
-
-                {onOpenRecycleBin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onOpenRecycleBin();
-                    }}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 dark:hover:border-rose-700 text-left transition-all cursor-pointer group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Trash2 className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-rose-600 dark:group-hover:text-rose-400 truncate">
-                          Recycle Bin
-                        </p>
-                        {recycleBinCount > 0 && (
-                          <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                            {recycleBinCount}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-3xs text-slate-500 dark:text-slate-400 truncate">
-                        Recover deleted items
-                      </p>
-                    </div>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Account Security & Session Management (Only for current user updating own profile) */}
           {isOwnProfile && (

@@ -31,12 +31,14 @@ import {
   Link as LinkIcon,
   Paperclip,
   FileText,
+  Smartphone,
+  Monitor,
 } from 'lucide-react';
 import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
 import { getProjectShareUrl, getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
-import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
+import { StatusBadge, PriorityBadge, ScopeBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect } from './ui/CustomSelect';
 import { FormattedText } from './ui/FormattedText';
@@ -89,6 +91,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [activeTab, setActiveTab] = useState<'board' | 'team' | 'documents'>('board');
   const [projectAttachmentCount, setProjectAttachmentCount] = useState<number>(0);
   const [filterMemberId, setFilterMemberId] = useState<string>('all');
+  const [filterScope, setFilterScope] = useState<string>('all');
   const [searchTaskQuery, setSearchTaskQuery] = useState('');
   const [isManagingMembers, setIsManagingMembers] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(project?.memberIds || []);
@@ -234,16 +237,17 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     return safeTasks.filter((t) => t.projectId === project.id);
   }, [safeTasks, project?.id]);
 
-  // Filtered tasks by search & member
+  // Filtered tasks by search, member & scope
   const filteredTasks = useMemo(() => {
     return projectTasks.filter((t) => {
       const matchesMember = filterMemberId === 'all' || t.assigneeId === filterMemberId;
+      const matchesScope = filterScope === 'all' || t.taskFor === filterScope;
       const matchesSearch =
         (t.title || '').toLowerCase().includes(searchTaskQuery.toLowerCase()) ||
         (t.description || '').toLowerCase().includes(searchTaskQuery.toLowerCase());
-      return matchesMember && matchesSearch;
+      return matchesMember && matchesScope && matchesSearch;
     });
-  }, [projectTasks, filterMemberId, searchTaskQuery]);
+  }, [projectTasks, filterMemberId, filterScope, searchTaskQuery]);
 
   // Project assigned members
   const projectTeam = useMemo(() => {
@@ -370,14 +374,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Export Report</span>
               </button>
-              <button
-                id="header-add-task-btn"
-                onClick={() => onOpenTaskModal(null, 'In Progress')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                New Task
-              </button>
             </>
           ) : (
             <div className="flex items-center gap-2">
@@ -407,14 +403,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               >
                 <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Export Report</span>
-              </button>
-              <button
-                id="header-add-task-btn"
-                onClick={() => onOpenTaskModal(null, 'In Progress')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                Add My Task
               </button>
             </div>
           )}
@@ -475,6 +463,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   Lead: {projectManager.name}
                 </span>
               )}
+              {Array.isArray(project.projectFor) && project.projectFor.map((scope) => (
+                <ScopeBadge key={scope} scope={scope} size="xs" />
+              ))}
               {project.tags.map((tag, idx) => (
                 <span
                   key={idx}
@@ -776,6 +767,29 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 })),
               ]}
             />
+
+            {/* Scope Filter (when project has multiple scopes) */}
+            {Array.isArray(project.projectFor) && project.projectFor.length > 1 && (
+              <CustomSelect
+                id="filter-by-scope-select"
+                value={filterScope}
+                onChange={setFilterScope}
+                size="sm"
+                options={[
+                  { value: 'all', label: 'All Scopes', badge: projectTasks.length },
+                  ...project.projectFor.map((scope) => ({
+                    value: scope,
+                    label: scope,
+                    badge: projectTasks.filter((t) => t.taskFor === scope).length,
+                    icon: scope.toLowerCase().includes('mobile') ? (
+                      <Smartphone className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    ) : (
+                      <Monitor className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                    ),
+                  })),
+                ]}
+              />
+            )}
           </div>
         )}
       </div>
@@ -926,6 +940,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" title="Staff: View detail mode" />
                             )}
                             <PriorityBadge priority={task.priority} size="xs" />
+                            {task.taskFor && <ScopeBadge scope={task.taskFor} size="xs" />}
                             {Boolean(task.subtasks && task.subtasks.length > 0) && (() => {
                               const total = task.subtasks!.length;
                               const completed = task.subtasks!.filter((s) => s.completed).length;
@@ -1280,6 +1295,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                                 Today
                               </span>
                             )}
+                            {t.taskFor && <ScopeBadge scope={t.taskFor} size="xs" />}
                             <StatusBadge status={t.status} size="xs" />
                           </div>
                         </div>

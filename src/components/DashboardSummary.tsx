@@ -38,7 +38,7 @@ import { Project, Task, TeamMember, StatusType, AuthUser } from '../types';
 import { getProjectShareUrl, getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
-import { StatusBadge, PriorityBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
+import { StatusBadge, PriorityBadge, ScopeBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect, CustomSelectOption } from './ui/CustomSelect';
 
@@ -221,6 +221,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           dueDate: t.dueDate,
           diffDays,
           priority: t.priority,
+          taskFor: t.taskFor,
           status: t.status,
           assignee,
           assigneeId: t.assigneeId,
@@ -470,7 +471,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         const matchesSearch =
           p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           p.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (p.tags || []).some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+          (p.tags || []).some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (p.projectFor || []).some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()));
         return matchesStatus && matchesSearch;
       })
       .slice()
@@ -992,6 +994,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                 {item.title}
               </span>
+              {item.taskFor && <ScopeBadge scope={item.taskFor} size="xs" />}
               {/* Checklist count badge if task has Checklist */}
               {Boolean(item.task?.subtasks && item.task.subtasks.length > 0) && (() => {
                 const total = item.task!.subtasks!.length;
@@ -1886,6 +1889,9 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                                     {project.client}
                                   </span>
                                 )}
+                                {project.projectFor?.map((s) => (
+                                  <ScopeBadge key={s} scope={s} size="xs" />
+                                ))}
                                 {isCurrentUserAssigned && (
                                   <span className="inline-flex items-center gap-0.5 text-4xs font-bold px-1 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                                     <UserCheck className="w-2.5 h-2.5" />
@@ -2188,8 +2194,11 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                     {project.description}
                   </p>
 
-                  {/* Tags */}
+                  {/* Scope Badges & Tags */}
                   <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+                    {project.projectFor?.map((s) => (
+                      <ScopeBadge key={s} scope={s} size="xs" />
+                    ))}
                     {project.tags.map((tag, i) => (
                       <span
                         key={i}

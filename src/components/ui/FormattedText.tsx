@@ -7,7 +7,7 @@ interface FormattedTextProps {
 }
 
 const renderInline = (text: string, keyPrefix: string = ''): React.ReactNode[] => {
-  const pattern = /(<u>[\s\S]*?<\/u>|\*\*[^*]+?\*\*|~~[^~]+?~~|`[^`]+`|\*[^*]+?\*)/g;
+  const pattern = /(<(b|strong|i|em|u|del|s|strike|code)[^>]*>[\s\S]*?<\/\2>|\*\*[^*]+?\*\*|~~[^~]+?~~|`[^`]+`|\*[^*]+?\*)/gi;
   const nodes: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -22,31 +22,32 @@ const renderInline = (text: string, keyPrefix: string = ''): React.ReactNode[] =
       );
     }
     const token = match[0];
+    const tagMatch = match[2]?.toLowerCase();
     const itemKey = `${keyPrefix}-m-${index++}`;
 
-    if (token.startsWith('<u>') && token.endsWith('</u>')) {
-      const inner = token.slice(3, -4);
+    if (tagMatch === 'u' || (token.startsWith('<u>') && token.endsWith('</u>'))) {
+      const inner = token.replace(/<\/?u[^>]*>/gi, '');
       nodes.push(
         <span key={itemKey} className="underline underline-offset-2 decoration-slate-400 dark:decoration-slate-500">
           {renderInline(inner, itemKey)}
         </span>
       );
-    } else if (token.startsWith('**') && token.endsWith('**')) {
-      const inner = token.slice(2, -2);
+    } else if (tagMatch === 'b' || tagMatch === 'strong' || (token.startsWith('**') && token.endsWith('**'))) {
+      const inner = token.startsWith('**') ? token.slice(2, -2) : token.replace(/<\/?(b|strong)[^>]*>/gi, '');
       nodes.push(
         <strong key={itemKey} className="font-semibold text-slate-900 dark:text-white">
           {renderInline(inner, itemKey)}
         </strong>
       );
-    } else if (token.startsWith('~~') && token.endsWith('~~')) {
-      const inner = token.slice(2, -2);
+    } else if (tagMatch === 'del' || tagMatch === 's' || tagMatch === 'strike' || (token.startsWith('~~') && token.endsWith('~~'))) {
+      const inner = token.startsWith('~~') ? token.slice(2, -2) : token.replace(/<\/?(del|s|strike)[^>]*>/gi, '');
       nodes.push(
         <del key={itemKey} className="line-through text-slate-400 dark:text-slate-500">
           {renderInline(inner, itemKey)}
         </del>
       );
-    } else if (token.startsWith('`') && token.endsWith('`')) {
-      const inner = token.slice(1, -1);
+    } else if (tagMatch === 'code' || (token.startsWith('`') && token.endsWith('`'))) {
+      const inner = token.startsWith('`') ? token.slice(1, -1) : token.replace(/<\/?code[^>]*>/gi, '');
       nodes.push(
         <code
           key={itemKey}
@@ -55,8 +56,8 @@ const renderInline = (text: string, keyPrefix: string = ''): React.ReactNode[] =
           {inner}
         </code>
       );
-    } else if (token.startsWith('*') && token.endsWith('*')) {
-      const inner = token.slice(1, -1);
+    } else if (tagMatch === 'i' || tagMatch === 'em' || (token.startsWith('*') && token.endsWith('*'))) {
+      const inner = token.startsWith('*') ? token.slice(1, -1) : token.replace(/<\/?(i|em)[^>]*>/gi, '');
       nodes.push(
         <em key={itemKey} className="italic">
           {renderInline(inner, itemKey)}
@@ -98,7 +99,16 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
     return null;
   }
 
-  const lines = content.split('\n');
+  let normalizedContent = content;
+  if (normalizedContent.includes('<blockquote')) {
+    normalizedContent = normalizedContent.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (_match, p1) => {
+      const bqLines = p1.replace(/<br\s*[\/]?>/gi, '\n').replace(/<\/?[^>]+>/g, '').split('\n');
+      return '\n' + bqLines.map((l: string) => '> ' + l.trim()).join('\n') + '\n';
+    });
+  }
+  normalizedContent = normalizedContent.replace(/<br\s*[\/]?>/gi, '\n');
+
+  const lines = normalizedContent.split('\n');
   const groups: LineGroup[] = [];
   let currentGroup: LineGroup | null = null;
 
@@ -155,4 +165,3 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
     </div>
   );
 };
-

@@ -33,6 +33,8 @@ export interface TeamMember {
   createdAt?: string;
 }
 
+export type ProjectScopeType = 'Mobile App UI' | 'Web UI';
+
 export interface Task {
   id: string;
   projectId: string;
@@ -42,6 +44,7 @@ export interface Task {
   status: StatusType;
   priority: PriorityType;
   assigneeId: string;
+  taskFor?: ProjectScopeType | string;
   createdBy?: string;
   createdByName?: string;
   createdByAvatar?: string;
@@ -119,6 +122,7 @@ export interface Project {
   memberIds: string[];
   tags: string[];
   color: string;
+  projectFor?: (ProjectScopeType | string)[];
   createdBy?: string;
   createdByName?: string;
   createdByAvatar?: string;

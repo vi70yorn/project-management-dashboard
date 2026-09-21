@@ -12,6 +12,7 @@ export async function getTaskById(pool: any, id: string) {
       t.status,
       t.priority,
       t.assignee_id AS "assigneeId",
+      t.task_for AS "taskFor",
       COALESCE(t.links, '[]'::jsonb) AS links,
       t.created_by AS "createdBy",
       COALESCE(cb_m.name, cb_u.name, 'Team Member') AS "createdByName",

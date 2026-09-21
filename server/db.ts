@@ -114,6 +114,7 @@ export async function runMigrationsAndSeed(): Promise<void> {
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
+          ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_for TEXT[] DEFAULT '{"Mobile App UI", "Web UI"}';
         END IF;
         IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tasks') THEN
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
@@ -121,6 +122,7 @@ export async function runMigrationsAndSeed(): Promise<void> {
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
+          ALTER TABLE tasks ADD COLUMN IF NOT EXISTS task_for VARCHAR(64) DEFAULT NULL;
         END IF;
         IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'telegram_settings') THEN
           ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_ready_review BOOLEAN DEFAULT true;
@@ -132,12 +134,15 @@ export async function runMigrationsAndSeed(): Promise<void> {
     console.log('[PostgreSQL] Executing database/init.sql schema and seed data...');
     await client.query(sql);
 
-    // Apply migrations for username, password, and links columns if existing table didn't have them
+    // Apply migrations for username, password, links, project_for, and task_for columns if existing table didn't have them
     await client.query(`
       ALTER TABLE team_members ADD COLUMN IF NOT EXISTS username VARCHAR(64) UNIQUE;
       ALTER TABLE team_members ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT '123456';
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_for TEXT[] DEFAULT '{"Mobile App UI", "Web UI"}';
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS task_for VARCHAR(64) DEFAULT NULL;
+      UPDATE projects SET project_for = '{"Mobile App UI", "Web UI"}' WHERE project_for IS NULL OR cardinality(project_for) = 0;
       ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_ready_review BOOLEAN DEFAULT true;
       ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_completed BOOLEAN DEFAULT true;
 

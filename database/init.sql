@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS projects (
     tags TEXT[] DEFAULT '{}',
     color VARCHAR(32) DEFAULT '#2563eb',
     links JSONB DEFAULT '[]',
+    project_for TEXT[] DEFAULT '{"Mobile App UI", "Web UI"}',
     deleted_at TIMESTAMPTZ DEFAULT NULL,
     deleted_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     created_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
@@ -63,6 +64,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     start_date VARCHAR(32),
     due_date VARCHAR(32),
     links JSONB DEFAULT '[]',
+    task_for VARCHAR(64) DEFAULT NULL,
     deleted_at TIMESTAMPTZ DEFAULT NULL,
     deleted_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -103,14 +105,14 @@ VALUES
     ('mem-1788624800573', 'Likka', 'likka', '1234', 'likka@team.org', 'UX/UI Designer', 'staff', '#2563eb', 'active')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, created_by, updated_by, created_at, updated_at)
+INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, project_for, created_by, updated_by, created_at, updated_at)
 VALUES
     ('proj-1788624651745', 'Merchant 5.0', '- Home
 - View QR
 - Transaction
 - Report
 - Staff Management
-- Business Management', 'UX/UI', 'In Progress', '2026-09-05', '2026-10-05', 'mem-1788624319284', ARRAY['Mobile', 'Merchant'], '#7c3aed', 'mem-1788624319284', 'mem-1788624319284', '2026-09-05T16:10:52.120Z', '2026-09-05T16:54:45.761Z')
+- Business Management', 'UX/UI', 'In Progress', '2026-09-05', '2026-10-05', 'mem-1788624319284', ARRAY['Mobile', 'Merchant'], '#7c3aed', ARRAY['Mobile App UI'], 'mem-1788624319284', 'mem-1788624319284', '2026-09-05T16:10:52.120Z', '2026-09-05T16:54:45.761Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO project_members (project_id, member_id, assigned_at)
@@ -120,10 +122,10 @@ VALUES
     ('proj-1788624651745', 'mem-1788624800573', '2026-09-05T16:54:45.761Z')
 ON CONFLICT (project_id, member_id) DO NOTHING;
 
-INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, created_by, updated_by, start_date, due_date, created_at, updated_at)
+INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, task_for, created_by, updated_by, start_date, due_date, created_at, updated_at)
 VALUES
-    ('task-1788624838718', 'proj-1788624651745', 'Report Screen', 'Create a complete UI screen of the function', 'Completed', 'Medium', 'mem-1788624800573', 'mem-1788624319284', 'mem-1788624319284', '2026-09-05', '2026-09-12', '2026-09-05T16:13:59.069Z', '2026-09-05T16:55:13.264Z'),
-    ('task-1788624689153', 'proj-1788624651745', 'Home', 'Create a complete home screen', 'In Progress', 'Medium', 'mem-1788624380119', 'mem-1788624319284', 'mem-1788624319284', '2026-09-05', '2026-09-06', '2026-09-05T16:11:29.188Z', '2026-09-06T05:42:02.918Z')
+    ('task-1788624838718', 'proj-1788624651745', 'Report Screen', 'Create a complete UI screen of the function', 'Completed', 'Medium', 'mem-1788624800573', 'Mobile App UI', 'mem-1788624319284', 'mem-1788624319284', '2026-09-05', '2026-09-12', '2026-09-05T16:13:59.069Z', '2026-09-05T16:55:13.264Z'),
+    ('task-1788624689153', 'proj-1788624651745', 'Home', 'Create a complete home screen', 'In Progress', 'Medium', 'mem-1788624380119', 'Mobile App UI', 'mem-1788624319284', 'mem-1788624319284', '2026-09-05', '2026-09-06', '2026-09-05T16:11:29.188Z', '2026-09-06T05:42:02.918Z')
 ON CONFLICT (id) DO NOTHING;
 
 -- 6. Telegram Automated Weekly Report Settings Table
@@ -176,9 +178,11 @@ VALUES
     ('act-3', 'mem-1788624319284', 'Y.VICHET', 'create_project', 'project', 'proj-1788624651745', 'Merchant 5.0', 'proj-1788624651745', 'Merchant 5.0', '{"status": "In Progress"}', '2026-09-05T16:10:52.120Z')
 ON CONFLICT (id) DO NOTHING;
 
--- Recycle Bin migrations & indexes
+-- Recycle Bin & Scope migrations & indexes
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_for TEXT[] DEFAULT '{"Mobile App UI", "Web UI"}';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS task_for VARCHAR(64) DEFAULT NULL;
 CREATE INDEX IF NOT EXISTS idx_projects_deleted_at ON projects(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_tasks_deleted_at ON tasks(deleted_at);
 

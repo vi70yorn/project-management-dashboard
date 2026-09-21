@@ -23,6 +23,7 @@ router.get('/', async (_req: Request, res: Response) => {
         t.status,
         t.priority,
         t.assignee_id AS "assigneeId",
+        t.task_for AS "taskFor",
         COALESCE(t.links, '[]'::jsonb) AS links,
         t.created_by AS "createdBy",
         COALESCE(cb_m.name, cb_u.name, 'Team Member') AS "createdByName",
@@ -83,6 +84,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     createdBy,
     startDate,
     dueDate,
+    taskFor = null,
     links = [],
   } = req.body;
 
@@ -92,8 +94,8 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const pool = getPool();
     const query = `
-      INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, links, created_by, updated_by, start_date, due_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11)
+      INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, links, task_for, created_by, updated_by, start_date, due_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $11, $12)
       RETURNING id;
     `;
     await pool.query(query, [
@@ -105,6 +107,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       priority,
       assigneeId || null,
       JSON.stringify(links || []),
+      taskFor || null,
       effectiveCreatedBy,
       startDate || null,
       dueDate,
@@ -204,6 +207,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       status,
       priority,
       assigneeId,
+      taskFor: taskFor || null,
       createdBy: effectiveCreatedBy,
       updatedBy: effectiveCreatedBy,
       startDate,
@@ -230,6 +234,7 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
     createdBy,
     startDate,
     dueDate,
+    taskFor,
     links,
     updatedBy,
   } = req.body;
@@ -256,9 +261,10 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
         start_date = $8,
         due_date = COALESCE($9, due_date),
         links = COALESCE($10::jsonb, links),
-        updated_by = COALESCE($11, updated_by),
+        task_for = COALESCE($11, task_for),
+        updated_by = COALESCE($12, updated_by),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $12
+      WHERE id = $13
       RETURNING id, project_id AS "projectId";
     `;
     const result = await pool.query(query, [
@@ -272,6 +278,7 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
       startDate || null,
       dueDate,
       links !== undefined ? JSON.stringify(links) : null,
+      taskFor !== undefined ? taskFor : null,
       effectiveUpdatedBy,
       id,
     ]);

@@ -1,5 +1,6 @@
 import React from 'react';
-import { StatusType, PriorityType } from '../types';
+import { Smartphone, Monitor } from 'lucide-react';
+import { StatusType, PriorityType, ProjectScopeType } from '../types';
 
 /**
  * Returns consistent filter-style classes for project and task statuses.
@@ -104,6 +105,46 @@ export const PriorityBadge: React.FC<PriorityBadgeProps> = ({
     <span className={`${getPriorityBadgeClass(priority, size)} ${className}`}>
       {prefix && <span className="opacity-80 font-normal mr-1">{prefix}</span>}
       {priority}
+    </span>
+  );
+};
+
+export interface ScopeBadgeProps {
+  scope: ProjectScopeType | string;
+  size?: 'xs' | 'sm' | 'md';
+  showIcon?: boolean;
+  className?: string;
+}
+
+export const ScopeBadge: React.FC<ScopeBadgeProps> = ({
+  scope,
+  size = 'xs',
+  showIcon = true,
+  className = '',
+}) => {
+  const isMobile = scope.toLowerCase().includes('mobile');
+  const sizeCls = size === 'xs' ? 'text-3xs px-1.5 py-0.5 rounded-md gap-1' : 'text-xs px-2 py-0.5 rounded-md gap-1.5';
+  const iconCls = size === 'xs' ? 'w-2.5 h-2.5 shrink-0' : 'w-3 h-3 shrink-0';
+
+  if (isMobile) {
+    return (
+      <span
+        title="Mobile App UI Deliverable"
+        className={`inline-flex items-center font-semibold border shadow-2xs whitespace-nowrap select-none bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/80 ${sizeCls} ${className}`}
+      >
+        {showIcon && <Smartphone className={iconCls} />}
+        <span>{scope}</span>
+      </span>
+    );
+  }
+
+  return (
+    <span
+      title="Web UI Deliverable"
+      className={`inline-flex items-center font-semibold border shadow-2xs whitespace-nowrap select-none bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/80 ${sizeCls} ${className}`}
+    >
+      {showIcon && <Monitor className={iconCls} />}
+      <span>{scope}</span>
     </span>
   );
 };

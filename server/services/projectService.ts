@@ -17,6 +17,7 @@ export async function getProjectById(pool: any, id: string) {
       p.tags,
       p.color,
       COALESCE(p.links, '[]'::jsonb) AS links,
+      COALESCE(p.project_for, ARRAY['Mobile App UI', 'Web UI']::text[]) AS "projectFor",
       p.created_by AS "createdBy",
       COALESCE(cb_m.name, cb_u.name, 'Admin') AS "createdByName",
       COALESCE(cb_m.avatar, cb_u.avatar) AS "createdByAvatar",
