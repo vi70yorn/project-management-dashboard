@@ -41,6 +41,7 @@ import { FORM_STYLES } from '../utils/formStyles';
 import { StatusBadge, PriorityBadge, ScopeBadge, getStatusBadgeClass, getPriorityBadgeClass } from './Badges';
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect, CustomSelectOption } from './ui/CustomSelect';
+import { TeamCapacityBarometer } from './TeamCapacityBarometer';
 
 interface DashboardSummaryProps {
   projects: Project[];
@@ -50,7 +51,7 @@ interface DashboardSummaryProps {
   onOpenNewProject: () => void;
   onUpdateProjectStatus: (projectId: string, newStatus: StatusType) => void;
   onUpdateTaskStatus?: (taskId: string, newStatus: StatusType) => void;
-  onOpenTaskModal?: (task?: Task | null, defaultStatus?: StatusType) => void;
+  onOpenTaskModal?: (task?: Task | null, defaultStatus?: StatusType, defaultAssigneeId?: string) => void;
   onNavigateToTeam?: () => void;
   onOpenAddMember?: () => void;
   currentUser?: AuthUser | null;
@@ -1205,7 +1206,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
   };
 
   return (
-    <div id="dashboard-summary-view" className="space-y-8 pb-16">
+    <div id="dashboard-summary-view" className="space-y-5 pb-16">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -1404,10 +1405,28 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         </div>
       </div>
 
+      {/* Team Workload & Capacity Barometer */}
+      <TeamCapacityBarometer
+        projects={safeProjects}
+        projectTeam={safeMembers}
+        projectTasks={safeTasks}
+        allTasks={safeTasks}
+        selectedMemberId={deadlineMemberFilter}
+        onSelectMember={(memberId) => {
+          setDeadlineMemberFilter(memberId);
+          setDeadlineCurrentPage(1);
+        }}
+        onOpenTaskModal={(task, defaultStatus, defaultAssigneeId) => {
+          onOpenTaskModal?.(task, defaultStatus, defaultAssigneeId);
+        }}
+        currentUser={currentUser}
+        isDashboardView={true}
+      />
+
       {/* Deadlines & Projects Directory */}
-      <div className="space-y-8 min-w-0">
+      <div className="space-y-5 min-w-0">
         {/* Upcoming Deadlines Section */}
-          <div className="glass-panel rounded-2xl p-4 sm:p-6">
+        <div className="glass-panel rounded-2xl p-4 sm:p-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">

@@ -1078,6 +1078,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             onSelectMember={(memberId) => setFilterMemberId(memberId)}
             onOpenTaskModal={onOpenTaskModal}
             currentUser={currentUser}
+            className="mb-5"
           />
 
           <div id="kanban-board-container" className="flex gap-3.5 items-start pb-8 overflow-x-auto min-w-full">

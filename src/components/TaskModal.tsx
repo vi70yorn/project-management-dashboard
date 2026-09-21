@@ -131,15 +131,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   const safeTasks = Array.isArray(tasks) ? tasks : [];
 
-  // Active task check based on project stages
+  // Active task check: count ONLY status 'In Progress'
   const isTaskActive = (t: Task) => {
-    const proj = safeProjects.find((p) => p.id === t.projectId);
-    const stages = proj?.stages && proj.stages.length > 0 ? proj.stages : DEFAULT_PROJECT_STAGES;
-    const stage = stages.find((s) => s.name.trim().toLowerCase() === t.status.trim().toLowerCase());
-    if (stage) {
-      return stage.category === 'active' || stage.category === 'blocked';
-    }
-    return t.status !== 'Completed' && t.status !== 'Draft';
+    return t.status.trim().toLowerCase() === 'in progress';
   };
 
   // Map of active task counts per member ID
