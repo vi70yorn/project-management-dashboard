@@ -17,6 +17,7 @@ export async function getProjectById(pool: any, id: string) {
       p.tags,
       p.color,
       COALESCE(p.links, '[]'::jsonb) AS links,
+      COALESCE(p.stages, '[{"id":"draft","name":"Draft","color":"#6b7280","category":"backlog"},{"id":"in-progress","name":"In Progress","color":"#3b82f6","category":"active"},{"id":"ready-review","name":"Ready Review","color":"#8b5cf6","category":"active"},{"id":"blocked","name":"Blocked","color":"#ef4444","category":"blocked"},{"id":"completed","name":"Completed","color":"#10b981","category":"done"}]'::jsonb) AS stages,
       COALESCE(p.project_for, ARRAY['Mobile App UI', 'Web UI']::text[]) AS "projectFor",
       p.created_by AS "createdBy",
       COALESCE(cb_m.name, cb_u.name, 'Admin') AS "createdByName",
@@ -43,21 +44,32 @@ export async function getProjectById(pool: any, id: string) {
 
 /**
  * Helper: dynamically sync project status based on task completions and blockers:
- * - If ALL non-deleted tasks are 'Completed' -> auto-set project to 'Completed'.
- * - If tasks are not all completed and project is currently 'Completed' -> move back to 'In Progress' (or 'Blocked' if any task is blocked).
+ * - If ALL non-deleted tasks are in 'done' stages -> auto-set project to done status.
+ * - If tasks are not all completed and project is currently in 'done' status -> move back to 'In Progress' (or 'Blocked' if any task is blocked).
  * - If project is 'Blocked' and has 0 blocked tasks remaining -> unblock to 'In Progress'.
  */
 export async function syncProjectStatus(pool: any, projectId: string): Promise<void> {
   if (!projectId) return;
   try {
+    const projRes = await pool.query(`SELECT stages, status FROM projects WHERE id = $1`, [projectId]);
+    if (projRes.rowCount === 0) return;
+    const stages = projRes.rows[0].stages || [];
+    const doneStages: string[] = Array.isArray(stages) && stages.filter((s: any) => s.category === 'done').length > 0
+      ? stages.filter((s: any) => s.category === 'done').map((s: any) => s.name)
+      : ['Completed'];
+    const blockedStages: string[] = Array.isArray(stages) && stages.filter((s: any) => s.category === 'blocked').length > 0
+      ? stages.filter((s: any) => s.category === 'blocked').map((s: any) => s.name)
+      : ['Blocked'];
+    const defaultDoneName = doneStages[0] || 'Completed';
+
     const res = await pool.query(
       `SELECT 
          COUNT(*) AS total,
-         COUNT(*) FILTER (WHERE status = 'Completed') AS completed,
-         COUNT(*) FILTER (WHERE status = 'Blocked') AS blocked
+         COUNT(*) FILTER (WHERE status = ANY($2::text[])) AS completed,
+         COUNT(*) FILTER (WHERE status = ANY($3::text[])) AS blocked
        FROM tasks 
        WHERE project_id = $1 AND deleted_at IS NULL`,
-      [projectId]
+      [projectId, doneStages, blockedStages]
     );
     if (res.rowCount === 0) return;
     const total = parseInt(res.rows[0].total, 10);
@@ -66,8 +78,8 @@ export async function syncProjectStatus(pool: any, projectId: string): Promise<v
 
     if (total > 0 && completed === total) {
       const upd = await pool.query(
-        `UPDATE projects SET status = 'Completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status != 'Completed' RETURNING name`,
-        [projectId]
+        `UPDATE projects SET status = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND status != $2 RETURNING name`,
+        [projectId, defaultDoneName]
       );
       if (upd.rowCount > 0) {
         const pName = upd.rows[0].name;
@@ -85,8 +97,8 @@ export async function syncProjectStatus(pool: any, projectId: string): Promise<v
     } else if (total > 0 && completed < total) {
       const nextStatus = blocked > 0 ? 'Blocked' : 'In Progress';
       await pool.query(
-        `UPDATE projects SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND status = 'Completed'`,
-        [nextStatus, projectId]
+        `UPDATE projects SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND status = ANY($3::text[])`,
+        [nextStatus, projectId, doneStages]
       );
     } else if (blocked === 0) {
       await pool.query(
@@ -98,4 +110,5 @@ export async function syncProjectStatus(pool: any, projectId: string): Promise<v
     console.error(`[syncProjectStatus error for ${projectId}]:`, err.message);
   }
 }
+
 

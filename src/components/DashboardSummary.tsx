@@ -169,11 +169,26 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     const blockedProjects = safeProjects.filter((p) => p.status === 'Blocked').length;
     const completedProjects = safeProjects.filter((p) => p.status === 'Completed').length;
 
+    const getTaskCategory = (t: Task): string => {
+      const proj = safeProjects.find((p) => p.id === t.projectId);
+      const stages = proj?.stages;
+      if (stages && stages.length > 0) {
+        const stage = stages.find((s) => s.name.trim().toLowerCase() === t.status.trim().toLowerCase());
+        if (stage) return stage.category;
+      }
+      if (t.status === 'Completed') return 'done';
+      if (t.status === 'Blocked') return 'blocked';
+      if (t.status === 'Draft') return 'backlog';
+      return 'active';
+    };
+
     const totalTasks = safeTasks.length;
-    const draftTasks = safeTasks.filter((t) => t.status === 'Draft').length;
-    const inProgressTasks = safeTasks.filter((t) => t.status === 'In Progress').length;
-    const blockedTasks = safeTasks.filter((t) => t.status === 'Blocked').length;
-    const completedTasks = safeTasks.filter((t) => t.status === 'Completed').length;
+    const draftTasks = safeTasks.filter((t) => getTaskCategory(t) === 'backlog').length;
+    const inProgressTasks = safeTasks.filter(
+      (t) => t.status === 'In Progress' || (getTaskCategory(t) === 'active' && t.status !== 'Ready Review')
+    ).length;
+    const blockedTasks = safeTasks.filter((t) => getTaskCategory(t) === 'blocked').length;
+    const completedTasks = safeTasks.filter((t) => getTaskCategory(t) === 'done').length;
     const readyReviewTasks = safeTasks.filter((t) => t.status === 'Ready Review' || t.status === 'Pending').length;
 
     const overallCompletionRate =
@@ -196,13 +211,28 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
     };
   }, [safeProjects, safeTasks]);
 
-  // All open active tasks (In Progress, Ready Review, Blocked) sorted by nearest deadline (Draft tasks excluded while under drafting)
+  // All open active tasks (In Progress, Ready Review, Blocked, custom active) sorted by nearest deadline (Draft tasks excluded while under drafting)
   const allActiveDeadlines = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     return safeTasks
-      .filter((t) => t.status === 'In Progress' || t.status === 'Ready Review' || t.status === 'Pending' || t.status === 'Blocked')
+      .filter((t) => {
+        const proj = safeProjects.find((p) => p.id === t.projectId);
+        const stages = proj?.stages;
+        if (stages && stages.length > 0) {
+          const stage = stages.find((s) => s.name.trim().toLowerCase() === t.status.trim().toLowerCase());
+          if (stage) {
+            return stage.category === 'active' || stage.category === 'blocked';
+          }
+        }
+        return (
+          t.status === 'In Progress' ||
+          t.status === 'Ready Review' ||
+          t.status === 'Pending' ||
+          t.status === 'Blocked'
+        );
+      })
       .map((t) => {
         const proj = safeProjects.find((p) => p.id === t.projectId);
         const assignee = safeMembers.find((m) => m.id === t.assigneeId);
@@ -227,6 +257,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           assigneeId: t.assigneeId,
           createdBy: t.createdBy,
           subtasks: t.subtasks,
+          projectStages: proj?.stages,
         };
       })
       .sort((a, b) => a.diffDays - b.diffDays);
@@ -1091,10 +1122,20 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               status={item.status}
               onChange={(newStatus) => onUpdateTaskStatus?.(item.id, newStatus)}
               size="sm"
-              excludeStatuses={['Draft']}
+              stages={item.projectStages}
+              role={currentUser?.role}
+              excludeStatuses={currentUser?.role === 'staff' ? ['Draft'] : ['Draft']}
             />
           ) : (
-            <StatusBadge status={item.status} size="sm" />
+            <StatusBadge
+              status={item.status}
+              size="sm"
+              stageColor={
+                item.projectStages?.find(
+                  (s: any) => s.name.trim().toLowerCase() === item.status.trim().toLowerCase()
+                )?.color
+              }
+            />
           )}
         </td>
 

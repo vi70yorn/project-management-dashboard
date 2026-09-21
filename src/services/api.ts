@@ -1,5 +1,6 @@
 import {
   Project,
+  ProjectStage,
   Task,
   TeamMember,
   StatusType,
@@ -152,6 +153,42 @@ export async function updateProjectMembersApi(
   return res.json();
 }
 
+export async function updateProjectStagesApi(
+  projectId: string,
+  stages: ProjectStage[],
+  currentUser?: { memberId?: string; name?: string; role?: string } | null
+): Promise<Project> {
+  const res = await apiFetch(`${API_BASE}/projects/${projectId}/stages`, {
+    method: 'PUT',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify({ stages }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to update project stages (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deleteProjectStageApi(
+  projectId: string,
+  stageId: string,
+  stageName: string,
+  reassignToStageName?: string,
+  currentUser?: { memberId?: string; name?: string; role?: string } | null
+): Promise<Project> {
+  const res = await apiFetch(`${API_BASE}/projects/${projectId}/stages/delete`, {
+    method: 'POST',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify({ stageId, stageName, reassignToStageName }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to delete project stage (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function deleteProjectApi(
   id: string,
   currentUser?: { memberId?: string; name?: string } | null
@@ -185,6 +222,20 @@ export async function createTaskApi(
     body: JSON.stringify(taskData),
   });
   if (!res.ok) throw new Error(`Failed to create task (${res.status})`);
+  return res.json();
+}
+
+export async function duplicateTaskApi(
+  id: string,
+  currentUser?: { memberId?: string; name?: string } | null,
+  overrides?: { title?: string; status?: string }
+): Promise<Task> {
+  const res = await apiFetch(`${API_BASE}/tasks/${id}/duplicate`, {
+    method: 'POST',
+    headers: getAuthHeaders(currentUser),
+    body: JSON.stringify(overrides || {}),
+  });
+  if (!res.ok) throw new Error(`Failed to duplicate task (${res.status})`);
   return res.json();
 }
 

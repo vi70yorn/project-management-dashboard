@@ -7,6 +7,7 @@ import {
   Users,
   Edit2,
   Trash2,
+  CopyPlus,
   CheckCircle2,
   AlertCircle,
   Clock,
@@ -33,8 +34,12 @@ import {
   FileText,
   Smartphone,
   Monitor,
+  MoreVertical,
+  MoveLeft,
+  MoveRight,
+  Palette,
 } from 'lucide-react';
-import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser } from '../types';
+import { Project, Task, TeamMember, StatusType, PriorityType, AuthUser, ProjectStage, StageCategory, DEFAULT_PROJECT_STAGES } from '../types';
 import { getProjectShareUrl, getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
@@ -46,16 +51,18 @@ import { DocumentAttachmentManager } from './DocumentAttachmentManager';
 import { LinkAttachmentManager } from './LinkAttachmentManager';
 import { ShareProjectModal } from './ShareProjectModal';
 import { ProjectReportModal } from './ProjectReportModal';
-import { fetchAttachmentsApi } from '../services/api';
+import { TeamCapacityBarometer } from './TeamCapacityBarometer';
+import { fetchAttachmentsApi, updateProjectStagesApi, deleteProjectStageApi } from '../services/api';
 
 interface ProjectDetailProps {
   project: Project;
   tasks: Task[];
   teamMembers: TeamMember[];
+  allTasks?: Task[];
   onBackToDashboard: () => void;
   onUpdateProjectStatus: (projectId: string, newStatus: StatusType) => void;
   onUpdateProjectMembers: (projectId: string, memberIds: string[]) => void;
-  onOpenTaskModal: (task?: Task | null, defaultStatus?: StatusType) => void;
+  onOpenTaskModal: (task?: Task | null, defaultStatus?: StatusType, defaultAssigneeId?: string) => void;
   onDeleteTaskRequest: (task: Task) => void;
   onUpdateTaskStatus: (taskId: string, newStatus: StatusType) => void;
   onReassignTask: (taskId: string, assigneeId: string) => void;
@@ -63,14 +70,52 @@ interface ProjectDetailProps {
   currentUser?: AuthUser | null;
   onEditProject?: (project: Project) => void;
   onDeleteProject?: (project: Project) => void;
+  onDuplicateTask?: (task: Task) => void;
+  onUpdateProjectStages?: (projectId: string, newStages: ProjectStage[]) => Promise<void> | void;
+  onDeleteProjectStage?: (projectId: string, stageId: string, stageName: string, reassignToStageName?: string) => Promise<void> | void;
+  onTasksChange?: () => void;
 }
 
-const KANBAN_STATUSES: StatusType[] = ['Draft', 'In Progress', 'Ready Review', 'Blocked', 'Completed'];
+const STAGE_COLOR_PRESETS = [
+  { label: 'Slate', hex: '#6b7280' },
+  { label: 'Blue', hex: '#3b82f6' },
+  { label: 'Indigo', hex: '#6366f1' },
+  { label: 'Purple', hex: '#8b5cf6' },
+  { label: 'Pink', hex: '#ec4899' },
+  { label: 'Rose', hex: '#ef4444' },
+  { label: 'Amber', hex: '#f59e0b' },
+  { label: 'Emerald', hex: '#10b981' },
+  { label: 'Teal', hex: '#14b8a6' },
+];
+
+const STAGE_CATEGORY_INFO: Record<StageCategory, { label: string; description: string; badgeCls: string }> = {
+  backlog: {
+    label: 'Backlog / Planning',
+    description: 'Initial drafting, ideas, or untriaged tasks',
+    badgeCls: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  },
+  active: {
+    label: 'Active Work',
+    description: 'Actively in progress or under review (Staff & Admin)',
+    badgeCls: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
+  },
+  blocked: {
+    label: 'Blocked',
+    description: 'Tasks needing escalation or blocked by dependencies',
+    badgeCls: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300',
+  },
+  done: {
+    label: 'Done / Completed',
+    description: 'Finished or deployed deliverables (Admin Only)',
+    badgeCls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
+  },
+};
 
 export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   project,
   tasks = [],
   teamMembers = [],
+  allTasks,
   onBackToDashboard,
   onUpdateProjectStatus,
   onUpdateProjectMembers,
@@ -82,6 +127,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   currentUser,
   onEditProject,
   onDeleteProject,
+  onDuplicateTask,
+  onUpdateProjectStages,
+  onDeleteProjectStage,
+  onTasksChange,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const isStaff = currentUser?.role === 'staff';
@@ -95,6 +144,38 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [searchTaskQuery, setSearchTaskQuery] = useState('');
   const [isManagingMembers, setIsManagingMembers] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(project?.memberIds || []);
+
+  // Custom Stages State
+  const [isAddStageModalOpen, setIsAddStageModalOpen] = useState(false);
+  const [newStageName, setNewStageName] = useState('');
+  const [newStageColor, setNewStageColor] = useState('#3b82f6');
+  const [newStageCategory, setNewStageCategory] = useState<StageCategory>('active');
+  const [isSubmittingStage, setIsSubmittingStage] = useState(false);
+
+  const [editingStage, setEditingStage] = useState<ProjectStage | null>(null);
+  const [editStageName, setEditStageName] = useState('');
+  const [editStageColor, setEditStageColor] = useState('#3b82f6');
+  const [editStageCategory, setEditStageCategory] = useState<StageCategory>('active');
+
+  const [openMenuStageId, setOpenMenuStageId] = useState<string | null>(null);
+
+  const [stageToDelete, setStageToDelete] = useState<ProjectStage | null>(null);
+  const [fallbackStageName, setFallbackStageName] = useState('');
+  const [isDeletingStage, setIsDeletingStage] = useState(false);
+
+  const effectiveStages: ProjectStage[] = useMemo(() => {
+    if (project?.stages && project.stages.length > 0) {
+      return project.stages;
+    }
+    return DEFAULT_PROJECT_STAGES;
+  }, [project?.stages]);
+
+  useEffect(() => {
+    if (!openMenuStageId) return;
+    const handleClickOutside = () => setOpenMenuStageId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [openMenuStageId]);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<StatusType | null>(null);
   const [collapsedColumns, setCollapsedColumns] = useState<Record<string, boolean>>(() => {
@@ -179,14 +260,25 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     if (!draggedTaskId) return false;
     const task = (Array.isArray(tasks) ? tasks : []).find((t) => t.id === draggedTaskId);
     if (!task) return false;
+    const isTaskDone =
+      (effectiveStages.find((s) => s.name === task.status)?.category === 'done') ||
+      task.status === 'Completed';
+    if (isStaff && isTaskDone) return false;
     return Boolean(
       (task.createdBy && task.createdBy === currentUser?.memberId) ||
       task.assigneeId === currentUser?.memberId
     );
-  }, [isAdmin, draggedTaskId, tasks, currentUser]);
+  }, [isAdmin, isStaff, draggedTaskId, tasks, currentUser, effectiveStages]);
 
   const handleDragOver = (e: React.DragEvent, status: StatusType) => {
     if (!isAdmin && !canModifyDraggedTask) return;
+    const isTargetDone =
+      (effectiveStages.find((s) => s.name === status)?.category === 'done') ||
+      status === 'Completed';
+    if (isStaff && isTargetDone) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     if (dragOverColumn !== status) {
@@ -214,12 +306,159 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             ((task.createdBy && task.createdBy === currentUser?.memberId) ||
               task.assigneeId === currentUser?.memberId));
         if (canModify && task.status !== targetStatus) {
+          const isTargetDone =
+            (effectiveStages.find((s) => s.name === targetStatus)?.category === 'done') ||
+            targetStatus === 'Completed';
+          const isTaskDone =
+            (effectiveStages.find((s) => s.name === task.status)?.category === 'done') ||
+            task.status === 'Completed';
+
+          if (isStaff && (isTargetDone || isTaskDone)) {
+            setDraggedTaskId(null);
+            setDragOverColumn(null);
+            return;
+          }
           onUpdateTaskStatus(taskId, targetStatus);
         }
       }
     }
     setDraggedTaskId(null);
     setDragOverColumn(null);
+  };
+
+  // Stage Management Handlers
+  const handleAddStage = async () => {
+    if (!isAdmin || !newStageName.trim()) return;
+    if (effectiveStages.some((s) => s.name.trim().toLowerCase() === newStageName.trim().toLowerCase())) {
+      alert(`A column named "${newStageName.trim()}" already exists.`);
+      return;
+    }
+
+    const newStage: ProjectStage = {
+      id: `stage-${Date.now()}`,
+      name: newStageName.trim(),
+      color: newStageColor || '#3b82f6',
+      category: newStageCategory,
+    };
+
+    const updated = [...effectiveStages, newStage];
+
+    try {
+      setIsSubmittingStage(true);
+      if (onUpdateProjectStages) {
+        await onUpdateProjectStages(project.id, updated);
+      } else {
+        await updateProjectStagesApi(project.id, updated, currentUser);
+      }
+      setIsAddStageModalOpen(false);
+      setNewStageName('');
+      setNewStageColor('#3b82f6');
+      setNewStageCategory('active');
+    } catch (err: any) {
+      alert(err.message || 'Failed to add column');
+    } finally {
+      setIsSubmittingStage(false);
+    }
+  };
+
+  const handleSaveEditStage = async () => {
+    if (!isAdmin || !editingStage || !editStageName.trim()) return;
+    const oldName = editingStage.name;
+    const newName = editStageName.trim();
+
+    const updated = effectiveStages.map((s) =>
+      s.id === editingStage.id
+        ? {
+            ...s,
+            name: newName,
+            color: editStageColor,
+            category: editStageCategory,
+          }
+        : s
+    );
+
+    try {
+      setIsSubmittingStage(true);
+      if (onUpdateProjectStages) {
+        await onUpdateProjectStages(project.id, updated);
+      } else {
+        await updateProjectStagesApi(project.id, updated, currentUser);
+      }
+      if (oldName !== newName && onTasksChange) {
+        onTasksChange();
+      }
+      setEditingStage(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update column');
+    } finally {
+      setIsSubmittingStage(false);
+    }
+  };
+
+  const handleMoveStage = async (stageIndex: number, direction: 'left' | 'right') => {
+    if (!isAdmin) return;
+    const targetIndex = direction === 'left' ? stageIndex - 1 : stageIndex + 1;
+    if (targetIndex < 0 || targetIndex >= effectiveStages.length) return;
+
+    const updated = [...effectiveStages];
+    const [removed] = updated.splice(stageIndex, 1);
+    updated.splice(targetIndex, 0, removed);
+
+    try {
+      if (onUpdateProjectStages) {
+        await onUpdateProjectStages(project.id, updated);
+      } else {
+        await updateProjectStagesApi(project.id, updated, currentUser);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to reorder columns');
+    }
+  };
+
+  const handleConfirmDeleteStage = async () => {
+    if (!isAdmin || !stageToDelete) return;
+    if (effectiveStages.length <= 1) {
+      alert('A project must have at least one column.');
+      return;
+    }
+
+    const tasksInColumn = safeTasks.filter(
+      (t) => t.status.trim().toLowerCase() === stageToDelete.name.trim().toLowerCase()
+    );
+
+    if (tasksInColumn.length > 0 && !fallbackStageName) {
+      alert('Please select a destination column to move existing tasks to.');
+      return;
+    }
+
+    try {
+      setIsDeletingStage(true);
+      if (onDeleteProjectStage) {
+        await onDeleteProjectStage(
+          project.id,
+          stageToDelete.id,
+          stageToDelete.name,
+          fallbackStageName || undefined
+        );
+      } else {
+        await deleteProjectStageApi(
+          project.id,
+          stageToDelete.id,
+          stageToDelete.name,
+          fallbackStageName || undefined,
+          currentUser
+        );
+      }
+      if (onTasksChange) {
+        onTasksChange();
+      }
+      setStageToDelete(null);
+      setFallbackStageName('');
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete column');
+    } finally {
+      setIsDeletingStage(false);
+    }
   };
 
   const safeTasks = Array.isArray(tasks) ? tasks : [];
@@ -257,11 +496,26 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   // Project Lead / Manager
   const projectManager = safeMembers.find((m) => m.id === project?.managerId);
 
-  // Metrics
+  // Metrics based on stage categories
+  const doneStageNames = useMemo(() => {
+    const list = effectiveStages.filter((s) => s.category === 'done').map((s) => s.name);
+    return list.length > 0 ? list : ['Completed'];
+  }, [effectiveStages]);
+
+  const activeStageNames = useMemo(() => {
+    const list = effectiveStages.filter((s) => s.category === 'active').map((s) => s.name);
+    return list.length > 0 ? list : ['In Progress'];
+  }, [effectiveStages]);
+
+  const blockedStageNames = useMemo(() => {
+    const list = effectiveStages.filter((s) => s.category === 'blocked').map((s) => s.name);
+    return list.length > 0 ? list : ['Blocked'];
+  }, [effectiveStages]);
+
   const totalTasks = projectTasks.length;
-  const completedTasks = projectTasks.filter((t) => t.status === 'Completed').length;
-  const inProgressTasks = projectTasks.filter((t) => t.status === 'In Progress').length;
-  const blockedTasks = projectTasks.filter((t) => t.status === 'Blocked').length;
+  const completedTasks = projectTasks.filter((t) => doneStageNames.includes(t.status)).length;
+  const inProgressTasks = projectTasks.filter((t) => activeStageNames.includes(t.status)).length;
+  const blockedTasks = projectTasks.filter((t) => blockedStageNames.includes(t.status)).length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const getStatusBadge = (status: StatusType) => getStatusBadgeClass(status, 'sm');
@@ -429,9 +683,14 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   status={project.status}
                   onChange={(newStatus) => onUpdateProjectStatus(project.id, newStatus)}
                   size="sm"
+                  stages={effectiveStages}
                 />
               ) : (
-                <StatusBadge status={project.status} size="sm" />
+                <StatusBadge
+                  status={project.status}
+                  stageColor={effectiveStages.find((s) => s.name === project.status)?.color}
+                  size="sm"
+                />
               )}
             </div>
 
@@ -790,22 +1049,49 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 ]}
               />
             )}
+
+            {isAdmin && (
+              <button
+                type="button"
+                id="add-kanban-column-btn"
+                onClick={() => setIsAddStageModalOpen(true)}
+                className="h-8 px-2.5 py-1 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Column</span>
+              </button>
+            )}
           </div>
         )}
       </div>
 
       {/* VIEW 1: Task Board (Kanban Columns with same status as Project: Draft, In Progress, Ready Review, Blocked, Completed) */}
       {activeTab === 'board' && (
-        <div id="kanban-board-container" className="flex gap-3.5 items-start pb-8 overflow-x-auto min-w-full">
-          {KANBAN_STATUSES.map((status) => {
-            const columnTasks = filteredTasks.filter((t) => t.status === status);
+        <>
+          {/* Team Workload & Capacity Barometer Strip */}
+          <TeamCapacityBarometer
+            project={project}
+            projectTeam={projectTeam}
+            projectTasks={projectTasks}
+            allTasks={allTasks || safeTasks}
+            selectedMemberId={filterMemberId}
+            onSelectMember={(memberId) => setFilterMemberId(memberId)}
+            onOpenTaskModal={onOpenTaskModal}
+            currentUser={currentUser}
+          />
+
+          <div id="kanban-board-container" className="flex gap-3.5 items-start pb-8 overflow-x-auto min-w-full">
+          {effectiveStages.map((stage, stageIdx) => {
+            const status = stage.name;
+            const columnTasks = filteredTasks.filter((t) => t.status.trim().toLowerCase() === status.trim().toLowerCase());
             const isCollapsed = Boolean(collapsedColumns[status]);
+            const isDoneCategory = stage.category === 'done';
 
             if (isCollapsed) {
               return (
                 <div
-                  key={status}
-                  id={`kanban-column-${status.toLowerCase().replace(/\s+/g, '-')}`}
+                  key={stage.id || status}
+                  id={`kanban-column-${stage.id || status.toLowerCase().replace(/\s+/g, '-')}`}
                   onDragOver={(e) => handleDragOver(e, status)}
                   onDragLeave={(e) => handleDragLeave(e, status)}
                   onDrop={(e) => handleDrop(e, status)}
@@ -820,7 +1106,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   {/* Top Header: Expand Icon on top right & Count Badge */}
                   <div className="flex flex-col items-center gap-2 pt-1 w-full">
                     <button
-                      id={`expand-column-${status.toLowerCase().replace(/\s+/g, '-')}`}
+                      id={`expand-column-${stage.id || status.toLowerCase().replace(/\s+/g, '-')}`}
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -829,7 +1115,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       title={`Expand ${status} list`}
                       className="w-7 h-7 rounded-lg text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 hover:bg-white dark:hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
                     >
-                      {status === 'Completed' ? <ChevronsLeft className="w-4 h-4" /> : <ChevronsRight className="w-4 h-4" />}
+                      {isDoneCategory ? <ChevronsLeft className="w-4 h-4" /> : <ChevronsRight className="w-4 h-4" />}
                     </button>
                     <span
                       className="text-2xs font-bold px-1.5 py-0.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 min-w-[20px] text-center"
@@ -842,9 +1128,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   {/* Center: Vertical Status Badge */}
                   <div className="flex-1 flex items-center justify-center my-4 py-2">
                     <div className="rotate-180 [writing-mode:vertical-rl] flex items-center justify-center">
-                      <span className={`${getStatusBadgeClass(status, 'xs')} tracking-wide whitespace-nowrap`}>
-                        {status}
-                      </span>
+                      <StatusBadge status={status} stageColor={stage.color} size="xs" className="tracking-wide whitespace-nowrap" />
                     </div>
                   </div>
 
@@ -868,8 +1152,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
             return (
               <div
-                key={status}
-                id={`kanban-column-${status.toLowerCase().replace(/\s+/g, '-')}`}
+                key={stage.id || status}
+                id={`kanban-column-${stage.id || status.toLowerCase().replace(/\s+/g, '-')}`}
                 onDragOver={(e) => handleDragOver(e, status)}
                 onDragLeave={(e) => handleDragLeave(e, status)}
                 onDrop={(e) => handleDrop(e, status)}
@@ -881,16 +1165,21 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status={status} size="sm" />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <StatusBadge status={status} stageColor={stage.color} size="sm" />
                     <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">
                       {columnTasks.length}
                     </span>
+                    {isDoneCategory && (
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.2 bg-emerald-100/70 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded text-3xs shrink-0">
+                        Admin
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-0.5">
                     <button
-                      id={`add-task-to-column-${status}`}
+                      id={`add-task-to-column-${stage.id || status}`}
                       onClick={() => onOpenTaskModal(null, status)}
                       title={`Add ${status} Task`}
                       className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
@@ -898,13 +1187,102 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       <Plus className="w-4 h-4" />
                     </button>
                     <button
-                      id={`collapse-column-${status.toLowerCase().replace(/\s+/g, '-')}`}
+                      id={`collapse-column-${stage.id || status.toLowerCase().replace(/\s+/g, '-')}`}
                       onClick={() => toggleColumnCollapse(status)}
                       title={`Collapse ${status} list`}
                       className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
-                      {status === 'Completed' ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
+                      {isDoneCategory ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
                     </button>
+
+                    {/* Column Settings Menu (Admin Only) */}
+                    {isAdmin && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          id={`col-menu-btn-${stage.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuStageId(openMenuStageId === stage.id ? null : stage.id);
+                          }}
+                          title="Column Settings"
+                          className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded-md hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        {openMenuStageId === stage.id && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-1 z-50 animate-in fade-in zoom-in-95 duration-100"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenMenuStageId(null);
+                                setEditingStage(stage);
+                                setEditStageName(stage.name);
+                                setEditStageColor(stage.color);
+                                setEditStageCategory(stage.category);
+                              }}
+                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-left cursor-pointer"
+                            >
+                              <Edit2 className="w-3.5 h-3.5 text-slate-400" />
+                              <span>Edit Column</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={stageIdx === 0}
+                              onClick={() => {
+                                setOpenMenuStageId(null);
+                                handleMoveStage(stageIdx, 'left');
+                              }}
+                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors text-left ${
+                                stageIdx === 0
+                                  ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50'
+                                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'
+                              }`}
+                            >
+                              <MoveLeft className="w-3.5 h-3.5" />
+                              <span>Move Left</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={stageIdx === effectiveStages.length - 1}
+                              onClick={() => {
+                                setOpenMenuStageId(null);
+                                handleMoveStage(stageIdx, 'right');
+                              }}
+                              className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors text-left ${
+                                stageIdx === effectiveStages.length - 1
+                                  ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50'
+                                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'
+                              }`}
+                            >
+                              <MoveRight className="w-3.5 h-3.5" />
+                              <span>Move Right</span>
+                            </button>
+                            {effectiveStages.length > 1 && (
+                              <>
+                                <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuStageId(null);
+                                    setStageToDelete(stage);
+                                    const otherStage = effectiveStages.find((s) => s.id !== stage.id);
+                                    setFallbackStageName(otherStage?.name || '');
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors text-left cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Delete Column</span>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -916,17 +1294,22 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       (task.createdBy && task.createdBy === currentUser?.memberId) ||
                       task.assigneeId === currentUser?.memberId
                     );
+                    const isTaskDone =
+                      isDoneCategory ||
+                      (effectiveStages.find((s) => s.name.trim().toLowerCase() === task.status.trim().toLowerCase())?.category === 'done') ||
+                      task.status === 'Completed';
                     const canModifyTask = isAdmin || (isStaff && isOwnTask);
+                    const canDragTask = canModifyTask && !(isStaff && isTaskDone);
 
                     return (
                       <div
                         key={task.id}
                         id={`task-card-${task.id}`}
-                        draggable={canModifyTask}
+                        draggable={canDragTask}
                         onDragStart={(e) => handleDragStart(e, task.id)}
                         onDragEnd={handleDragEnd}
                         className={`glass-panel-interactive rounded-xl p-3 shadow-2xs space-y-2.5 select-none ${
-                          canModifyTask ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+                          canDragTask ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
                         } group ${
                           draggedTaskId === task.id ? 'opacity-40 scale-[0.98] ring-2 ring-blue-400' : ''
                         }`}
@@ -934,10 +1317,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         {/* Priority Badge, Drag Handle & Card Actions */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            {canModifyTask ? (
+                            {canDragTask ? (
                               <GripVertical className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors shrink-0" />
                             ) : (
-                              <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" title="Staff: View detail mode" />
+                              <Eye className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" title={isStaff && isTaskDone ? `${task.status} (Admin Only)` : "Staff: View detail mode"} />
                             )}
                             <PriorityBadge priority={task.priority} size="xs" />
                             {task.taskFor && <ScopeBadge scope={task.taskFor} size="xs" />}
@@ -1009,6 +1392,20 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                             </button>
                             {canModifyTask ? (
                               <>
+                                {onDuplicateTask && (
+                                  <button
+                                    id={`duplicate-task-btn-${task.id}`}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDuplicateTask(task);
+                                    }}
+                                    title="Duplicate Task"
+                                    className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                                  >
+                                    <CopyPlus className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                                 <button
                                   id={`edit-task-btn-${task.id}`}
                                   onClick={() => onOpenTaskModal(task)}
@@ -1148,13 +1545,21 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         {canModifyTask ? (
                           <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/60 text-2xs">
                             <span className="text-3xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Move</span>
-                            <StatusDropdown
-                              id={`move-task-status-${task.id}`}
-                              status={task.status}
-                              onChange={(newStatus) => onUpdateTaskStatus(task.id, newStatus)}
-                              size="xs"
-                              align="right"
-                            />
+                            {isStaff && isTaskDone ? (
+                              <span className="text-3xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                                <Lock className="w-2.5 h-2.5" /> {task.status} (Admin Only)
+                              </span>
+                            ) : (
+                              <StatusDropdown
+                                id={`move-task-status-${task.id}`}
+                                status={task.status}
+                                onChange={(newStatus) => onUpdateTaskStatus(task.id, newStatus)}
+                                size="xs"
+                                align="right"
+                                stages={effectiveStages}
+                                role={currentUser?.role}
+                              />
+                            )}
                           </div>
                         ) : (
                           <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-700/60 text-2xs">
@@ -1187,7 +1592,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
             );
           })}
-        </div>
+          </div>
+        </>
       )}
 
       {/* VIEW 2: Project Team & Workload */}
@@ -1216,9 +1622,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {projectTeam.map((member) => {
               const memberProjectTasks = projectTasks.filter((t) => t.assigneeId === member.id);
-              const activeCount = memberProjectTasks.filter((t) => t.status === 'In Progress').length;
-              const blockedCount = memberProjectTasks.filter((t) => t.status === 'Blocked').length;
-              const completedCount = memberProjectTasks.filter((t) => t.status === 'Completed').length;
+              const activeCount = memberProjectTasks.filter((t) => activeStageNames.includes(t.status)).length;
+              const blockedCount = memberProjectTasks.filter((t) => blockedStageNames.includes(t.status)).length;
+              const completedCount = memberProjectTasks.filter((t) => doneStageNames.includes(t.status)).length;
 
               return (
                 <div
@@ -1455,6 +1861,354 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           tasks={tasks}
           teamMembers={teamMembers}
         />
+      )}
+
+      {/* 1. Add Custom Kanban Column Modal */}
+      {isAddStageModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md glass-modal rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Add Kanban Column</h3>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">Create a custom workflow column for this project</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddStageModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleAddStage(); }} className="p-5 space-y-4">
+              {/* Column Name */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Column Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. QA Testing, Design Review, Deployed"
+                  value={newStageName}
+                  onChange={(e) => setNewStageName(e.target.value)}
+                  className="w-full h-9 px-3 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* Color Presets */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Badge & Accent Color
+                </label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {STAGE_COLOR_PRESETS.map((preset) => (
+                    <button
+                      key={preset.hex}
+                      type="button"
+                      onClick={() => setNewStageColor(preset.hex)}
+                      style={{ backgroundColor: preset.hex }}
+                      title={preset.label}
+                      className={`w-6 h-6 rounded-full transition-transform cursor-pointer flex items-center justify-center ${
+                        newStageColor === preset.hex ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' : 'hover:scale-105'
+                      }`}
+                    >
+                      {newStageColor === preset.hex && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </button>
+                  ))}
+                  <div className="relative flex items-center">
+                    <input
+                      type="color"
+                      value={newStageColor}
+                      onChange={(e) => setNewStageColor(e.target.value)}
+                      className="w-6 h-6 rounded-full cursor-pointer border-0 p-0 overflow-hidden"
+                      title="Choose custom color"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Workflow Category */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Status Category & Permissions
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(['backlog', 'active', 'blocked', 'done'] as StageCategory[]).map((cat) => {
+                    const info = STAGE_CATEGORY_INFO[cat];
+                    const isSelected = newStageCategory === cat;
+                    return (
+                      <div
+                        key={cat}
+                        onClick={() => setNewStageCategory(cat)}
+                        className={`p-2.5 rounded-xl border cursor-pointer transition-all select-none ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-1 ring-blue-500'
+                            : 'border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-2xs font-bold px-1.5 py-0.5 rounded ${info.badgeCls}`}>
+                            {info.label}
+                          </span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                        </div>
+                        <p className="text-3xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                          {info.description}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddStageModalOpen(false)}
+                  className="px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newStageName.trim() || isSubmittingStage}
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-xs cursor-pointer transition-colors"
+                >
+                  {isSubmittingStage ? 'Adding...' : 'Add Column'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Edit Column Modal */}
+      {editingStage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md glass-modal rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <Edit2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Edit Column: {editingStage.name}</h3>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">Update column name, appearance, or category</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingStage(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveEditStage(); }} className="p-5 space-y-4">
+              {/* Column Name */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Column Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editStageName}
+                  onChange={(e) => setEditStageName(e.target.value)}
+                  className="w-full h-9 px-3 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* Color Presets */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Badge & Accent Color
+                </label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {STAGE_COLOR_PRESETS.map((preset) => (
+                    <button
+                      key={preset.hex}
+                      type="button"
+                      onClick={() => setEditStageColor(preset.hex)}
+                      style={{ backgroundColor: preset.hex }}
+                      title={preset.label}
+                      className={`w-6 h-6 rounded-full transition-transform cursor-pointer flex items-center justify-center ${
+                        editStageColor === preset.hex ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' : 'hover:scale-105'
+                      }`}
+                    >
+                      {editStageColor === preset.hex && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </button>
+                  ))}
+                  <div className="relative flex items-center">
+                    <input
+                      type="color"
+                      value={editStageColor}
+                      onChange={(e) => setEditStageColor(e.target.value)}
+                      className="w-6 h-6 rounded-full cursor-pointer border-0 p-0 overflow-hidden"
+                      title="Choose custom color"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Workflow Category */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Status Category & Permissions
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(['backlog', 'active', 'blocked', 'done'] as StageCategory[]).map((cat) => {
+                    const info = STAGE_CATEGORY_INFO[cat];
+                    const isSelected = editStageCategory === cat;
+                    return (
+                      <div
+                        key={cat}
+                        onClick={() => setEditStageCategory(cat)}
+                        className={`p-2.5 rounded-xl border cursor-pointer transition-all select-none ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 ring-1 ring-blue-500'
+                            : 'border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-2xs font-bold px-1.5 py-0.5 rounded ${info.badgeCls}`}>
+                            {info.label}
+                          </span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                        </div>
+                        <p className="text-3xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                          {info.description}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingStage(null)}
+                  className="px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!editStageName.trim() || isSubmittingStage}
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-xs cursor-pointer transition-colors"
+                >
+                  {isSubmittingStage ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Safe Delete Column Modal */}
+      {stageToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md glass-modal rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Delete Column</h3>
+                  <p className="text-2xs text-slate-500 dark:text-slate-400">Remove "{stageToDelete.name}" from this project</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStageToDelete(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {(() => {
+                const tasksInColumn = safeTasks.filter(
+                  (t) => t.status.trim().toLowerCase() === stageToDelete.name.trim().toLowerCase()
+                );
+
+                return (
+                  <>
+                    {tasksInColumn.length > 0 ? (
+                      <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs space-y-2">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span>Active tasks detected ({tasksInColumn.length})</span>
+                        </div>
+                        <p className="text-2xs leading-relaxed">
+                          There are <strong>{tasksInColumn.length} task(s)</strong> currently in the "{stageToDelete.name}" column. Before deleting this column, choose a destination column to reassign them to so no work is lost:
+                        </p>
+                        <div>
+                          <label className="block text-2xs font-bold text-amber-900 dark:text-amber-200 mb-1">
+                            Move Tasks To:
+                          </label>
+                          <select
+                            value={fallbackStageName}
+                            onChange={(e) => setFallbackStageName(e.target.value)}
+                            className="w-full h-8 px-2.5 text-xs bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-lg text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500/20"
+                          >
+                            <option value="">-- Choose destination column --</option>
+                            {effectiveStages
+                              .filter((s) => s.id !== stageToDelete.id)
+                              .map((s) => (
+                                <option key={s.id} value={s.name}>
+                                  {s.name} ({s.category})
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        Are you sure you want to delete the column <strong>"{stageToDelete.name}"</strong>? This column currently has 0 tasks.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setStageToDelete(null)}
+                  className="px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    isDeletingStage ||
+                    (safeTasks.some((t) => t.status.trim().toLowerCase() === stageToDelete.name.trim().toLowerCase()) &&
+                      !fallbackStageName)
+                  }
+                  onClick={handleConfirmDeleteStage}
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-xs cursor-pointer transition-colors"
+                >
+                  {isDeletingStage ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

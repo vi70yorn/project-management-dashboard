@@ -1,4 +1,21 @@
-export type StatusType = 'Draft' | 'In Progress' | 'Ready Review' | 'Blocked' | 'Completed';
+export type StatusType = 'Draft' | 'In Progress' | 'Ready Review' | 'Blocked' | 'Completed' | (string & {});
+
+export type StageCategory = 'backlog' | 'active' | 'blocked' | 'done';
+
+export interface ProjectStage {
+  id: string;
+  name: string;
+  color: string;
+  category: StageCategory;
+}
+
+export const DEFAULT_PROJECT_STAGES: ProjectStage[] = [
+  { id: 'draft', name: 'Draft', color: '#64748b', category: 'backlog' },
+  { id: 'in-progress', name: 'In Progress', color: '#2563eb', category: 'active' },
+  { id: 'ready-review', name: 'Ready Review', color: '#f59e0b', category: 'active' },
+  { id: 'blocked', name: 'Blocked', color: '#f43f5e', category: 'blocked' },
+  { id: 'completed', name: 'Completed', color: '#10b981', category: 'done' },
+];
 
 export type PriorityType = 'Urgent' | 'High' | 'Medium' | 'Low';
 
@@ -138,6 +155,7 @@ export interface Project {
   expiresAt?: string;
   daysLeft?: number;
   links?: AttachedLink[];
+  stages?: ProjectStage[];
 }
 
 export interface AttachedLink {

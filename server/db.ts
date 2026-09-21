@@ -115,6 +115,7 @@ export async function runMigrationsAndSeed(): Promise<void> {
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_by VARCHAR(64);
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
           ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_for TEXT[] DEFAULT '{"Mobile App UI", "Web UI"}';
+          ALTER TABLE projects ADD COLUMN IF NOT EXISTS stages JSONB DEFAULT '[{"id":"draft","name":"Draft","color":"#6b7280","category":"backlog"},{"id":"in-progress","name":"In Progress","color":"#3b82f6","category":"active"},{"id":"ready-review","name":"Ready Review","color":"#8b5cf6","category":"active"},{"id":"blocked","name":"Blocked","color":"#ef4444","category":"blocked"},{"id":"completed","name":"Completed","color":"#10b981","category":"done"}]'::jsonb;
         END IF;
         IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tasks') THEN
           ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
@@ -141,6 +142,8 @@ export async function runMigrationsAndSeed(): Promise<void> {
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_for TEXT[] DEFAULT '{"Mobile App UI", "Web UI"}';
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS stages JSONB DEFAULT '[{"id":"draft","name":"Draft","color":"#6b7280","category":"backlog"},{"id":"in-progress","name":"In Progress","color":"#3b82f6","category":"active"},{"id":"ready-review","name":"Ready Review","color":"#8b5cf6","category":"active"},{"id":"blocked","name":"Blocked","color":"#ef4444","category":"blocked"},{"id":"completed","name":"Completed","color":"#10b981","category":"done"}]'::jsonb;
+      UPDATE projects SET stages = '[{"id":"draft","name":"Draft","color":"#6b7280","category":"backlog"},{"id":"in-progress","name":"In Progress","color":"#3b82f6","category":"active"},{"id":"ready-review","name":"Ready Review","color":"#8b5cf6","category":"active"},{"id":"blocked","name":"Blocked","color":"#ef4444","category":"blocked"},{"id":"completed","name":"Completed","color":"#10b981","category":"done"}]'::jsonb WHERE stages IS NULL;
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS task_for VARCHAR(64) DEFAULT NULL;
       UPDATE projects SET project_for = '{"Mobile App UI", "Web UI"}' WHERE project_for IS NULL OR cardinality(project_for) = 0;
       ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS notify_ready_review BOOLEAN DEFAULT true;

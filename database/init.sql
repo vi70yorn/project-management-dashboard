@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS projects (
     color VARCHAR(32) DEFAULT '#2563eb',
     links JSONB DEFAULT '[]',
     project_for TEXT[] DEFAULT '{"Mobile App UI", "Web UI"}',
+    stages JSONB DEFAULT '[{"id":"draft","name":"Draft","color":"#6b7280","category":"backlog"},{"id":"in-progress","name":"In Progress","color":"#3b82f6","category":"active"},{"id":"ready-review","name":"Ready Review","color":"#8b5cf6","category":"active"},{"id":"blocked","name":"Blocked","color":"#ef4444","category":"blocked"},{"id":"completed","name":"Completed","color":"#10b981","category":"done"}]'::jsonb,
     deleted_at TIMESTAMPTZ DEFAULT NULL,
     deleted_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
     created_by VARCHAR(64) REFERENCES team_members(id) ON DELETE SET NULL,
@@ -276,4 +277,8 @@ CREATE TABLE IF NOT EXISTS project_share_links (
 
 CREATE INDEX IF NOT EXISTS idx_project_share_links_token ON project_share_links(share_token);
 CREATE INDEX IF NOT EXISTS idx_project_share_links_project_id ON project_share_links(project_id);
+
+-- Migration: custom kanban stages column on projects
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS stages JSONB DEFAULT '[{"id":"draft","name":"Draft","color":"#6b7280","category":"backlog"},{"id":"in-progress","name":"In Progress","color":"#3b82f6","category":"active"},{"id":"ready-review","name":"Ready Review","color":"#8b5cf6","category":"active"},{"id":"blocked","name":"Blocked","color":"#ef4444","category":"blocked"},{"id":"completed","name":"Completed","color":"#10b981","category":"done"}]'::jsonb;
+UPDATE projects SET stages = '[{"id":"draft","name":"Draft","color":"#6b7280","category":"backlog"},{"id":"in-progress","name":"In Progress","color":"#3b82f6","category":"active"},{"id":"ready-review","name":"Ready Review","color":"#8b5cf6","category":"active"},{"id":"blocked","name":"Blocked","color":"#ef4444","category":"blocked"},{"id":"completed","name":"Completed","color":"#10b981","category":"done"}]'::jsonb WHERE stages IS NULL;
 

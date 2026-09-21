@@ -15,6 +15,8 @@ import {
   InAppNotification,
   NotificationType,
   UserRole,
+  ProjectStage,
+  DEFAULT_PROJECT_STAGES,
 } from './types';
 import {
   loadProjects,
@@ -83,9 +85,12 @@ import {
   updateProjectApi,
   updateProjectStatusApi,
   updateProjectMembersApi,
+  updateProjectStagesApi,
+  deleteProjectStageApi,
   deleteProjectApi,
   fetchTasksApi,
   createTaskApi,
+  duplicateTaskApi,
   updateTaskApi,
   updateTaskStatusApi,
   deleteTaskApi,
@@ -253,6 +258,7 @@ export default function App() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [defaultTaskStatus, setDefaultTaskStatus] = useState<StatusType>('In Progress');
+  const [defaultTaskAssigneeId, setDefaultTaskAssigneeId] = useState<string>('');
 
   // Team Member Modal State
   const [isTeamMemberModalOpen, setIsTeamMemberModalOpen] = useState(false);
@@ -924,10 +930,114 @@ export default function App() {
     showToast('success', 'Project team roster updated.');
   };
 
+  const handleUpdateProjectStages = async (projectId: string, newStages: ProjectStage[]) => {
+    if (currentUser?.role !== 'admin') {
+      showToast('error', 'Only Admins can customize Kanban workflow stages.');
+      return;
+    }
+
+    const targetProject = projects.find((p) => p.id === projectId);
+    const oldStages = targetProject?.stages || [];
+
+    // Check if stages changed their names
+    const renamedMap = new Map<string, string>();
+    oldStages.forEach((oldStage) => {
+      const match = newStages.find((s) => s.id === oldStage.id);
+      if (match && match.name.trim() !== oldStage.name.trim()) {
+        renamedMap.set(oldStage.name.trim().toLowerCase(), match.name.trim());
+      }
+    });
+
+    // Update projects state
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, stages: newStages } : p))
+    );
+
+    // If any stage names changed, update tasks state
+    if (renamedMap.size > 0) {
+      setTasks((prevTasks) =>
+        prevTasks.map((t) => {
+          if (t.projectId === projectId && renamedMap.has(t.status.trim().toLowerCase())) {
+            return {
+              ...t,
+              status: renamedMap.get(t.status.trim().toLowerCase())!,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return t;
+        })
+      );
+    }
+
+    try {
+      await updateProjectStagesApi(projectId, newStages, currentUser);
+      triggerActivityRefresh();
+      showToast('success', 'Kanban column workflow updated successfully.');
+    } catch (err: any) {
+      console.warn('[PostgreSQL Sync] Update stages error:', err);
+      showToast('error', err.message || 'Failed to update Kanban stages');
+      refreshDatabase(true);
+    }
+  };
+
+  const handleDeleteProjectStage = async (
+    projectId: string,
+    stageId: string,
+    stageName: string,
+    reassignToStageName?: string
+  ) => {
+    if (currentUser?.role !== 'admin') {
+      showToast('error', 'Only Admins can delete Kanban stages.');
+      return;
+    }
+
+    // Optimistically update stages in project
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id === projectId && p.stages) {
+          return {
+            ...p,
+            stages: p.stages.filter((s) => s.id !== stageId),
+          };
+        }
+        return p;
+      })
+    );
+
+    // If reassignToStageName is provided, reassign tasks in that column
+    if (reassignToStageName) {
+      setTasks((prevTasks) => {
+        const nextTasks = prevTasks.map((t) => {
+          if (t.projectId === projectId && t.status.trim().toLowerCase() === stageName.trim().toLowerCase()) {
+            return {
+              ...t,
+              status: reassignToStageName,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return t;
+        });
+        syncProjectStatusForTasks(projectId, nextTasks, projects);
+        return nextTasks;
+      });
+    }
+
+    try {
+      await deleteProjectStageApi(projectId, stageId, stageName, reassignToStageName, currentUser);
+      triggerActivityRefresh();
+      showToast('info', `Column "${stageName}" removed${reassignToStageName ? ` (tasks moved to "${reassignToStageName}")` : ''}.`);
+    } catch (err: any) {
+      console.warn('[PostgreSQL Sync] Delete stage error:', err);
+      showToast('error', err.message || 'Failed to delete column');
+      refreshDatabase(true);
+    }
+  };
+
   // Task management handlers
-  const handleOpenTaskModal = (task?: Task | null, defaultStatus?: StatusType) => {
+  const handleOpenTaskModal = (task?: Task | null, defaultStatus?: StatusType, defaultAssigneeId?: string) => {
     setEditingTask(task || null);
     if (defaultStatus) setDefaultTaskStatus(defaultStatus);
+    setDefaultTaskAssigneeId(defaultAssigneeId || '');
     setIsTaskModalOpen(true);
     if (task?.id) {
       updateUrlParams({
@@ -948,8 +1058,15 @@ export default function App() {
     const currentProject = projectList.find((p) => p.id === targetProjectId);
     if (!currentProject || projectTasks.length === 0) return;
 
-    const allCompleted = projectTasks.every((t) => t.status === 'Completed');
-    const remainingBlocked = projectTasks.filter((t) => t.status === 'Blocked');
+    const stages = currentProject.stages && currentProject.stages.length > 0 ? currentProject.stages : DEFAULT_PROJECT_STAGES;
+    const doneStageNames = stages.filter((s) => s.category === 'done').map((s) => s.name.trim().toLowerCase());
+    const blockedStageNames = stages.filter((s) => s.category === 'blocked').map((s) => s.name.trim().toLowerCase());
+
+    const isTaskDone = (t: Task) => doneStageNames.includes(t.status.trim().toLowerCase());
+    const isTaskBlocked = (t: Task) => blockedStageNames.includes(t.status.trim().toLowerCase());
+
+    const allCompleted = projectTasks.every(isTaskDone);
+    const remainingBlocked = projectTasks.filter(isTaskBlocked);
 
     if (allCompleted && currentProject.status !== 'Completed') {
       setProjects((prevProj) =>
@@ -997,12 +1114,30 @@ export default function App() {
     }
 
     if (currentUser?.role === 'staff') {
+      const targetProj = projects.find((p) => p.id === targetProjectId);
+      const stages = targetProj?.stages && targetProj.stages.length > 0 ? targetProj.stages : DEFAULT_PROJECT_STAGES;
+      const doneStageNames = stages.filter((s) => s.category === 'done').map((s) => s.name.trim().toLowerCase());
+      const isStatusDone = (st?: string) => (st ? doneStageNames.includes(st.trim().toLowerCase()) : false);
+
       if (editingTask) {
         const isOwn =
           (editingTask.createdBy && editingTask.createdBy === currentUser.memberId) ||
           editingTask.assigneeId === currentUser.memberId;
         if (!isOwn) {
           showToast('error', 'Staff can only edit their own tasks.');
+          return;
+        }
+        if (isStatusDone(editingTask.status) && taskData.status && !isStatusDone(taskData.status)) {
+          showToast('error', 'Completed tasks can only be updated by Administrators.');
+          return;
+        }
+        if (isStatusDone(taskData.status) && !isStatusDone(editingTask.status)) {
+          showToast('error', 'Only Administrators can mark tasks as Completed.');
+          return;
+        }
+      } else {
+        if (isStatusDone(taskData.status)) {
+          showToast('error', 'Only Administrators can create tasks in Completed status.');
           return;
         }
       }
@@ -1156,14 +1291,44 @@ export default function App() {
     }
   };
 
+  const handleDuplicateTask = async (task: Task) => {
+    try {
+      showToast('info', `Duplicating "${task.title}"...`);
+      const duplicated = await duplicateTaskApi(task.id, currentUser);
+
+      const nextTasks = [duplicated, ...tasks];
+      setTasks(nextTasks);
+      syncProjectStatusForTasks(duplicated.projectId, nextTasks, projects);
+      triggerActivityRefresh();
+
+      showToast('success', `Task "${duplicated.title}" created!`);
+    } catch (err: any) {
+      console.error('Failed to duplicate task:', err);
+      showToast('error', `Failed to duplicate task: ${err.message || 'Unknown error'}`);
+    }
+  };
+
   const handleUpdateTaskStatus = (taskId: string, newStatus: StatusType) => {
     const targetTask = tasks.find((t) => t.id === taskId);
     if (currentUser?.role === 'staff' && targetTask) {
+      const targetProj = projects.find((p) => p.id === targetTask.projectId);
+      const stages = targetProj?.stages && targetProj.stages.length > 0 ? targetProj.stages : DEFAULT_PROJECT_STAGES;
+      const doneStageNames = stages.filter((s) => s.category === 'done').map((s) => s.name.trim().toLowerCase());
+      const isStatusDone = (st?: string) => (st ? doneStageNames.includes(st.trim().toLowerCase()) : false);
+
       const isOwn =
         (targetTask.createdBy && targetTask.createdBy === currentUser.memberId) ||
         targetTask.assigneeId === currentUser.memberId;
       if (!isOwn) {
         showToast('error', 'Staff can only update status for their own tasks.');
+        return;
+      }
+      if (isStatusDone(newStatus)) {
+        showToast('error', 'Only Administrators can mark tasks as Completed.');
+        return;
+      }
+      if (isStatusDone(targetTask.status)) {
+        showToast('error', 'Completed tasks can only be updated by Administrators.');
         return;
       }
     }
@@ -1827,6 +1992,7 @@ export default function App() {
           <ProjectDetail
             project={activeProject}
             tasks={tasks}
+            allTasks={tasks}
             teamMembers={teamMembers}
             onBackToDashboard={handleGoToDashboard}
             onUpdateProjectStatus={handleUpdateProjectStatus}
@@ -1839,6 +2005,10 @@ export default function App() {
             currentUser={currentUser}
             onEditProject={handleOpenEditProject}
             onDeleteProject={handleDeleteProjectRequest}
+            onDuplicateTask={handleDuplicateTask}
+            onUpdateProjectStages={handleUpdateProjectStages}
+            onDeleteProjectStage={handleDeleteProjectStage}
+            onTasksChange={() => refreshDatabase(true)}
           />
         ) : (
           <div className="py-20 text-center text-slate-500 dark:text-slate-400">
@@ -1886,6 +2056,7 @@ export default function App() {
             onClose={() => {
               setIsTaskModalOpen(false);
               setEditingTask(null);
+              setDefaultTaskAssigneeId('');
               updateUrlParams({ taskId: null });
             }}
             onSave={handleSaveTask}
@@ -1895,9 +2066,12 @@ export default function App() {
             projectMembers={teamMembers}
             projects={projects}
             teamMembers={teamMembers}
+            tasks={tasks}
+            defaultAssigneeId={defaultTaskAssigneeId}
             onOpenAddMember={handleOpenAddMember}
             currentUser={currentUser}
             onDelete={handleDeleteTaskRequest}
+            onDuplicateTask={handleDuplicateTask}
             onCommentCountChange={(taskId, count) => {
               setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, commentCount: count } : t)));
               if (editingTask && editingTask.id === taskId) {

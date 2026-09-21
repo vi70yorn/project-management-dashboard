@@ -7,6 +7,25 @@ import { notifyTelegramTaskStatusUpdate } from '../services/telegramService';
 import { getTaskById } from '../services/taskService';
 import { syncProjectStatus } from '../services/projectService';
 
+/**
+ * Check whether a status name belongs to a 'done' category in a project's custom stages.
+ */
+async function isDoneStage(pool: any, projectId: string | null | undefined, statusName: string): Promise<boolean> {
+  if (!statusName) return false;
+  if (!projectId) return statusName.trim().toLowerCase() === 'completed';
+  try {
+    const pRes = await pool.query('SELECT stages FROM projects WHERE id = $1', [projectId]);
+    const stages = pRes.rows[0]?.stages;
+    if (Array.isArray(stages) && stages.length > 0) {
+      const matched = stages.find((s: any) => s.name?.trim().toLowerCase() === statusName.trim().toLowerCase());
+      if (matched) return matched.category === 'done';
+    }
+  } catch (err) {
+    // fallback
+  }
+  return statusName.trim().toLowerCase() === 'completed';
+}
+
 const router = Router();
 
 // GET all tasks
@@ -89,10 +108,17 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
   } = req.body;
 
   const actorMemberId = (req as any).jwtUser?.memberId || (req.headers['x-user-member-id'] as string) || null;
+  const userRole = (((req as any).jwtUser?.role || (req.headers['x-user-role'] as string) || 'staff')).toLowerCase();
+  const isAdmin = userRole === 'admin';
+
+  const pool = getPool();
+  if (!isAdmin && await isDoneStage(pool, projectId, status)) {
+    return res.status(403).json({ error: 'Permission denied. Only Administrators can create tasks in Done/Completed stages.' });
+  }
+
   const effectiveCreatedBy = createdBy || actorMemberId || assigneeId || null;
   const taskId = id || `task-${Date.now()}`;
   try {
-    const pool = getPool();
     const query = `
       INSERT INTO tasks (id, project_id, title, description, status, priority, assignee_id, links, task_for, created_by, updated_by, start_date, due_date)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $11, $12)
@@ -221,6 +247,132 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// POST duplicate task
+router.post('/:id/duplicate', requireAuth, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const actorMemberId = (req as any).jwtUser?.memberId || (req.headers['x-user-member-id'] as string) || null;
+
+  try {
+    const pool = getPool();
+    // 1. Fetch original task
+    const origRes = await pool.query(
+      'SELECT * FROM tasks WHERE id = $1 AND deleted_at IS NULL',
+      [id]
+    );
+    if (origRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found or deleted' });
+    }
+    const orig = origRes.rows[0];
+
+    // Determine title
+    const newTitle = req.body.title || `${orig.title} (Copy)`;
+
+    // Determine status: if original status is Completed, reset to 'To Do'
+    let newStatus = req.body.status;
+    if (!newStatus) {
+      const origStatusLower = (orig.status || '').trim().toLowerCase();
+      if (origStatusLower === 'completed') {
+        newStatus = 'To Do';
+      } else {
+        newStatus = orig.status || 'To Do';
+      }
+    }
+
+    const newTaskId = `task-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const effectiveCreatedBy = actorMemberId || orig.created_by || null;
+
+    // 2. Insert new duplicated task
+    const insertQuery = `
+      INSERT INTO tasks (
+        id, project_id, title, description, status, priority, 
+        assignee_id, links, task_for, created_by, updated_by, 
+        start_date, due_date
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $11, $12)
+      RETURNING id;
+    `;
+    await pool.query(insertQuery, [
+      newTaskId,
+      orig.project_id,
+      newTitle,
+      orig.description || '',
+      newStatus,
+      orig.priority || 'Medium',
+      orig.assignee_id || null,
+      JSON.stringify(orig.links || []),
+      orig.task_for || null,
+      effectiveCreatedBy,
+      orig.start_date || null,
+      orig.due_date,
+    ]);
+
+    // 3. Clone subtasks with completed = false
+    const subRes = await pool.query(
+      'SELECT title, position FROM task_subtasks WHERE task_id = $1 ORDER BY position ASC, created_at ASC',
+      [id]
+    );
+    if (subRes.rows.length > 0) {
+      for (let i = 0; i < subRes.rows.length; i++) {
+        const s = subRes.rows[i];
+        const subId = `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        await pool.query(
+          'INSERT INTO task_subtasks (id, task_id, title, completed, position) VALUES ($1, $2, $3, $4, $5)',
+          [subId, newTaskId, s.title, false, s.position ?? i]
+        );
+      }
+    }
+
+    // 4. Fetch complete duplicated task
+    const duplicatedTask = await getTaskById(pool, newTaskId);
+    if (duplicatedTask?.projectId) {
+      await syncProjectStatus(pool, duplicatedTask.projectId);
+    }
+
+    // 5. Activity log
+    recordActivity(
+      pool,
+      {
+        actionType: 'duplicate_task',
+        entityType: 'task',
+        entityId: newTaskId,
+        entityName: newTitle,
+        projectId: orig.project_id,
+        details: { sourceTaskId: id, status: newStatus, priority: orig.priority },
+      },
+      req
+    );
+
+    // 6. Notification if assigned
+    const actorName = req.headers['x-user-name']
+      ? decodeURIComponent(req.headers['x-user-name'] as string)
+      : 'A team member';
+    const actorAvatar = req.headers['x-user-avatar']
+      ? decodeURIComponent(req.headers['x-user-avatar'] as string)
+      : null;
+
+    if (orig.assignee_id) {
+      createServerNotification(pool, {
+        type: 'task_assigned',
+        title: 'New Task Assigned (Duplicated)',
+        message: `${actorName} duplicated "${orig.title}" and assigned "${newTitle}" to you.`,
+        taskId: newTaskId,
+        taskTitle: newTitle,
+        projectId: orig.project_id,
+        projectName: duplicatedTask?.projectName || '',
+        targetUserIds: [orig.assignee_id],
+        actorId: effectiveCreatedBy,
+        actorName,
+        actorAvatar,
+      });
+    }
+
+    return res.status(201).json(duplicatedTask);
+  } catch (err: any) {
+    console.error('Error duplicating task:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT update task
 router.put('/:id', requireAuth, async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -247,6 +399,21 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
     const prevRes = await pool.query('SELECT status, assignee_id, title, project_id FROM tasks WHERE id = $1', [id]);
     const oldStatus = prevRes.rows[0]?.status;
     const oldAssigneeId = prevRes.rows[0]?.assignee_id;
+
+    const userRole = (((req as any).jwtUser?.role || (req.headers['x-user-role'] as string) || 'staff')).toLowerCase();
+    const isAdmin = userRole === 'admin';
+
+    if (!isAdmin) {
+      const taskProjId = prevRes.rows[0]?.project_id || projectId;
+      const isTargetDone = status ? await isDoneStage(pool, taskProjId, status) : false;
+      const isOldDone = oldStatus ? await isDoneStage(pool, taskProjId, oldStatus) : false;
+      if (status && isTargetDone && !isOldDone) {
+        return res.status(403).json({ error: 'Permission denied. Only Administrators can mark tasks as Completed or Done.' });
+      }
+      if (isOldDone && status && !isTargetDone) {
+        return res.status(403).json({ error: 'Permission denied. Completed or Done tasks can only be updated by Administrators.' });
+      }
+    }
 
     const query = `
       UPDATE tasks
@@ -388,6 +555,21 @@ router.patch('/:id/status', requireAuth, async (req: Request, res: Response) => 
     const pool = getPool();
     const prevRes = await pool.query('SELECT status, title, project_id FROM tasks WHERE id = $1', [id]);
     const oldStatus = prevRes.rows[0]?.status;
+
+    const userRole = (((jwtUser?.role || (req.headers['x-user-role'] as string) || 'staff'))).toLowerCase();
+    const isAdmin = userRole === 'admin';
+
+    if (!isAdmin) {
+      const taskProjId = prevRes.rows[0]?.project_id;
+      const isTargetDone = status ? await isDoneStage(pool, taskProjId, status) : false;
+      const isOldDone = oldStatus ? await isDoneStage(pool, taskProjId, oldStatus) : false;
+      if (status && isTargetDone && !isOldDone) {
+        return res.status(403).json({ error: 'Permission denied. Only Administrators can mark tasks as Completed or Done.' });
+      }
+      if (isOldDone && status && !isTargetDone) {
+        return res.status(403).json({ error: 'Permission denied. Completed or Done tasks can only be updated by Administrators.' });
+      }
+    }
 
     const result = await pool.query(
       `UPDATE tasks 

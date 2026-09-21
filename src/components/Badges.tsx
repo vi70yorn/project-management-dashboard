@@ -72,6 +72,7 @@ export interface StatusBadgeProps {
   size?: 'xs' | 'sm' | 'md';
   prefix?: string;
   className?: string;
+  stageColor?: string;
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -79,7 +80,31 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   size = 'sm',
   prefix,
   className = '',
+  stageColor,
 }) => {
+  const sizeMap: Record<string, string> = {
+    xs: 'text-xs px-1.5 py-0.5 rounded-md',
+    sm: 'text-xs px-2 py-0.5 rounded-md',
+    md: 'text-xs px-2.5 py-1 rounded-lg',
+  };
+  const sizeCls = sizeMap[size] || sizeMap.sm;
+
+  if (stageColor) {
+    return (
+      <span
+        style={{
+          backgroundColor: `${stageColor}18`,
+          color: stageColor,
+          borderColor: `${stageColor}40`,
+        }}
+        className={`inline-flex items-center font-semibold border shadow-2xs transition-colors whitespace-nowrap select-none ${sizeCls} ${className} shrink-0`}
+      >
+        {prefix && <span className="opacity-80 font-normal mr-1">{prefix}</span>}
+        <span className="whitespace-nowrap">{status}</span>
+      </span>
+    );
+  }
+
   return (
     <span className={`${getStatusBadgeClass(status, size)} ${className} whitespace-nowrap shrink-0`}>
       {prefix && <span className="opacity-80 font-normal mr-1">{prefix}</span>}

@@ -8,6 +8,7 @@ export interface SelectOption {
   icon?: React.ReactNode;
   color?: string;
   badge?: string | number;
+  badgeClassName?: string;
   sublabel?: string;
 }
 
@@ -205,7 +206,12 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           {selectedOption?.badge !== undefined && (
-            <span className="text-3xs px-1.5 py-0.2 rounded-full font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+            <span
+              className={`text-3xs px-1.5 py-0.2 rounded-full font-semibold ${
+                selectedOption.badgeClassName ||
+                'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+              }`}
+            >
               {selectedOption.badge}
             </span>
           )}
@@ -269,7 +275,12 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       {opt.badge !== undefined && (
-                        <span className="text-3xs px-1.5 py-0.2 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        <span
+                          className={`text-3xs px-1.5 py-0.2 rounded-full font-semibold ${
+                            opt.badgeClassName ||
+                            'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                          }`}
+                        >
                           {opt.badge}
                         </span>
                       )}

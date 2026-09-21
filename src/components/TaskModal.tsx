@@ -3,6 +3,7 @@ import {
   X,
   Check,
   Copy,
+  CopyPlus,
   Calendar,
   AlertTriangle,
   User,
@@ -32,7 +33,7 @@ import {
   Smartphone,
   Monitor,
 } from 'lucide-react';
-import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser, TaskTimelineEvent, TaskSubtask, AttachedLink, ProjectScopeType } from '../types';
+import { Task, StatusType, PriorityType, TeamMember, Project, AuthUser, TaskTimelineEvent, TaskSubtask, AttachedLink, ProjectScopeType, DEFAULT_PROJECT_STAGES } from '../types';
 import { getTaskShareUrl, copyTextToClipboard } from '../utils/shareUtils';
 import { getDueDateStatus, isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
@@ -65,10 +66,13 @@ interface TaskModalProps {
   projectMembers?: TeamMember[];
   projects?: Project[];
   teamMembers?: TeamMember[];
+  tasks?: Task[];
+  defaultAssigneeId?: string;
   onOpenAddMember?: () => void;
   currentUser?: AuthUser | null;
   onCommentCountChange?: (taskId: string, count: number) => void;
   onSubtasksChange?: (taskId: string, subtasks: TaskSubtask[]) => void;
+  onDuplicateTask?: (task: Task) => void;
 }
 
 const getStatusBadge = (status: StatusType) => getStatusBadgeClass(status, 'sm');
@@ -85,10 +89,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   projectMembers,
   projects = [],
   teamMembers = [],
+  tasks = [],
+  defaultAssigneeId,
   onOpenAddMember,
   currentUser,
   onCommentCountChange,
   onSubtasksChange,
+  onDuplicateTask,
 }) => {
   const isAdmin = currentUser?.role === 'admin';
   const isStaff = currentUser?.role === 'staff';
@@ -115,10 +122,48 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<StatusType>('In Progress');
   const [priority, setPriority] = useState<PriorityType>('Medium');
-  const [assigneeId, setAssigneeId] = useState('');
+  const [assigneeId, setAssigneeId] = useState(
+    initialTask?.assigneeId || defaultAssigneeId || ''
+  );
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [taskFor, setTaskFor] = useState<string>('Mobile App UI');
+
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+
+  // Active task check based on project stages
+  const isTaskActive = (t: Task) => {
+    const proj = safeProjects.find((p) => p.id === t.projectId);
+    const stages = proj?.stages && proj.stages.length > 0 ? proj.stages : DEFAULT_PROJECT_STAGES;
+    const stage = stages.find((s) => s.name.trim().toLowerCase() === t.status.trim().toLowerCase());
+    if (stage) {
+      return stage.category === 'active' || stage.category === 'blocked';
+    }
+    return t.status !== 'Completed' && t.status !== 'Draft';
+  };
+
+  // Map of active task counts per member ID
+  const memberActiveCountMap = useMemo(() => {
+    const counts = new Map<string, number>();
+    safeTasks.forEach((t) => {
+      if (t.assigneeId && !t.deletedAt && isTaskActive(t)) {
+        counts.set(t.assigneeId, (counts.get(t.assigneeId) || 0) + 1);
+      }
+    });
+    return counts;
+  }, [safeTasks, safeProjects]);
+
+  const currentProject = safeProjects.find((p) => p.id === (initialTask?.projectId || selectedProjectId));
+  const projectStages = currentProject?.stages && currentProject.stages.length > 0
+    ? currentProject.stages
+    : DEFAULT_PROJECT_STAGES;
+
+  const initialTaskStage = projectStages.find(
+    (s) => s.name.trim().toLowerCase() === (initialTask?.status || '').trim().toLowerCase()
+  );
+  const isInitialTaskDone = initialTaskStage
+    ? initialTaskStage.category === 'done'
+    : initialTask?.status === 'Completed';
 
   // Subtasks & Deliverable Checklists state
   const [subtasks, setSubtasks] = useState<TaskSubtask[]>(initialTask?.subtasks || []);
@@ -319,10 +364,6 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   );
   const canEditTask = isAdmin || (isStaff && (isOwnTask || !initialTask));
 
-  // Selected project for member suggestions
-  const currentProject =
-    safeProjects.find((p) => p.id === (initialTask?.projectId || selectedProjectId));
-
   // Suggested project members first, then other team members
   const sortedMembers = [...safeMembers].sort((a, b) => {
     const aInProject = currentProject?.memberIds?.includes(a.id) ? 1 : 0;
@@ -330,17 +371,33 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     return bInProject - aInProject;
   });
 
-  // Options for assigned team member dropdown single selection
+  // Options for assigned team member dropdown single selection with capacity badges
   const assigneeOptions: CustomSelectOption[] = useMemo(() => {
     return sortedMembers.map((member) => {
       const isSelf = Boolean(currentUser && member.id === currentUser.memberId);
       const isInProject = currentProject?.memberIds?.includes(member.id);
+      const activeCount = memberActiveCountMap.get(member.id) || 0;
+
+      let badge = `${activeCount} active`;
+      let badgeClassName = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 font-semibold';
+
+      if (activeCount >= 6) {
+        badge = `${activeCount} Overloaded ⚠️`;
+        badgeClassName = 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 font-bold';
+      } else if (activeCount === 5) {
+        badge = `${activeCount} At Limit`;
+        badgeClassName = 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 font-semibold';
+      } else if (activeCount >= 3) {
+        badge = `${activeCount} active`;
+        badgeClassName = 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 font-medium';
+      }
 
       return {
         value: member.id,
         label: isSelf ? `${member.name} (You)` : member.name,
-        sublabel: member.role || member.email,
-        badge: isInProject ? 'Project' : undefined,
+        sublabel: `${member.role || member.email}${isInProject ? ' • Project Team' : ''}`,
+        badge,
+        badgeClassName,
         icon: member.avatar ? (
           <img
             src={member.avatar}
@@ -357,7 +414,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         ),
       };
     });
-  }, [sortedMembers, currentUser, currentProject]);
+  }, [sortedMembers, currentUser, currentProject, memberActiveCountMap]);
 
   // Scopes (Mobile App UI, Web UI) enabled on this project
   const availableScopes = React.useMemo(() => {
@@ -477,9 +534,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setTaskFor(scopes[0] || 'Mobile App UI');
 
       const defaultAssignee =
-        isStaff && currentUser?.memberId
+        defaultAssigneeId ||
+        (isStaff && currentUser?.memberId
           ? currentUser.memberId
-          : activeProj?.memberIds?.[0] || safeMembers[0]?.id || '';
+          : activeProj?.memberIds?.[0] || safeMembers[0]?.id || '');
       setAssigneeId(defaultAssignee);
       const today = new Date().toISOString().split('T')[0];
       const targetDue = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
@@ -489,7 +547,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     setNewSubtaskTitle('');
     setStagedFiles([]);
     setActiveRightTab('documents');
-  }, [initialTask, isOpen, defaultProjectId, projects, teamMembers, currentUser]);
+  }, [initialTask, isOpen, defaultProjectId, projects, teamMembers, currentUser, defaultAssigneeId]);
 
   // When project changes in task creation, align taskFor with available project scopes
   useEffect(() => {
@@ -1012,6 +1070,23 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 </button>
               )}
 
+
+              {initialTask && onDuplicateTask && (
+                <button
+                  id="duplicate-readonly-task-btn"
+                  type="button"
+                  onClick={() => {
+                    onDuplicateTask(initialTask);
+                    onClose();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs"
+                  title="Duplicate this task with unchecked checklist and links"
+                >
+                  <CopyPlus className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Duplicate</span>
+                </button>
+              )}
+
               <button
                 id="copy-readonly-task-btn"
                 type="button"
@@ -1131,9 +1206,30 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     </div>
                   </div>
 
-                  <span className="text-2xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium shrink-0">
-                    {assignedMember.systemRole === 'admin' ? 'Admin' : 'Staff'}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {(() => {
+                      const activeCount = memberActiveCountMap.get(assignedMember.id) || 0;
+                      let badgeColor = 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+                      let label = `${activeCount} active`;
+                      if (activeCount >= 6) {
+                        badgeColor = 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+                        label = `${activeCount} active 🔥`;
+                      } else if (activeCount === 5) {
+                        badgeColor = 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+                        label = '5 active (At Limit)';
+                      } else if (activeCount >= 3) {
+                        badgeColor = 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800';
+                      }
+                      return (
+                        <span className={`text-2xs px-2 py-0.5 rounded-full font-medium border ${badgeColor}`}>
+                          {label}
+                        </span>
+                      );
+                    })()}
+                    <span className="text-2xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium shrink-0">
+                      {assignedMember.systemRole === 'admin' ? 'Admin' : 'Staff'}
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs text-slate-400 dark:text-slate-500 italic">
@@ -1425,6 +1521,22 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </button>
             )}
 
+            {initialTask && onDuplicateTask && (
+              <button
+                id="duplicate-task-btn"
+                type="button"
+                onClick={() => {
+                  onDuplicateTask(initialTask);
+                  onClose();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs"
+                title="Duplicate this task with unchecked checklist and links"
+              >
+                <CopyPlus className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Duplicate</span>
+              </button>
+            )}
+
             <button
               id="close-task-modal-btn"
               onClick={onClose}
@@ -1563,16 +1675,32 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           {/* Status & Priority */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Status
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Status
+                </label>
+                {isStaff && isInitialTaskDone && (
+                  <span className="text-3xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" />
+                    Admin Only
+                  </span>
+                )}
+              </div>
               <StatusDropdown
                 id="task-status-select"
                 status={status}
                 onChange={setStatus}
                 size="md"
                 fullWidth
+                disabled={isStaff && isInitialTaskDone}
+                stages={projectStages}
+                role={currentUser?.role}
               />
+              {isStaff && isInitialTaskDone && (
+                <p className="text-3xs text-amber-600 dark:text-amber-400 mt-1">
+                  Completed / Done tasks can only be updated by Administrators.
+                </p>
+              )}
             </div>
 
             <div>
@@ -1602,38 +1730,74 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </label>
 
             {isStaff ? (
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  {currentUser?.avatar ? (
-                    <img
-                      src={currentUser.avatar}
-                      alt={currentUser.name}
-                      className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-3xs font-bold flex items-center justify-center">
-                      {currentUser?.name?.slice(0, 2).toUpperCase() || 'ME'}
+              <div className="space-y-2">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    {currentUser?.avatar ? (
+                      <img
+                        src={currentUser.avatar}
+                        alt={currentUser.name}
+                        className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-3xs font-bold flex items-center justify-center">
+                        {currentUser?.name?.slice(0, 2).toUpperCase() || 'ME'}
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white block">{currentUser?.name}</span>
+                      <span className="text-2xs text-slate-500 dark:text-slate-400">Staff Deliverable (Assigned to you)</span>
                     </div>
-                  )}
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">{currentUser?.name}</span>
-                    <span className="text-2xs text-slate-500 dark:text-slate-400">Staff Deliverable (Assigned to you)</span>
                   </div>
+                  <span className="text-3xs font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                    Your Task
+                  </span>
                 </div>
-                <span className="text-3xs font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
-                  Your Task
-                </span>
+                {(() => {
+                  const targetMemberId = currentUser?.memberId;
+                  const activeCount = targetMemberId ? (memberActiveCountMap.get(targetMemberId) || 0) : 0;
+                  if (activeCount >= 6) {
+                    return (
+                      <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-start gap-2 text-rose-800 dark:text-rose-200 animate-in fade-in duration-200">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        <div className="text-2xs leading-relaxed">
+                          You currently have <span className="font-bold underline">{activeCount} active deliverables</span> and are over capacity (limit: 5).
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             ) : (
-              <CustomSelect
-                id="task-assignee-select"
-                value={assigneeId || selectedMemberObj?.id || ''}
-                onChange={setAssigneeId}
-                fullWidth
-                size="md"
-                placeholder="Select assigned team member..."
-                options={assigneeOptions}
-              />
+              <div>
+                <CustomSelect
+                  id="task-assignee-select"
+                  value={assigneeId || selectedMemberObj?.id || ''}
+                  onChange={setAssigneeId}
+                  fullWidth
+                  size="md"
+                  placeholder="Select assigned team member..."
+                  options={assigneeOptions}
+                />
+                {(() => {
+                  const targetMemberId = assigneeId || selectedMemberObj?.id;
+                  const activeCount = targetMemberId ? (memberActiveCountMap.get(targetMemberId) || 0) : 0;
+                  const mem = safeMembers.find((m) => m.id === targetMemberId);
+                  if (activeCount >= 6 && mem) {
+                    return (
+                      <div className="mt-2 p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-start gap-2 text-rose-800 dark:text-rose-200 animate-in fade-in duration-200">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        <div className="text-2xs leading-relaxed">
+                          <span className="font-semibold">{mem.name}</span> currently has{' '}
+                          <span className="font-bold underline">{activeCount} active deliverables</span> and is over capacity (limit: 5). Consider delegating or assigning to someone with open bandwidth.
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
             )}
           </div>
 

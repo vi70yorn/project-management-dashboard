@@ -23,6 +23,7 @@ router.get('/', async (_req: Request, res: Response) => {
         p.tags,
         p.color,
         COALESCE(p.links, '[]'::jsonb) AS links,
+        COALESCE(p.stages, '[{"id":"draft","name":"Draft","color":"#6b7280","category":"backlog"},{"id":"in-progress","name":"In Progress","color":"#3b82f6","category":"active"},{"id":"ready-review","name":"Ready Review","color":"#8b5cf6","category":"active"},{"id":"blocked","name":"Blocked","color":"#ef4444","category":"blocked"},{"id":"completed","name":"Completed","color":"#10b981","category":"done"}]'::jsonb) AS stages,
         COALESCE(p.project_for, ARRAY['Mobile App UI', 'Web UI']::text[]) AS "projectFor",
         p.created_by AS "createdBy",
         COALESCE(cb_m.name, cb_u.name, 'Admin') AS "createdByName",
@@ -68,6 +69,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     memberIds = [],
     links = [],
     projectFor = ['Mobile App UI', 'Web UI'],
+    stages,
     createdBy,
   } = req.body;
 
@@ -82,8 +84,8 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     await dbClient.query('BEGIN');
 
     const insertProjectQuery = `
-      INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, links, project_for, created_by, updated_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $13)
+      INSERT INTO projects (id, name, description, client, status, start_date, target_deadline, manager_id, tags, color, links, project_for, stages, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, COALESCE($13::jsonb, '[{"id":"draft","name":"Draft","color":"#6b7280","category":"backlog"},{"id":"in-progress","name":"In Progress","color":"#3b82f6","category":"active"},{"id":"ready-review","name":"Ready Review","color":"#8b5cf6","category":"active"},{"id":"blocked","name":"Blocked","color":"#ef4444","category":"blocked"},{"id":"completed","name":"Completed","color":"#10b981","category":"done"}]'::jsonb), $14, $14)
       RETURNING *;
     `;
     const result = await dbClient.query(insertProjectQuery, [
@@ -99,6 +101,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       color,
       JSON.stringify(links),
       Array.isArray(projectFor) && projectFor.length > 0 ? projectFor : ['Mobile App UI', 'Web UI'],
+      stages ? JSON.stringify(stages) : null,
       effectiveCreatedBy,
     ]);
 
@@ -319,6 +322,148 @@ router.patch('/:id/members', requireAuth, async (req: Request, res: Response) =>
 
     const fullProject = await getProjectById(pool, id);
     res.json(fullProject || { projectId: id, memberIds });
+  } catch (err: any) {
+    await dbClient.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    dbClient.release();
+  }
+});
+
+// PUT /:id/stages - Update Kanban stages for a project (Admin only)
+router.put('/:id/stages', requireAuth, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { stages } = req.body;
+  const userRole = (((req as any).jwtUser?.role || (req.headers['x-user-role'] as string) || 'staff')).toLowerCase();
+  const isAdmin = userRole === 'admin';
+
+  if (!isAdmin) {
+    return res.status(403).json({ error: 'Permission denied. Only Administrators can customize Kanban workflow stages.' });
+  }
+
+  if (!Array.isArray(stages) || stages.length === 0) {
+    return res.status(400).json({ error: 'Stages must be a non-empty array.' });
+  }
+
+  const actorMemberId = (req as any).jwtUser?.memberId || (req.headers['x-user-member-id'] as string) || null;
+  const pool = getPool();
+
+  try {
+    const result = await pool.query(
+      `UPDATE projects 
+       SET stages = $1::jsonb, 
+           updated_by = COALESCE($2, updated_by), 
+           updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $3 AND deleted_at IS NULL RETURNING *`,
+      [JSON.stringify(stages), actorMemberId, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const fullProject = await getProjectById(pool, id);
+
+    recordActivity(pool, {
+      actionType: 'update_project_stages',
+      entityType: 'project',
+      entityId: id,
+      entityName: fullProject?.name || result.rows[0].name,
+      projectId: id,
+      projectName: fullProject?.name || result.rows[0].name,
+      details: { stageCount: stages.length, stageNames: stages.map((s: any) => s.name) },
+    }, req);
+
+    res.json(fullProject || result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /:id/stages/delete - Safely delete a stage and reassign active tasks (Admin only)
+router.post('/:id/stages/delete', requireAuth, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { stageId, stageName, reassignToStageName } = req.body;
+  const userRole = (((req as any).jwtUser?.role || (req.headers['x-user-role'] as string) || 'staff')).toLowerCase();
+  const isAdmin = userRole === 'admin';
+
+  if (!isAdmin) {
+    return res.status(403).json({ error: 'Permission denied. Only Administrators can delete Kanban workflow stages.' });
+  }
+
+  if (!stageName) {
+    return res.status(400).json({ error: 'stageName is required.' });
+  }
+
+  const pool = getPool();
+  const dbClient = await pool.connect();
+
+  try {
+    await dbClient.query('BEGIN');
+
+    // 1. Get current project
+    const pRes = await dbClient.query(`SELECT stages, name FROM projects WHERE id = $1 AND deleted_at IS NULL`, [id]);
+    if (pRes.rowCount === 0) {
+      await dbClient.query('ROLLBACK');
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const currentStages = pRes.rows[0].stages || [];
+    const projectName = pRes.rows[0].name;
+
+    if (currentStages.length <= 1) {
+      await dbClient.query('ROLLBACK');
+      return res.status(400).json({ error: 'A project must retain at least one stage.' });
+    }
+
+    // 2. Check for active tasks using this stage name
+    const taskCountRes = await dbClient.query(
+      `SELECT COUNT(*) FROM tasks WHERE project_id = $1 AND status = $2 AND deleted_at IS NULL`,
+      [id, stageName]
+    );
+    const affectedCount = parseInt(taskCountRes.rows[0].count, 10);
+
+    if (affectedCount > 0) {
+      if (!reassignToStageName) {
+        await dbClient.query('ROLLBACK');
+        return res.status(400).json({
+          error: `There are ${affectedCount} tasks in "${stageName}". Please specify a destination column to move them to.`
+        });
+      }
+      await dbClient.query(
+        `UPDATE tasks SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE project_id = $2 AND status = $3 AND deleted_at IS NULL`,
+        [reassignToStageName, id, stageName]
+      );
+    }
+
+    // 3. Remove stage from project's stages array
+    const updatedStages = currentStages.filter((s: any) => s.id !== stageId && s.name !== stageName);
+    const actorMemberId = (req as any).jwtUser?.memberId || (req.headers['x-user-member-id'] as string) || null;
+
+    await dbClient.query(
+      `UPDATE projects SET stages = $1::jsonb, updated_by = COALESCE($2, updated_by), updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+      [JSON.stringify(updatedStages), actorMemberId, id]
+    );
+
+    await dbClient.query('COMMIT');
+
+    const fullProject = await getProjectById(pool, id);
+
+    recordActivity(pool, {
+      actionType: 'delete_project_stage',
+      entityType: 'project',
+      entityId: id,
+      entityName: projectName,
+      projectId: id,
+      projectName: projectName,
+      details: {
+        deletedStage: stageName,
+        reassignedTasksCount: affectedCount,
+        reassignedTo: reassignToStageName || null,
+      },
+    }, req);
+
+    res.json(fullProject);
   } catch (err: any) {
     await dbClient.query('ROLLBACK');
     res.status(500).json({ error: err.message });
