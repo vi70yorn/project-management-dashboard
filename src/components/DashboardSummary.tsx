@@ -94,6 +94,8 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
 
   // Projects Directory View Mode State (Table vs Cards - Table default)
   const [projectListViewMode, setProjectListViewMode] = useState<'card' | 'table'>('table');
+  const [projectPageSize, setProjectPageSize] = useState<number | 'all'>(10);
+  const [projectCurrentPage, setProjectCurrentPage] = useState<number>(1);
 
   // Deadlines Section Filter & Pagination State:
   // Admin role defaults to 'all' status and 'all' members.
@@ -520,6 +522,18 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
         return dateB - dateA;
       });
   }, [safeProjects, statusFilter, searchQuery]);
+
+  // Projects Directory Pagination calculation
+  const totalProjectItems = filteredProjects.length;
+  const effectiveProjectPageSize = projectPageSize === 'all' ? (totalProjectItems || 1) : projectPageSize;
+  const totalProjectPages = Math.max(1, Math.ceil(totalProjectItems / effectiveProjectPageSize));
+  const safeProjectCurrentPage = Math.min(Math.max(1, projectCurrentPage), totalProjectPages);
+
+  const displayedProjects = useMemo(() => {
+    if (projectPageSize === 'all') return filteredProjects;
+    const startIdx = (safeProjectCurrentPage - 1) * effectiveProjectPageSize;
+    return filteredProjects.slice(startIdx, startIdx + effectiveProjectPageSize);
+  }, [filteredProjects, projectPageSize, safeProjectCurrentPage, effectiveProjectPageSize]);
 
   const getStatusBadge = (status: StatusType) => getStatusBadgeClass(status, 'sm');
   const getPriorityBadge = (priority: string) => getPriorityBadgeClass(priority, 'sm');
@@ -1794,7 +1808,10 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               <CustomSelect
                 id="project-status-filter-select"
                 value={statusFilter}
-                onChange={(val) => setStatusFilter(val)}
+                onChange={(val) => {
+                  setStatusFilter(val);
+                  setProjectCurrentPage(1);
+                }}
                 size="sm"
                 icon={<Filter className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />}
                 options={projectStatusOptions}
@@ -1810,13 +1827,19 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 type="text"
                 placeholder="Search projects, clients, tags..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setProjectCurrentPage(1);
+                }}
                 className="w-full pl-8 pr-7 py-1.5 h-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
               />
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => {
+                    setSearchQuery('');
+                    setProjectCurrentPage(1);
+                  }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
                   title="Clear search"
                 >
@@ -1879,6 +1902,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 onClick={() => {
                   setStatusFilter('all');
                   setSearchQuery('');
+                  setProjectCurrentPage(1);
                 }}
                 className="mt-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
               >
@@ -1903,7 +1927,11 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                {filteredProjects.map((project, idx) => {
+                {displayedProjects.map((project, idx) => {
+                  const rowNumber =
+                    projectPageSize === 'all'
+                      ? idx + 1
+                      : (safeProjectCurrentPage - 1) * (projectPageSize as number) + idx + 1;
                   const projectTasks = tasks.filter((t) => t.projectId === project.id);
                   const draftCount = projectTasks.filter((t) => t.status === 'Draft').length;
                   const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
@@ -1928,7 +1956,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
                       {/* # Index */}
                       <td className="py-3.5 pl-6 pr-3 text-center">
                           <span className="text-3xs font-bold text-slate-400 dark:text-slate-500">
-                            {idx + 1}
+                            {rowNumber}
                           </span>
                         </td>
 
@@ -2157,7 +2185,7 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
           /* Project Cards Grid */
           <div className="pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredProjects.map((project) => {
+          {displayedProjects.map((project) => {
             const projectTasks = tasks.filter((t) => t.projectId === project.id);
             const completedCount = projectTasks.filter((t) => t.status === 'Completed').length;
             const blockedCount = projectTasks.filter((t) => t.status === 'Blocked').length;
@@ -2416,6 +2444,80 @@ export const DashboardSummary: React.FC<DashboardSummaryProps> = ({
               </div>
             );
           })}
+            </div>
+          </div>
+        )}
+
+        {/* Projects Directory Pagination */}
+        {totalProjectItems > 0 && (
+          <div className="pt-3.5 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>
+                Showing{' '}
+                <strong className="text-slate-700 dark:text-slate-200">
+                  {projectPageSize === 'all'
+                    ? totalProjectItems
+                    : `${(safeProjectCurrentPage - 1) * (projectPageSize as number) + 1}–${Math.min(
+                        safeProjectCurrentPage * (projectPageSize as number),
+                        totalProjectItems
+                      )}`}
+                </strong>{' '}
+                of <strong className="text-slate-700 dark:text-slate-200">{totalProjectItems}</strong> projects
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Page size buttons */}
+              <div className="flex items-center gap-1 text-2xs">
+                <span className="text-slate-400 mr-0.5">Show:</span>
+                {[10, 20, 'all'].map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    id={`project-page-size-${size}`}
+                    onClick={() => {
+                      setProjectPageSize(size as any);
+                      setProjectCurrentPage(1);
+                    }}
+                    className={`px-2 py-0.5 rounded cursor-pointer font-medium transition-colors ${
+                      projectPageSize === size
+                        ? 'bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {size === 'all' ? 'All' : size}
+                  </button>
+                ))}
+              </div>
+
+              {/* Prev / Next buttons */}
+              {projectPageSize !== 'all' && totalProjectPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    id="project-prev-page-btn"
+                    disabled={safeProjectCurrentPage <= 1}
+                    onClick={() => setProjectCurrentPage((p) => Math.max(1, p - 1))}
+                    className="p-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    title="Previous page"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-2xs font-semibold px-1 text-slate-600 dark:text-slate-300">
+                    {safeProjectCurrentPage} / {totalProjectPages}
+                  </span>
+                  <button
+                    type="button"
+                    id="project-next-page-btn"
+                    disabled={safeProjectCurrentPage >= totalProjectPages}
+                    onClick={() => setProjectCurrentPage((p) => Math.min(totalProjectPages, p + 1))}
+                    className="p-1 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                    title="Next page"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
