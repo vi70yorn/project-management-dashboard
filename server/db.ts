@@ -139,6 +139,7 @@ export async function runMigrationsAndSeed(): Promise<void> {
     await client.query(`
       ALTER TABLE team_members ADD COLUMN IF NOT EXISTS username VARCHAR(64) UNIQUE;
       ALTER TABLE team_members ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT '123456';
+      ALTER TABLE team_members ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS links JSONB DEFAULT '[]';
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_for TEXT[] DEFAULT '{"Mobile App UI", "Web UI"}';

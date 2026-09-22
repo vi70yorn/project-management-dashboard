@@ -788,7 +788,10 @@ export default function App() {
       );
       updateProjectApi(targetId, projectData, currentUser)
         .then(() => triggerActivityRefresh())
-        .catch((err) => console.warn('[PostgreSQL Sync] Update project error:', err));
+        .catch((err) => {
+          console.error('[PostgreSQL Sync] Update project error:', err);
+          showToast('error', `Failed to update project in database: ${err.message || 'Server error'}`);
+        });
       showToast('success', `Project "${projectData.name}" updated successfully.`);
       setEditingProject(null);
     } else {
@@ -801,8 +804,11 @@ export default function App() {
 
       setProjects((prev) => [newProject, ...prev]);
       createProjectApi(newProject, currentUser)
-        .then(async () => {
+        .then(async (savedProject) => {
           triggerActivityRefresh();
+          if (savedProject) {
+            setProjects((prev) => prev.map((p) => (p.id === newProject.id ? { ...p, ...savedProject } : p)));
+          }
           if (stagedFiles && stagedFiles.length > 0) {
             for (const file of stagedFiles) {
               try {
@@ -819,7 +825,11 @@ export default function App() {
             showToast('success', `Project "${newProject.name}" created with ${stagedFiles.length} document(s)!`);
           }
         })
-        .catch((err) => console.warn('[PostgreSQL Sync] Create project error:', err));
+        .catch((err) => {
+          console.error('[PostgreSQL Sync] Create project error:', err);
+          showToast('error', `Failed to save project to database: ${err.message || 'Server error'}`);
+          setProjects((prev) => prev.filter((p) => p.id !== newProject.id));
+        });
       showToast('success', `Project "${newProject.name}" created!`);
 
       // Switch directly to the new project workspace

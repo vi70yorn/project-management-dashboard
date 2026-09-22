@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS team_members (
     color VARCHAR(32) DEFAULT '#2563eb',
     status VARCHAR(32) NOT NULL DEFAULT 'active',    -- 'active', 'busy', 'away'
     department VARCHAR(255),
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2. Projects Table

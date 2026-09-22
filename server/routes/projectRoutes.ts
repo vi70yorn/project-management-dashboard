@@ -114,12 +114,21 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     }
 
     if (managerId) {
-      await dbClient.query(
-        `UPDATE team_members
-         SET system_role = 'admin', updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1 AND (system_role IS NULL OR LOWER(system_role) != 'admin')`,
-        [managerId]
-      );
+      try {
+        await dbClient.query(
+          `UPDATE team_members
+           SET system_role = 'admin', updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1 AND (system_role IS NULL OR LOWER(system_role) != 'admin')`,
+          [managerId]
+        );
+      } catch {
+        await dbClient.query(
+          `UPDATE team_members
+           SET system_role = 'admin'
+           WHERE id = $1 AND (system_role IS NULL OR LOWER(system_role) != 'admin')`,
+          [managerId]
+        ).catch(() => {});
+      }
     }
 
     // Insert project members
