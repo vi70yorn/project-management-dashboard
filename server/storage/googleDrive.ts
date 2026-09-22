@@ -87,8 +87,8 @@ export function getGoogleDriveStatus(): {
   }
   return {
     configured: false,
-    provider: 'local',
-    message: 'Running in Local Storage mode. Add GOOGLE_SERVICE_ACCOUNT_KEY & GOOGLE_DRIVE_FOLDER_ID to .env to enable Google Drive.',
+    provider: 'google_drive',
+    message: 'Google Drive is disconnected. Uploads are strictly stored in Google Drive. Please re-authenticate Google Drive.',
   };
 }
 
@@ -339,107 +339,85 @@ export async function uploadDocumentFile({
   fileModifiedAt,
 }: UploadDocumentOptions): Promise<UploadResult> {
   const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (!isGoogleDriveConfigured() || !rootFolderId) {
+    try { fs.unlinkSync(filePath); } catch {}
+    throw new Error('Google Drive is not connected. Uploads are strictly configured to Google Drive only. Please re-authenticate Google Drive.');
+  }
 
-  if (isGoogleDriveConfigured() && rootFolderId) {
+  try {
+    const drive = getDriveClient();
+
+    // 1. Resolve structured target folder: Project -> [Tasks] -> [Task Title]
+    const targetFolderId = await resolveTargetFolder(drive, rootFolderId, {
+      projectName,
+      taskId,
+      taskTitle,
+    });
+
+    // 2. Rename in Google Drive only: original name + user name + date modify
+    const driveFileName = buildDriveFileName({
+      originalName: fileName,
+      userName,
+      fileModifiedAt,
+    });
+
+    console.log(`[Google Drive] Uploading "${driveFileName}" to folder (${targetFolderId})...`);
+
+    const fileMetadata = {
+      name: driveFileName,
+      parents: [targetFolderId],
+    };
+
+    const media = {
+      mimeType,
+      body: fs.createReadStream(filePath),
+    };
+
+    const response = await drive.files.create({
+      requestBody: fileMetadata,
+      media,
+      fields: 'id, name, webViewLink, webContentLink',
+      supportsAllDrives: true,
+    });
+
+    const fileId = response.data.id;
+    if (!fileId) {
+      throw new Error('No file ID returned from Google Drive.');
+    }
+
+    // Grant anyone with link read access so team members can view
     try {
-      const drive = getDriveClient();
-
-      // 1. Resolve structured target folder: Project -> [Tasks] -> [Task Title]
-      const targetFolderId = await resolveTargetFolder(drive, rootFolderId, {
-        projectName,
-        taskId,
-        taskTitle,
-      });
-
-      // 2. Rename in Google Drive only: original name + user name + date modify
-      const driveFileName = buildDriveFileName({
-        originalName: fileName,
-        userName,
-        fileModifiedAt,
-      });
-
-      console.log(`[Google Drive] Uploading "${driveFileName}" to folder (${targetFolderId})...`);
-
-      const fileMetadata = {
-        name: driveFileName,
-        parents: [targetFolderId],
-      };
-
-      const media = {
-        mimeType,
-        body: fs.createReadStream(filePath),
-      };
-
-      const response = await drive.files.create({
-        requestBody: fileMetadata,
-        media,
-        fields: 'id, name, webViewLink, webContentLink',
+      await drive.permissions.create({
+        fileId,
+        requestBody: {
+          role: 'reader',
+          type: 'anyone',
+        },
         supportsAllDrives: true,
       });
-
-      const fileId = response.data.id;
-      if (!fileId) {
-        throw new Error('No file ID returned from Google Drive.');
-      }
-
-      // Grant anyone with link read access so team members can view
-      try {
-        await drive.permissions.create({
-          fileId,
-          requestBody: {
-            role: 'reader',
-            type: 'anyone',
-          },
-          supportsAllDrives: true,
-        });
-      } catch (permErr: any) {
-        console.warn('[Google Drive] Could not set public link permission (may be restricted by workspace):', permErr.message);
-      }
-
-      // Cleanup temp uploaded file from multer
-      try {
-        fs.unlinkSync(filePath);
-      } catch {}
-
-      console.log(`[Google Drive] File "${driveFileName}" uploaded successfully! File ID: ${fileId}`);
-
-      return {
-        storageProvider: 'google_drive',
-        driveFileId: fileId,
-        driveFileName,
-        webViewLink: response.data.webViewLink || `https://drive.google.com/file/d/${fileId}/view`,
-        downloadLink: response.data.webContentLink || `https://drive.google.com/uc?id=${fileId}&export=download`,
-      };
-    } catch (driveErr: any) {
-      console.error('[Google Drive] Upload error, falling back to local storage:', driveErr.message);
-      // Fall through to local storage fallback
+    } catch (permErr: any) {
+      console.warn('[Google Drive] Could not set public link permission (may be restricted by workspace):', permErr.message);
     }
-  }
 
-  // Local Storage Fallback
-  const safeBaseName = path.basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_');
-  const storedFileName = `${Date.now()}-${safeBaseName}`;
-  const targetPath = path.join(UPLOADS_DIR, storedFileName);
+    // Cleanup temp uploaded file from multer
+    try {
+      fs.unlinkSync(filePath);
+    } catch {}
 
-  // Move temp file to permanent local uploads directory
-  try {
-    fs.copyFileSync(filePath, targetPath);
-    fs.unlinkSync(filePath);
-  } catch (copyErr) {
-    const data = fs.readFileSync(filePath);
-    fs.writeFileSync(targetPath, data);
+    console.log(`[Google Drive] File "${driveFileName}" uploaded successfully! File ID: ${fileId}`);
+
+    return {
+      storageProvider: 'google_drive',
+      driveFileId: fileId,
+      driveFileName,
+      webViewLink: response.data.webViewLink || `https://drive.google.com/file/d/${fileId}/view`,
+      downloadLink: response.data.webContentLink || `https://drive.google.com/uc?id=${fileId}&export=download`,
+    };
+  } catch (driveErr: any) {
     try { fs.unlinkSync(filePath); } catch {}
+    console.error('[Google Drive] Upload error:', driveErr.message);
+    throw new Error(`Google Drive upload failed: ${driveErr.message}. Local storage fallback is disabled.`);
   }
-
-  const relativeUrl = `/api/uploads/documents/${encodeURIComponent(storedFileName)}`;
-
-  return {
-    storageProvider: 'local',
-    driveFileId: null,
-    webViewLink: relativeUrl,
-    downloadLink: relativeUrl,
-    localFileName: storedFileName,
-  };
 }
 
 /**

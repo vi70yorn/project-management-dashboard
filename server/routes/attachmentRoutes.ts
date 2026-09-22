@@ -222,7 +222,12 @@ router.post('/upload', requireAuth, upload.single('file'), async (req: Request, 
 
     res.status(201).json(createdAttachment);
   } catch (err: any) {
-    console.error('[POST /api/attachments/upload] Error:', err);
+    if (req.file && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch {}
+    }
+    console.error('[POST /api/attachments/upload] Error:', err.message || err);
     res.status(500).json({ error: err.message || 'Upload failed' });
   }
 });
