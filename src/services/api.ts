@@ -14,7 +14,7 @@ import {
   ProjectShareConfig,
   ClientProjectResponse,
 } from '../types';
-import { loadAuthUser, loadJwtToken, saveJwtToken, clearJwtToken } from './storage';
+import { loadAuthUser, clearAuthUser, loadJwtToken, saveJwtToken, clearJwtToken } from './storage';
 import { apiFetch } from '../utils/crypto';
 
 const API_BASE = '/api';
@@ -98,6 +98,37 @@ function getAuthHeaders(user?: { memberId?: string; name?: string; avatar?: stri
   return headers;
 }
 
+/**
+ * Centrally handles API failure responses. If the backend returns a 401 Unauthorized,
+ * this clears the stored session and notifies the application to present the login screen.
+ */
+async function handleApiError(res: Response, fallbackMessage: string): Promise<never> {
+  let errorMessage = fallbackMessage;
+  try {
+    const data = await res.json();
+    if (data && typeof data === 'object' && typeof data.error === 'string') {
+      errorMessage = data.error;
+    }
+  } catch {
+    // Response body might not be parseable JSON
+  }
+
+  if (res.status === 401) {
+    clearJwtToken();
+    clearAuthUser();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('auth:expired', {
+          detail: { message: errorMessage || 'Your session has expired. Please sign in again.' },
+        })
+      );
+    }
+    throw new Error(errorMessage || 'Your session has expired. Please log in again.');
+  }
+
+  throw new Error(errorMessage || `${fallbackMessage} (${res.status})`);
+}
+
 export async function createProjectApi(
   projectData: Omit<Project, 'id' | 'createdAt'> & { id?: string },
   currentUser?: { memberId?: string; name?: string } | null
@@ -107,7 +138,7 @@ export async function createProjectApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify(projectData),
   });
-  if (!res.ok) throw new Error(`Failed to create project (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to create project');
   return res.json();
 }
 
@@ -121,7 +152,7 @@ export async function updateProjectApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify(projectData),
   });
-  if (!res.ok) throw new Error(`Failed to update project (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to update project');
   return res.json();
 }
 
@@ -135,7 +166,7 @@ export async function updateProjectStatusApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify({ status }),
   });
-  if (!res.ok) throw new Error(`Failed to update project status (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to update project status');
   return res.json();
 }
 
@@ -149,7 +180,7 @@ export async function updateProjectMembersApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify({ memberIds }),
   });
-  if (!res.ok) throw new Error(`Failed to update project members (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to update project members');
   return res.json();
 }
 
@@ -163,10 +194,7 @@ export async function updateProjectStagesApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify({ stages }),
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `Failed to update project stages (${res.status})`);
-  }
+  if (!res.ok) await handleApiError(res, 'Failed to update project stages');
   return res.json();
 }
 
@@ -182,10 +210,7 @@ export async function deleteProjectStageApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify({ stageId, stageName, reassignToStageName }),
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `Failed to delete project stage (${res.status})`);
-  }
+  if (!res.ok) await handleApiError(res, 'Failed to delete project stage');
   return res.json();
 }
 
@@ -199,7 +224,7 @@ export async function deleteProjectApi(
     method: 'DELETE',
     headers,
   });
-  if (!res.ok) throw new Error(`Failed to delete project (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to delete project');
 }
 
 // -------------------------------------------------------------
@@ -221,7 +246,7 @@ export async function createTaskApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify(taskData),
   });
-  if (!res.ok) throw new Error(`Failed to create task (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to create task');
   return res.json();
 }
 
@@ -235,7 +260,7 @@ export async function duplicateTaskApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify(overrides || {}),
   });
-  if (!res.ok) throw new Error(`Failed to duplicate task (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to duplicate task');
   return res.json();
 }
 
@@ -249,7 +274,7 @@ export async function updateTaskApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify(taskData),
   });
-  if (!res.ok) throw new Error(`Failed to update task (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to update task');
   return res.json();
 }
 
@@ -263,7 +288,7 @@ export async function updateTaskStatusApi(
     headers: getAuthHeaders(currentUser),
     body: JSON.stringify({ status }),
   });
-  if (!res.ok) throw new Error(`Failed to update task status (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to update task status');
   return res.json();
 }
 
@@ -277,7 +302,7 @@ export async function deleteTaskApi(
     method: 'DELETE',
     headers,
   });
-  if (!res.ok) throw new Error(`Failed to delete task (${res.status})`);
+  if (!res.ok) await handleApiError(res, 'Failed to delete task');
 }
 
 // -------------------------------------------------------------
@@ -541,10 +566,19 @@ export async function fetchActivitiesApi(limit: number = 50): Promise<ActivityLo
 // -------------------------------------------------------------
 
 export async function fetchRecycleBinApi(): Promise<RecycleBinData> {
+  const token = loadJwtToken();
+  if (!token) {
+    return { projects: [], tasks: [], totalCount: 0 };
+  }
   const res = await apiFetch(`${API_BASE}/recycle-bin`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error(`Failed to fetch recycle bin (${res.status})`);
+  if (!res.ok) {
+    if (res.status === 401) {
+      return { projects: [], tasks: [], totalCount: 0 };
+    }
+    throw new Error(`Failed to fetch recycle bin (${res.status})`);
+  }
   return res.json();
 }
 

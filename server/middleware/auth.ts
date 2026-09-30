@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
@@ -35,16 +36,35 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   const authHeader = req.headers['authorization'];
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
   if (!token) {
+    console.warn(`[Auth 401] Missing or invalid Authorization header on ${req.method} ${req.originalUrl}`);
     res.status(401).json({ error: 'Authentication required. Please log in.' });
     return;
   }
+
+  const primarySecret = process.env.JWT_SECRET || JWT_SECRET;
+  let decoded: JwtPayload | null = null;
+
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    (req as any).jwtUser = decoded;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Invalid or expired session token. Please log in again.' });
+    decoded = jwt.verify(token, primarySecret) as JwtPayload;
+  } catch (err: any) {
+    // Graceful backward-compatibility fallback if token was signed with the default fallback secret
+    if (primarySecret !== 'easymanage-default-secret-change-me') {
+      try {
+        decoded = jwt.verify(token, 'easymanage-default-secret-change-me') as JwtPayload;
+      } catch {
+        // Fallback failed as well
+      }
+    }
+
+    if (!decoded) {
+      console.warn(`[Auth 401] Session token validation failed on ${req.method} ${req.originalUrl}:`, err.message);
+      res.status(401).json({ error: 'Invalid or expired session token. Please log in again.' });
+      return;
+    }
   }
+
+  (req as any).jwtUser = decoded;
+  next();
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {

@@ -30,6 +30,7 @@ import {
   clearAuthUser,
   loadJwtToken,
   clearJwtToken,
+  isJwtExpired,
   loadRecycleBinData,
   saveRecycleBinData,
   loadNotifications,
@@ -148,7 +149,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
     const user = loadAuthUser();
     const token = loadJwtToken();
-    if (user && !token) {
+    if (!user || !token || isJwtExpired(token)) {
       clearAuthUser();
       clearJwtToken();
       return null;
@@ -578,6 +579,21 @@ export default function App() {
       setToast((prev) => (prev?.message === message ? null : prev));
     }, 4500);
   };
+
+  // Listen for session expiry / 401 unauthorized events to gracefully return to login
+  useEffect(() => {
+    const handleAuthExpired = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message?: string }>;
+      const message = customEvent.detail?.message || 'Your session has expired. Please log in again.';
+      setCurrentUser(null);
+      clearAuthUser();
+      clearJwtToken();
+      showToast('error', message);
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => window.removeEventListener('auth:expired', handleAuthExpired);
+  }, []);
 
   // Auth Handlers
   const handleLogin = (user: AuthUser) => {

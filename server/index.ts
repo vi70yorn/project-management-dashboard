@@ -1,9 +1,13 @@
+import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import https from 'https';
+
+// Force system and runtime timezone to UTC+7 (Asia/Bangkok, Indochina Time)
+process.env.TZ = 'Asia/Bangkok';
+
 import { ensureDatabaseExists, runMigrationsAndSeed, dbConfig } from './db';
 import { apiResponseEncryptionMiddleware, AES_KEY_BUFFER } from './middleware/encryption';
 import { startTelegramWeeklyScheduler } from './services/telegramService';
@@ -20,10 +24,6 @@ import telegramRoutes from './routes/telegramRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import attachmentRoutes from './routes/attachmentRoutes';
 import shareRoutes from './routes/shareRoutes';
-
-// Force system and runtime timezone to UTC+7 (Asia/Bangkok, Indochina Time)
-process.env.TZ = 'Asia/Bangkok';
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

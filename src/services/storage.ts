@@ -71,6 +71,31 @@ export const clearAuthUser = () => {
 };
 
 // JWT Token helpers
+/**
+ * Checks whether a given JWT token string has expired or is invalid.
+ */
+export const isJwtExpired = (token: string | null | undefined): boolean => {
+  if (!token || typeof token !== 'string') return true;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const parsed = JSON.parse(jsonPayload);
+    if (!parsed.exp) return false;
+    // Buffer by 10 seconds to prevent edge-of-expiry race conditions
+    return Date.now() >= (parsed.exp * 1000) - 10000;
+  } catch {
+    return true;
+  }
+};
+
 export const saveJwtToken = (token: string) => {
   try {
     localStorage.setItem(STORAGE_KEYS.JWT_TOKEN, token);
@@ -81,7 +106,15 @@ export const saveJwtToken = (token: string) => {
 
 export const loadJwtToken = (): string | null => {
   try {
-    return localStorage.getItem(STORAGE_KEYS.JWT_TOKEN);
+    const token = localStorage.getItem(STORAGE_KEYS.JWT_TOKEN);
+    if (!token) return null;
+    if (isJwtExpired(token)) {
+      console.warn('[Auth] Stored JWT token has expired or is invalid. Clearing session.');
+      localStorage.removeItem(STORAGE_KEYS.JWT_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+      return null;
+    }
+    return token;
   } catch (e) {
     console.error('Error loading JWT token:', e);
     return null;
