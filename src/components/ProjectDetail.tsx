@@ -30,7 +30,6 @@ import {
   CheckSquare,
   Share2,
   Link as LinkIcon,
-  Paperclip,
   FileText,
   Smartphone,
   Monitor,
@@ -47,12 +46,10 @@ import { StatusBadge, PriorityBadge, ScopeBadge, getStatusBadgeClass, getPriorit
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect } from './ui/CustomSelect';
 import { FormattedText } from './ui/FormattedText';
-import { DocumentAttachmentManager } from './DocumentAttachmentManager';
-import { LinkAttachmentManager } from './LinkAttachmentManager';
 import { ShareProjectModal } from './ShareProjectModal';
 import { ProjectReportModal } from './ProjectReportModal';
 import { TeamCapacityBarometer } from './TeamCapacityBarometer';
-import { fetchAttachmentsApi, updateProjectStagesApi, deleteProjectStageApi } from '../services/api';
+import { updateProjectStagesApi, deleteProjectStageApi } from '../services/api';
 
 interface ProjectDetailProps {
   project: Project;
@@ -137,8 +134,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const isAssignedToProject =
     isAdmin || (isStaff && (project?.memberIds || []).includes(currentUser?.memberId || ''));
 
-  const [activeTab, setActiveTab] = useState<'board' | 'team' | 'documents'>('board');
-  const [projectAttachmentCount, setProjectAttachmentCount] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'board' | 'team'>('board');
   const [filterMemberId, setFilterMemberId] = useState<string>('all');
   const [filterScope, setFilterScope] = useState<string>('all');
   const [searchTaskQuery, setSearchTaskQuery] = useState('');
@@ -211,14 +207,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       // ignore
     }
     setCollapsedColumns({ Draft: true, Completed: true });
-  }, [project?.id]);
-
-  useEffect(() => {
-    if (project?.id) {
-      fetchAttachmentsApi(project.id)
-        .then((items) => setProjectAttachmentCount(items.length))
-        .catch(() => {});
-    }
   }, [project?.id]);
 
   const toggleColumnCollapse = (status: StatusType) => {
@@ -703,17 +691,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed"
             />
 
-            {/* Project Attached Links */}
-            {project.links && project.links.length > 0 && (
-              <div className="pt-2">
-                <LinkAttachmentManager
-                  links={project.links}
-                  readOnly
-                  titleLabel="Project Links"
-                />
-              </div>
-            )}
-
             {/* Tags & Manager */}
             <div className="flex items-center gap-2 pt-1 flex-wrap text-2xs">
               {projectManager && (
@@ -953,23 +930,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             Task Board ({projectTasks.length})
           </button>
 
-          <button
-            id="tab-btn-documents"
-            onClick={() => setActiveTab('documents')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'documents'
-                ? 'bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Paperclip className="w-3.5 h-3.5" />
-            <span>Documents</span>
-            {projectAttachmentCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
-                {projectAttachmentCount}
-              </span>
-            )}
-          </button>
 
           <button
             id="tab-btn-team"
@@ -1716,19 +1676,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* VIEW 3: Project Documents & Files */}
-      {activeTab === 'documents' && (
-        <div className="glass-panel rounded-2xl p-6 shadow-2xs">
-          <DocumentAttachmentManager
-            projectId={project.id}
-            projectName={project.name}
-            currentUser={currentUser}
-            onAttachmentCountChange={setProjectAttachmentCount}
-            readOnly={!isAdmin && !isAssignedToProject}
-          />
         </div>
       )}
 

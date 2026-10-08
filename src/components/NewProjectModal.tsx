@@ -7,20 +7,17 @@ import {
   AlertCircle,
   Edit3,
   Clock,
-  Paperclip,
   Pipette,
   Smartphone,
   Monitor,
 } from 'lucide-react';
-import { Project, StatusType, TeamMember, AuthUser, AttachedLink } from '../types';
+import { Project, StatusType, TeamMember, AuthUser } from '../types';
 import { isDueToday, formatDateTime } from '../utils/dateUtils';
 import { FORM_STYLES } from '../utils/formStyles';
 import { StatusDropdown } from './ui/StatusDropdown';
 import { CustomSelect, CustomSelectOption } from './ui/CustomSelect';
 import { DatePicker } from './ui/DatePicker';
 import { RichTextEditor } from './ui/RichTextEditor';
-import { DocumentAttachmentManager } from './DocumentAttachmentManager';
-import { LinkAttachmentManager } from './LinkAttachmentManager';
 import { TeamMemberMultiSelect } from './ui/TeamMemberMultiSelect';
 import { ColorPickerPopover } from './ui/ColorPickerPopover';
 
@@ -29,8 +26,7 @@ interface NewProjectModalProps {
   onClose: () => void;
   onSave: (
     project: Omit<Project, 'id' | 'createdAt'>,
-    projectId?: string,
-    stagedFiles?: File[]
+    projectId?: string
   ) => Promise<void> | void;
   initialProject?: Project | null;
   teamMembers: TeamMember[];
@@ -96,11 +92,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   });
   const [tagsInput, setTagsInput] = useState('Core, Sprint 1');
   const [color, setColor] = useState(COLOR_OPTIONS[0]);
-  const [links, setLinks] = useState<AttachedLink[]>([]);
-  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
-  const [activeMobileTab, setActiveMobileTab] = useState<'details' | 'documents' | 'activity'>('details');
-  const [activeRightTab, setActiveRightTab] = useState<'documents' | 'activity'>('documents');
-  const [attachmentCount, setAttachmentCount] = useState<number>(0);
+  const [activeMobileTab, setActiveMobileTab] = useState<'details' | 'activity'>('details');
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const customColorButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -152,10 +144,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
   }, [teamMembers, selectedMembers, currentUser]);
 
   useEffect(() => {
-    setStagedFiles([]);
     setActiveMobileTab('details');
-    setActiveRightTab('documents');
-    setAttachmentCount(0);
     setIsColorPickerOpen(false);
     const defaultAdminId = findAdminMemberId();
     if (initialProject) {
@@ -173,7 +162,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
       );
       setTagsInput(Array.isArray(initialProject.tags) ? initialProject.tags.join(', ') : 'Core');
       setColor(initialProject.color || COLOR_OPTIONS[0]);
-      setLinks(Array.isArray(initialProject.links) ? initialProject.links : []);
       setProjectFor(
         Array.isArray(initialProject.projectFor) && initialProject.projectFor.length > 0
           ? initialProject.projectFor
@@ -194,7 +182,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
       setSelectedMembers(initialList.length > 0 ? initialList : teamMembers.slice(0, 3).map((m) => m.id));
       setTagsInput('Core, Sprint 1');
       setColor(COLOR_OPTIONS[0]);
-      setLinks([]);
       setProjectFor(['Mobile App UI', 'Web UI']);
     }
   }, [initialProject, isOpen, teamMembers, currentUser]);
@@ -230,11 +217,10 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
         memberIds: selectedMembers.length > 0 ? selectedMembers : [teamMembers[0]?.id || ''],
         tags: tags.length > 0 ? tags : ['General'],
         color: color.trim().startsWith('#') ? color.trim() : color.trim() ? `#${color.trim()}` : COLOR_OPTIONS[0],
-        links,
+        links: [],
         projectFor: projectFor.length > 0 ? projectFor : ['Mobile App UI', 'Web UI'],
       },
-      initialProject ? initialProject.id : undefined,
-      stagedFiles
+      initialProject ? initialProject.id : undefined
     );
 
     onClose();
@@ -277,30 +263,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setActiveMobileTab('documents');
-                  setActiveRightTab('documents');
-                }}
-                className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
-                  activeMobileTab === 'documents'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
-                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
-                }`}
-              >
-                <Paperclip className="w-3.5 h-3.5" />
-                <span>Docs</span>
-                {(initialProject ? attachmentCount : stagedFiles.length) > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full text-3xs bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold">
-                    {initialProject ? attachmentCount : stagedFiles.length}
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveMobileTab('activity');
-                  setActiveRightTab('activity');
-                }}
+                onClick={() => setActiveMobileTab('activity')}
                 className={`px-2.5 py-1 rounded-md font-medium cursor-pointer transition-colors inline-flex items-center gap-1.5 ${
                   activeMobileTab === 'activity'
                     ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
@@ -322,7 +285,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Main Split Content (Left Form + Right Documents/Overview) */}
+        {/* Modal Main Split Content (Left Form + Right Overview) */}
         <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
           {/* Left Column: Project Form */}
           <div
@@ -359,11 +322,6 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
                     onChange={setDescription}
                     placeholder="Key project goals, deliverables, and scope..."
                   />
-                </div>
-
-                {/* Attached Links */}
-                <div>
-                  <LinkAttachmentManager links={links} onChange={setLinks} />
                 </div>
 
                 {/* What is this project for? */}
@@ -646,70 +604,23 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
             </form>
           </div>
 
-          {/* Right Column: Documents & Overview/Activity (Same as TaskModal) */}
+          {/* Right Column: Overview & Setup Guide */}
           <div
             id="project-right-panel"
             className={`w-full lg:w-[420px] xl:w-[480px] border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col min-h-0 overflow-hidden shrink-0 ${
               activeMobileTab === 'details' ? 'hidden lg:flex' : 'flex'
             }`}
           >
-            {/* Right Panel Header: Tabs */}
+            {/* Right Panel Header */}
             <div className="p-2.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 bg-white dark:bg-slate-900/80 shrink-0">
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveRightTab('documents');
-                    setActiveMobileTab('documents');
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                    activeRightTab === 'documents'
-                      ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
-                  }`}
-                >
-                  <Paperclip className="w-3.5 h-3.5" />
-                  <span>Documents</span>
-                  {(initialProject ? attachmentCount : stagedFiles.length) > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
-                      {initialProject ? attachmentCount : stagedFiles.length}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveRightTab('activity');
-                    setActiveMobileTab('activity');
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                    activeRightTab === 'activity'
-                      ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
-                  }`}
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{initialProject ? 'Activity & Audit' : 'Overview'}</span>
-                </button>
+              <div className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>{initialProject ? 'Activity & Audit' : 'Overview'}</span>
               </div>
             </div>
 
             {/* Right Panel Body */}
-            {activeRightTab === 'documents' ? (
-              <div className="flex-1 overflow-y-auto p-4 min-h-0 custom-scrollbar bg-white dark:bg-slate-900/60">
-                <DocumentAttachmentManager
-                  projectId={initialProject?.id}
-                  projectName={initialProject?.name || name || 'Project'}
-                  currentUser={currentUser}
-                  onAttachmentCountChange={setAttachmentCount}
-                  isCreateMode={!initialProject}
-                  stagedFiles={stagedFiles}
-                  onStagedFilesChange={setStagedFiles}
-                />
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 space-y-4 bg-white dark:bg-slate-900/60">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 min-h-0 space-y-4 bg-white dark:bg-slate-900/60 custom-scrollbar">
                 {initialProject ? (
                   <div className="space-y-4">
                     <div className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 rounded-xl space-y-3">
@@ -805,7 +716,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
                         <span>Project Setup Guide</span>
                       </div>
                       <p className="text-2xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                        Organize your team, track deliverables, and keep all documents and links centralized.
+                        Organize your team, track deliverables, and stay on schedule with clarity.
                       </p>
                     </div>
 
@@ -813,21 +724,20 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
                       <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200/60 dark:border-slate-800">
                         <span className="font-semibold text-slate-800 dark:text-slate-200 block mb-0.5">Platform Scopes</span>
                         <span className="text-2xs text-slate-500 dark:text-slate-400 leading-relaxed block">
-                          Choose Mobile App UI, Web UI, or both to restrict tasks to the right platform deliverables.
+                          Choose Mobile App UI, Web UI, or both to categorize deliverables accurately.
                         </span>
                       </div>
 
                       <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                        <span className="font-semibold text-slate-800 dark:text-slate-200 block mb-0.5">Project Documents</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 block mb-0.5">Team Assignment</span>
                         <span className="text-2xs text-slate-500 dark:text-slate-400 leading-relaxed block">
-                          Switch to the <strong className="text-blue-600 dark:text-blue-400">Documents</strong> tab to drag & drop PRDs, spreadsheets, or design specs.
+                          Assign members to ensure they receive tasks and updates for this project.
                         </span>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
-            )}
           </div>
         </div>
       </div>

@@ -540,15 +540,7 @@ export const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
                         />
                         <span>Display Deliverables &amp; Milestone Tasks</span>
                       </label>
-                      <label className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={showAttachments}
-                          onChange={(e) => setShowAttachments(e.target.checked)}
-                          className="rounded-sm border-slate-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span>Display Project Attachments &amp; Document Previews</span>
-                      </label>
+
                     </div>
                   </div>
 

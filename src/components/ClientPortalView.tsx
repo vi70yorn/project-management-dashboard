@@ -7,10 +7,6 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
-  Download,
-  FileText,
-  FileSpreadsheet,
-  Image as ImageIcon,
   Link as LinkIcon,
   Layers,
   ChevronDown,
@@ -28,7 +24,6 @@ import {
   ClientProjectResponse,
   ClientProjectData,
   ClientTaskData,
-  ClientAttachmentData,
   StatusType,
 } from '../types';
 import { fetchClientSharedProjectApi, verifyClientSharePasscodeApi } from '../services/api';
@@ -120,28 +115,12 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
   const project = portalData?.project;
   const metrics = portalData?.metrics;
   const tasks = portalData?.tasks || [];
-  const attachments = portalData?.attachments || [];
 
   // Filtered tasks
   const filteredTasks = useMemo(() => {
     if (taskStatusFilter === 'all') return tasks;
     return tasks.filter((t) => t.status === taskStatusFilter);
   }, [tasks, taskStatusFilter]);
-
-  // Render file icon
-  const getFileIcon = (fileType: string) => {
-    switch (fileType) {
-      case 'pdf':
-      case 'word':
-        return <FileText className="w-4 h-4 text-rose-500" />;
-      case 'excel':
-        return <FileSpreadsheet className="w-4 h-4 text-emerald-500" />;
-      case 'image':
-        return <ImageIcon className="w-4 h-4 text-blue-500" />;
-      default:
-        return <FileText className="w-4 h-4 text-slate-400" />;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
@@ -587,63 +566,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
               )}
             </div>
 
-            {/* 5. Attachments & Documentation Section */}
-            {attachments.length > 0 && (
-              <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-500" />
-                  Documentation &amp; Deliverables ({attachments.length})
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {attachments.map((att) => (
-                    <div
-                      key={att.id}
-                      className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3 hover:border-slate-300 transition-all"
-                    >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0">
-                          {getFileIcon(att.fileType)}
-                        </div>
-                        <div className="overflow-hidden">
-                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate block">
-                            {att.fileName}
-                          </span>
-                          <span className="text-3xs text-slate-400 block">
-                            {Math.round(att.fileSize / 1024)} KB
-                          </span>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
-                        {att.webViewLink && (
-                          <a
-                            href={att.webViewLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                            title="Preview file"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        )}
-                        {att.downloadLink && (
-                          <a
-                            href={att.downloadLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                            title="Download file"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Footer */}
             <div className="pt-8 border-t border-slate-200 dark:border-slate-800 text-center space-y-1">
