@@ -11,7 +11,6 @@ import {
   Sun,
   Moon,
   FileSpreadsheet,
-  Calendar as CalendarIcon,
   Search,
   Bell,
 } from 'lucide-react';
@@ -24,7 +23,6 @@ interface NavbarProps {
   onGoToDashboard: () => void;
   onGoToTeam: () => void;
   onGoToSummary: () => void;
-  onGoToCalendar?: () => void;
   onGoToRecycleBin?: () => void;
   projects: Project[];
   activeProject?: Project;
@@ -57,7 +55,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onGoToDashboard,
   onGoToTeam,
   onGoToSummary,
-  onGoToCalendar,
   onGoToRecycleBin,
   projects,
   activeProject,
@@ -192,103 +189,54 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="nav-dashboard-summary-btn"
               onClick={onGoToDashboard}
               title="Dashboard"
-              className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 currentView === 'dashboard'
                   ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10'
               }`}
             >
               <LayoutDashboard className="w-4 h-4 shrink-0" />
-              <span
-                className={`transition-all duration-200 whitespace-nowrap overflow-hidden ${
-                  currentView === 'dashboard'
-                    ? 'max-w-44 opacity-100 ml-1.5'
-                    : 'max-w-0 opacity-0 ml-0 group-hover:max-w-44 group-hover:opacity-100 group-hover:ml-1.5'
-                }`}
-              >
-                Dashboard
-              </span>
+              <span>Dashboard</span>
             </button>
-
-            {/* Calendar & Timeline View tab */}
-            {onGoToCalendar && (
-              <button
-                id="nav-calendar-btn"
-                onClick={onGoToCalendar}
-                title="Calendar & Project/Task Timeline"
-                className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
-                  currentView === 'calendar'
-                    ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10'
-                }`}
-              >
-                <CalendarIcon className="w-4 h-4 shrink-0" />
-                <span
-                  className={`transition-all duration-200 whitespace-nowrap overflow-hidden ${
-                    currentView === 'calendar'
-                      ? 'max-w-44 opacity-100 ml-1.5'
-                      : 'max-w-0 opacity-0 ml-0 group-hover:max-w-44 group-hover:opacity-100 group-hover:ml-1.5'
-                  }`}
-                >
-                  Calendar
-                </span>
-              </button>
-            )}
 
             {/* Team management tab */}
             <button
               id="nav-team-management-btn"
               onClick={onGoToTeam}
               title="Team Management"
-              className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 currentView === 'team'
                   ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10'
               }`}
             >
               <Users className="w-4 h-4 shrink-0" />
+              <span>Team</span>
               <span
-                className={`inline-flex items-center gap-1.5 transition-all duration-200 whitespace-nowrap overflow-hidden ${
+                className={`px-1.5 py-0.2 rounded-full text-3xs font-bold ${
                   currentView === 'team'
-                    ? 'max-w-44 opacity-100 ml-1.5'
-                    : 'max-w-0 opacity-0 ml-0 group-hover:max-w-44 group-hover:opacity-100 group-hover:ml-1.5'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-100 text-slate-600 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
                 }`}
               >
-                <span>Team</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-3xs font-bold ${
-                    currentView === 'team'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-100 text-slate-600 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                  }`}
-                >
-                  {teamCount}
-                </span>
+                {teamCount}
               </span>
             </button>
 
-            {/* Project Weekly Summary tab (Admin only) */}
+            {/* Project Summary tab (Admin only) */}
             {isAdmin && (
               <button
                 id="nav-project-summary-btn"
                 onClick={onGoToSummary}
-                title="Project Weekly Summary & Reports"
-                className={`group inline-flex items-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                title="Project Summary & Reports"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   currentView === 'summary'
                     ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10'
                 }`}
               >
                 <FileSpreadsheet className="w-4 h-4 shrink-0" />
-                <span
-                  className={`transition-all duration-200 whitespace-nowrap overflow-hidden ${
-                    currentView === 'summary'
-                      ? 'max-w-44 opacity-100 ml-1.5'
-                      : 'max-w-0 opacity-0 ml-0 group-hover:max-w-44 group-hover:opacity-100 group-hover:ml-1.5'
-                  }`}
-                >
-                  Weekly Summary
-                </span>
+                <span>Summary</span>
               </button>
             )}
 
@@ -362,24 +310,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10'
                 }`}
-                title="Project Weekly Summary"
+                title="Project Summary"
               >
                 <FileSpreadsheet className="w-4 h-4" />
               </button>
             )}
-            {onGoToCalendar && (
-              <button
-                onClick={onGoToCalendar}
-                className={`p-1.5 rounded-lg text-xs transition-colors ${
-                  currentView === 'calendar'
-                    ? 'bg-blue-600 text-white shadow-xs dark:bg-blue-600 dark:text-white'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10'
-                }`}
-                title="Calendar"
-              >
-                <CalendarIcon className="w-4 h-4" />
-              </button>
-            )}
+
             {/* Mobile Notification Bell */}
             <button
               id="nav-mobile-notifications-btn"

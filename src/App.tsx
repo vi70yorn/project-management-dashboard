@@ -53,9 +53,6 @@ const ProjectWeeklyReport = React.lazy(() =>
 const RecycleBinView = React.lazy(() =>
   import('./components/RecycleBinView').then((m) => ({ default: m.RecycleBinView }))
 );
-const CalendarTimelineView = React.lazy(() =>
-  import('./components/CalendarTimelineView').then((m) => ({ default: m.CalendarTimelineView }))
-);
 
 // Lazy-loaded modal components for bundle optimization
 const TeamMemberModal = React.lazy(() =>
@@ -234,7 +231,7 @@ export default function App() {
       const viewParam = urlParams.get('view') as ViewType | null;
       if (
         viewParam &&
-        ['dashboard', 'project', 'team', 'summary', 'recycle-bin', 'calendar'].includes(viewParam)
+        ['dashboard', 'project', 'team', 'summary', 'recycle-bin'].includes(viewParam)
       ) {
         return viewParam;
       }
@@ -244,7 +241,7 @@ export default function App() {
       const savedView = localStorage.getItem('current_view') as ViewType | null;
       if (
         savedView &&
-        ['dashboard', 'project', 'team', 'summary', 'recycle-bin', 'calendar'].includes(savedView)
+        ['dashboard', 'project', 'team', 'summary', 'recycle-bin'].includes(savedView)
       ) {
         return savedView;
       }
@@ -786,12 +783,6 @@ export default function App() {
   const handleGoToRecycleBin = () => {
     refreshRecycleBin();
     setCurrentView('recycle-bin');
-    setActiveProjectId('');
-    updateUrlParams({ projectId: null, taskId: null });
-  };
-
-  const handleGoToCalendar = () => {
-    setCurrentView('calendar');
     setActiveProjectId('');
     updateUrlParams({ projectId: null, taskId: null });
   };
@@ -1908,7 +1899,6 @@ export default function App() {
         onGoToTeam={handleGoToTeam}
         onGoToSummary={handleGoToSummary}
         onGoToRecycleBin={handleGoToRecycleBin}
-        onGoToCalendar={handleGoToCalendar}
         projects={projects}
         activeProject={activeProject}
         onSelectProject={handleSelectProject}
@@ -2007,17 +1997,6 @@ export default function App() {
               onEmptyRecycleBin={handleEmptyRecycleBin}
               onBackToDashboard={handleGoToDashboard}
               onRefresh={refreshRecycleBin}
-            />
-          </React.Suspense>
-        ) : currentView === 'calendar' ? (
-          <React.Suspense fallback={<div className="py-24 text-center text-slate-400">Loading calendar view...</div>}>
-            <CalendarTimelineView
-              projects={projects}
-              tasks={tasks}
-              teamMembers={teamMembers}
-              onSelectProject={handleSelectProject}
-              onOpenTaskModal={handleOpenTaskModal}
-              onBackToDashboard={handleGoToDashboard}
             />
           </React.Suspense>
         ) : activeProject ? (
@@ -2204,7 +2183,6 @@ export default function App() {
         onOpenCreateProject={handleOpenCreateProject}
         onNavigate={(view) => {
           if (view === 'dashboard') handleGoToDashboard();
-          else if (view === 'calendar') handleGoToCalendar();
           else if (view === 'team') handleGoToTeam();
           else if (view === 'summary') handleGoToSummary();
           else if (view === 'recycle-bin') handleGoToRecycleBin();

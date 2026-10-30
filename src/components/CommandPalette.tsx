@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Search,
   PlusCircle,
-  Calendar,
   Users,
   UserCheck,
   FileSpreadsheet,
@@ -160,20 +159,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     });
 
     items.push({
-      id: 'action-nav-calendar',
-      category: 'Actions',
-      title: 'Go to Calendar & Timeline',
-      subtitle: 'Gantt timeline & monthly schedule view',
-      badge: currentView === 'calendar' ? 'Current' : undefined,
-      icon: <Calendar className="w-4 h-4 text-amber-500" />,
-      tags: ['calendar', 'timeline', 'gantt', 'schedule', 'dates'],
-      onSelect: () => {
-        onClose();
-        onNavigate('calendar');
-      },
-    });
-
-    items.push({
       id: 'action-nav-team',
       category: 'Actions',
       title: 'Go to Team Management',
@@ -191,7 +176,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       items.push({
         id: 'action-nav-summary',
         category: 'Actions',
-        title: 'Go to Project Weekly Summary',
+        title: 'Go to Project Summary',
         subtitle: 'Auto-report generation & Telegram status (Admin)',
         badge: currentView === 'summary' ? 'Current' : undefined,
         icon: <FileSpreadsheet className="w-4 h-4 text-teal-500" />,

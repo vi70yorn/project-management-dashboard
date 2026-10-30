@@ -579,27 +579,19 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
 
   const handleCopyReport = () => {
     if (mainView === 'tasks') {
-      const lines: string[] = [
-        `📋 COMPLETED TASKS SUMMARY`,
-        `Date Range: ${formattedDateRangeText}`,
-        `Total Completed: ${finalFilteredTasks.length} Deliverables`,
-        `Generated On: ${new Date().toLocaleString()}`,
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      ];
       if (finalFilteredTasks.length === 0) {
-        lines.push('No completed tasks recorded in this date range.');
-      } else {
-        finalFilteredTasks.forEach((t, i) => {
-          const dateStr = t.completionDateStr ? ` [Done ${formatTaskDate(t.completionDateStr)}]` : '';
-          lines.push(`${i + 1}. [${t.projectName}] ${t.title} (${t.assigneeName})${dateStr} - ${t.priority} priority`);
-        });
+        if (onShowToast) {
+          onShowToast('info', 'No completed tasks recorded in this date range.');
+        }
+        return;
       }
-      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-      navigator.clipboard.writeText(lines.join('\n'));
+      // Copy only Project Name and Deliverable Title (no extra data)
+      const text = finalFilteredTasks.map((t) => `[${t.projectName}] ${t.title}`).join('\n');
+      navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
       if (onShowToast) {
-        onShowToast('success', `Copied ${finalFilteredTasks.length} completed tasks for ${formattedDateRangeText}!`);
+        onShowToast('success', `Copied ${finalFilteredTasks.length} tasks (Project & Deliverable Title only)!`);
       }
       return;
     }
