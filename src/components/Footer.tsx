@@ -1,30 +1,17 @@
 import React from 'react';
-import { Sparkles, Layout, Command, Sun, Moon } from 'lucide-react';
+import { Command, Sun, Moon } from 'lucide-react';
 
 interface FooterProps {
-  uiStyle: 'glass' | 'normal' | 'nothing';
-  onToggleUiStyle?: () => void;
-  onSelectUiStyle?: (style: 'glass' | 'normal' | 'nothing') => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onOpenCommandPalette?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
-  uiStyle,
-  onToggleUiStyle,
-  onSelectUiStyle,
   theme,
   onToggleTheme,
   onOpenCommandPalette,
 }) => {
-  const handleSelectStyle = (style: 'glass' | 'normal' | 'nothing') => {
-    if (onSelectUiStyle) {
-      onSelectUiStyle(style);
-    } else if (onToggleUiStyle) {
-      onToggleUiStyle();
-    }
-  };
 
   return (
     <footer
@@ -123,83 +110,7 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
           </div>
 
-          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
 
-          {/* UI Style Switch (Glassy vs Normal) */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-3xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 hidden min-[400px]:inline">
-              Style:
-            </span>
-            <div
-              id="footer-ui-style-switch"
-              className="flex items-center p-1 rounded-xl glass-card-subtle border border-slate-200/80 dark:border-slate-700/60 shadow-2xs"
-              role="radiogroup"
-              aria-label="Interface Style"
-            >
-              {/* 1. Normal UI Switch Option */}
-              <button
-                type="button"
-                id="switch-ui-normal-btn"
-                onClick={() => handleSelectStyle('normal')}
-                role="radio"
-                aria-checked={uiStyle === 'normal'}
-                className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  uiStyle === 'normal'
-                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-2xs border border-blue-200/60 dark:border-blue-500/30 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Apply clean, solid flat modern UI without blur or background animations"
-              >
-                <Layout className={`w-3.5 h-3.5 ${uiStyle === 'normal' ? 'text-blue-500' : 'text-slate-400'}`} />
-                <span>Normal</span>
-              </button>
-
-              {/* 2. Glassy Effect Switch Option */}
-              <button
-                type="button"
-                id="switch-ui-glassy-btn"
-                onClick={() => handleSelectStyle('glass')}
-                role="radio"
-                aria-checked={uiStyle === 'glass'}
-                className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  uiStyle === 'glass'
-                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-2xs border border-blue-200/60 dark:border-blue-500/30 font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Apply Glassmorphic surfaces with frosted blur and ambient lighting"
-              >
-                <Sparkles className={`w-3.5 h-3.5 ${uiStyle === 'glass' ? 'text-amber-500 animate-pulse' : 'text-slate-400'}`} />
-                <span>Glassy</span>
-              </button>
-
-              {/* 3. Nothing OS Style Switch Option */}
-              <button
-                type="button"
-                id="switch-ui-nothing-btn"
-                onClick={() => handleSelectStyle('nothing')}
-                role="radio"
-                aria-checked={uiStyle === 'nothing'}
-                className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  uiStyle === 'nothing'
-                    ? 'bg-neutral-900 text-white dark:bg-black dark:text-neutral-100 shadow-2xs border border-neutral-700 dark:border-neutral-700 font-mono tracking-tight font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-mono'
-                }`}
-                title="Apply minimalist Nothing OS monochrome style with dot matrix grid & red accents"
-              >
-                <span className="relative flex h-2 w-2 items-center justify-center">
-                  {uiStyle === 'nothing' && (
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D71921] opacity-75" />
-                  )}
-                  <span
-                    className={`relative inline-flex rounded-full h-2 w-2 transition-colors ${
-                      uiStyle === 'nothing' ? 'bg-[#D71921]' : 'bg-neutral-400 dark:bg-neutral-600'
-                    }`}
-                  />
-                </span>
-                <span>Nothing</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </footer>

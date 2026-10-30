@@ -116,9 +116,20 @@ import {
 /**
  * Updates URL search parameters smoothly without full page refresh
  */
-const updateUrlParams = (params: { projectId?: string | null; taskId?: string | null }) => {
+const updateUrlParams = (params: {
+  view?: ViewType | null;
+  projectId?: string | null;
+  taskId?: string | null;
+}) => {
   try {
     const url = new URL(window.location.href);
+    if (params.view !== undefined) {
+      if (params.view && params.view !== 'dashboard') {
+        url.searchParams.set('view', params.view);
+      } else {
+        url.searchParams.delete('view');
+      }
+    }
     if (params.projectId !== undefined) {
       if (params.projectId) {
         url.searchParams.set('projectId', params.projectId);
@@ -201,53 +212,77 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // UI Style State: 'normal' (Default Normal UI) vs 'glass' (Glassy Effect) vs 'nothing' (Nothing OS Style)
-  const [uiStyle, setUiStyle] = useState<'glass' | 'normal' | 'nothing'>(() => {
-    try {
-      const saved = localStorage.getItem('ui_style');
-      if (saved === 'normal' || saved === 'glass' || saved === 'nothing') return saved;
-      return 'normal';
-    } catch {
-      return 'normal';
-    }
-  });
+  // UI Style: permanent Nothing OS Style
+  const uiStyle = 'nothing' as const;
 
   useEffect(() => {
     try {
-      document.documentElement.classList.remove('ui-normal', 'ui-nothing', 'ui-glass');
-      if (uiStyle === 'normal') {
-        document.documentElement.classList.add('ui-normal');
-        document.documentElement.setAttribute('data-ui-style', 'normal');
-        localStorage.setItem('ui_style', 'normal');
-      } else if (uiStyle === 'nothing') {
-        document.documentElement.classList.add('ui-nothing');
-        document.documentElement.setAttribute('data-ui-style', 'nothing');
-        localStorage.setItem('ui_style', 'nothing');
-      } else {
-        document.documentElement.classList.add('ui-glass');
-        document.documentElement.setAttribute('data-ui-style', 'glass');
-        localStorage.setItem('ui_style', 'glass');
-      }
+      document.documentElement.classList.remove('ui-normal', 'ui-glass');
+      document.documentElement.classList.add('ui-nothing');
+      document.documentElement.setAttribute('data-ui-style', 'nothing');
+      localStorage.setItem('ui_style', 'nothing');
     } catch (e) {
       console.error('Error saving ui_style to localStorage:', e);
     }
-  }, [uiStyle]);
+  }, []);
 
-  const toggleUiStyle = () => {
-    setUiStyle((prev) => {
-      if (prev === 'normal') return 'glass';
-      if (prev === 'glass') return 'nothing';
-      return 'normal';
-    });
-  };
 
-  const handleSelectUiStyle = (style: 'glass' | 'normal' | 'nothing') => {
-    setUiStyle(style);
-  };
+  // Navigation & Core Data States (persists across page reloads via URL query & localStorage)
+  const [currentView, setCurrentView] = useState<ViewType>(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const viewParam = urlParams.get('view') as ViewType | null;
+      if (
+        viewParam &&
+        ['dashboard', 'project', 'team', 'summary', 'recycle-bin', 'calendar'].includes(viewParam)
+      ) {
+        return viewParam;
+      }
+      if (urlParams.get('projectId')) {
+        return 'project';
+      }
+      const savedView = localStorage.getItem('current_view') as ViewType | null;
+      if (
+        savedView &&
+        ['dashboard', 'project', 'team', 'summary', 'recycle-bin', 'calendar'].includes(savedView)
+      ) {
+        return savedView;
+      }
+    } catch (e) {
+      console.warn('Failed to initialize currentView:', e);
+    }
+    return 'dashboard';
+  });
 
-  // Navigation & Core Data States
-  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
-  const [activeProjectId, setActiveProjectId] = useState<string>('');
+  const [activeProjectId, setActiveProjectId] = useState<string>(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pId = urlParams.get('projectId');
+      if (pId) return pId;
+      return localStorage.getItem('active_project_id') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  // Automatically sync currentView and activeProjectId to URL and localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('current_view', currentView);
+      if (currentView === 'project' && activeProjectId) {
+        localStorage.setItem('active_project_id', activeProjectId);
+      } else if (currentView !== 'project') {
+        localStorage.removeItem('active_project_id');
+      }
+
+      updateUrlParams({
+        view: currentView === 'dashboard' ? null : currentView,
+        projectId: currentView === 'project' ? activeProjectId : null,
+      });
+    } catch (err) {
+      console.warn('Failed to sync navigation state:', err);
+    }
+  }, [currentView, activeProjectId]);
   const [projects, setProjects] = useState<Project[]>(loadProjects);
   const [tasks, setTasks] = useState<Task[]>(loadTasks);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(loadMembers);
@@ -670,12 +705,14 @@ export default function App() {
         setEditingTask(null);
       }
 
+      const targetView =
+        (urlParams.get('view') as ViewType) || (targetProjectId ? 'project' : 'dashboard');
       if (targetProjectId) {
         setActiveProjectId(targetProjectId);
         setCurrentView('project');
       } else {
         setActiveProjectId('');
-        setCurrentView('dashboard');
+        setCurrentView(targetView);
       }
     };
 
@@ -697,8 +734,10 @@ export default function App() {
         clearAuthUser();
         setDashboardMemberFilter('all');
         hasAutoSelectedDashboardMember.current = false;
+        localStorage.removeItem('current_view');
+        localStorage.removeItem('active_project_id');
         logoutApi(); // Clear JWT token from localStorage
-        updateUrlParams({ projectId: null, taskId: null });
+        updateUrlParams({ view: null, projectId: null, taskId: null });
         showToast('info', 'You have been logged out.');
       },
     });
@@ -1941,6 +1980,7 @@ export default function App() {
                 tasks={tasks}
                 teamMembers={teamMembers}
                 onSelectProject={handleSelectProject}
+                onOpenTaskModal={handleOpenTaskModal}
                 onShowToast={showToast}
               />
             </React.Suspense>
@@ -2015,11 +2055,8 @@ export default function App() {
         )}
       </main>
 
-      {/* Application Footer with UI Style & Theme Switchers */}
+      {/* Application Footer with Theme Switcher & Shortcuts */}
       <Footer
-        uiStyle={uiStyle}
-        onToggleUiStyle={toggleUiStyle}
-        onSelectUiStyle={handleSelectUiStyle}
         theme={theme}
         onToggleTheme={toggleTheme}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}

@@ -21,7 +21,7 @@ interface LoginScreenProps {
   teamMembers?: TeamMember[];
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
-  uiStyle?: 'glass' | 'normal' | 'nothing';
+  uiStyle?: 'nothing';
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({

@@ -25,17 +25,11 @@
             document.documentElement.classList.remove('dark');
           }
 
-          var savedStyle = localStorage.getItem('ui_style');
-          if (savedStyle === 'nothing') {
-            document.documentElement.classList.add('ui-nothing');
-            document.documentElement.setAttribute('data-ui-style', 'nothing');
-          } else if (savedStyle === 'glass') {
-            document.documentElement.classList.add('ui-glass');
-            document.documentElement.setAttribute('data-ui-style', 'glass');
-          } else {
-            document.documentElement.classList.add('ui-normal');
-            document.documentElement.setAttribute('data-ui-style', 'normal');
-          }
+          // Nothing OS Style permanent
+          document.documentElement.classList.remove('ui-normal', 'ui-glass');
+          document.documentElement.classList.add('ui-nothing');
+          document.documentElement.setAttribute('data-ui-style', 'nothing');
+          localStorage.setItem('ui_style', 'nothing');
         } catch (e) {}
       })();
     </script>

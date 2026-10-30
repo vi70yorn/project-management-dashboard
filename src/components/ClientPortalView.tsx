@@ -36,7 +36,7 @@ interface ClientPortalViewProps {
   onExit?: () => void;
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
-  uiStyle?: 'glass' | 'normal' | 'nothing';
+  uiStyle?: 'nothing';
 }
 
 export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
@@ -44,7 +44,7 @@ export const ClientPortalView: React.FC<ClientPortalViewProps> = ({
   onExit,
   theme = 'light',
   onToggleTheme,
-  uiStyle = 'normal',
+  uiStyle = 'nothing',
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

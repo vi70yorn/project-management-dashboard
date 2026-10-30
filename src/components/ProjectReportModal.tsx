@@ -25,7 +25,7 @@ interface ProjectReportModalProps {
   teamMembers: TeamMember[];
   isOpen: boolean;
   onClose: () => void;
-  uiStyle?: 'glass' | 'normal' | 'nothing';
+  uiStyle?: 'nothing';
 }
 
 type ExportTab = 'pdf' | 'excel' | 'csv';
@@ -36,7 +36,7 @@ export const ProjectReportModal: React.FC<ProjectReportModalProps> = ({
   teamMembers,
   isOpen,
   onClose,
-  uiStyle = 'normal',
+  uiStyle = 'nothing',
 }) => {
   const [activeTab, setActiveTab] = useState<ExportTab>('pdf');
   const [statusFilter, setStatusFilter] = useState<string>('all');
