@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Calendar,
   ChevronDown,
@@ -379,6 +379,81 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
     });
   }, [dateFilteredCompletedTasks, taskProjectFilter, taskAssigneeFilter, taskSearchQuery, taskSortBy]);
 
+  // Checkbox selection state for which tasks to include in the report
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(() => {
+    return new Set(dateFilteredCompletedTasks.map((t) => t.id));
+  });
+  const prevDateRangeKeyRef = useRef<string | null>(null);
+
+  // When date range or preset changes, automatically select all tasks in the new range
+  const dateRangeKey = `${datePreset}_${startDate}_${endDate}`;
+  useEffect(() => {
+    if (prevDateRangeKeyRef.current !== dateRangeKey) {
+      prevDateRangeKeyRef.current = dateRangeKey;
+      setSelectedTaskIds(new Set(dateFilteredCompletedTasks.map((t) => t.id)));
+    }
+  }, [dateRangeKey, dateFilteredCompletedTasks]);
+
+  // Tasks in current filtered view that are selected for report
+  const selectedTasksInView = useMemo(() => {
+    return finalFilteredTasks.filter((t) => selectedTaskIds.has(t.id));
+  }, [finalFilteredTasks, selectedTaskIds]);
+
+  const isAllSelected =
+    finalFilteredTasks.length > 0 &&
+    finalFilteredTasks.every((t) => selectedTaskIds.has(t.id));
+
+  const isSomeSelected =
+    !isAllSelected &&
+    finalFilteredTasks.some((t) => selectedTaskIds.has(t.id));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedTaskIds((prev) => {
+        const next = new Set(prev);
+        finalFilteredTasks.forEach((t) => next.delete(t.id));
+        return next;
+      });
+    } else {
+      setSelectedTaskIds((prev) => {
+        const next = new Set(prev);
+        finalFilteredTasks.forEach((t) => next.add(t.id));
+        return next;
+      });
+    }
+  };
+
+  const selectAllVisible = () => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      finalFilteredTasks.forEach((t) => next.add(t.id));
+      return next;
+    });
+  };
+
+  const deselectAllVisible = () => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      finalFilteredTasks.forEach((t) => next.delete(t.id));
+      return next;
+    });
+  };
+
+  const toggleTaskSelect = (taskId: string, e?: React.SyntheticEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  };
+
   // Aggregate project statistics
   const projectSummaries = useMemo(() => {
     return projects.map((project) => {
@@ -585,13 +660,22 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
         }
         return;
       }
-      // Copy only Project Name and Deliverable Title (no extra data)
-      const text = finalFilteredTasks.map((t) => `[${t.projectName}] ${t.title}`).join('\n');
+      if (selectedTasksInView.length === 0) {
+        if (onShowToast) {
+          onShowToast('info', 'No tasks selected. Please check at least one task to put in the report.');
+        }
+        return;
+      }
+      // Copy only Project Name and Deliverable Title for selected tasks (no extra data)
+      const text = selectedTasksInView.map((t) => `[${t.projectName}] ${t.title}`).join('\n');
       navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
       if (onShowToast) {
-        onShowToast('success', `Copied ${finalFilteredTasks.length} tasks (Project & Deliverable Title only)!`);
+        onShowToast(
+          'success',
+          `Copied ${selectedTasksInView.length} selected task${selectedTasksInView.length === 1 ? '' : 's'} (Project & Deliverable Title only)!`
+        );
       }
       return;
     }
@@ -884,72 +968,229 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
             ) : (
               <>
                 <Copy className="w-4 h-4" />
-                Copy Report
+                {mainView === 'tasks' ? `Copy Report (${selectedTasksInView.length})` : 'Copy Report'}
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Main View Switcher: Projects Overview vs Task Listing */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 glass-panel rounded-2xl shadow-2xs">
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl">
-          {/* Main Tab 1: Task Listing (Completed) */}
-          <button
-            onClick={() => handleSwitchMainView('tasks')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              mainView === 'tasks'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <CheckSquare className="w-4 h-4" />
-            <span>Task Listing (Completed)</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-md text-3xs font-extrabold ${
+      {/* Unified Main Navigation & Filter Toolbar Panel */}
+      <div className="glass-panel p-3.5 sm:p-4 rounded-2xl shadow-2xs space-y-3">
+        {/* Row 1: View Tabs (Left) + Period Range Picker & Presets (Right) */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          {/* Main View Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl w-fit shrink-0">
+            {/* Main Tab 1: Task Listing (Completed) */}
+            <button
+              onClick={() => handleSwitchMainView('tasks')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 mainView === 'tasks'
-                  ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300'
-                  : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              {dateFilteredCompletedTasks.length}
-            </span>
-          </button>
+              <CheckSquare className="w-4 h-4" />
+              <span>Task Listing (Completed)</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-md text-3xs font-extrabold ${
+                  mainView === 'tasks'
+                    ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300'
+                    : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                {dateFilteredCompletedTasks.length}
+              </span>
+            </button>
 
-          {/* Main Tab 2: Projects Overview */}
-          <button
-            onClick={() => handleSwitchMainView('projects')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              mainView === 'projects'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <FolderKanban className="w-4 h-4" />
-            <span>Projects Overview</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-md text-3xs font-extrabold ${
+            {/* Main Tab 2: Projects Overview */}
+            <button
+              onClick={() => handleSwitchMainView('projects')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 mainView === 'projects'
-                  ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300'
-                  : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              {projects.length}
-            </span>
-          </button>
-        </div>
+              <FolderKanban className="w-4 h-4" />
+              <span>Projects Overview</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-md text-3xs font-extrabold ${
+                  mainView === 'projects'
+                    ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300'
+                    : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                {projects.length}
+              </span>
+            </button>
+          </div>
 
-        {/* Quick status text */}
-        <div className="flex items-center gap-2 text-2xs text-slate-500 dark:text-slate-400 px-2">
+          {/* Right side: Period Controls for Tasks, or status summary for Projects */}
           {mainView === 'tasks' ? (
-            <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Range: {formattedDateRangeText}</span>
-            </span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Period:</span>
+              </span>
+
+              {/* Modern Custom Date Range Picker */}
+              <ModernDateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={(start, end, preset) => {
+                  setStartDate(start);
+                  setEndDate(end);
+                  if (preset) setDatePreset(preset as DateRangePreset);
+                  else setDatePreset('custom');
+                }}
+              />
+
+              {/* Quick Presets Pills */}
+              <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
+                {[
+                  { id: 'this-week', label: 'This Week' },
+                  { id: 'last-week', label: 'Last Week' },
+                  { id: 'this-month', label: 'This Month' },
+                  { id: 'all', label: 'All Time' },
+                ].map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => applyPreset(p.id as DateRangePreset)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      datePreset === p.id
+                        ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Reset to This Week */}
+              {(startDate || endDate) && datePreset !== 'this-week' && (
+                <button
+                  onClick={() => applyPreset('this-week')}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 glass-card-subtle rounded-xl text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+                  title="Reset to current week"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
           ) : (
-            <span>Tracking {overallMetrics.totalTasks} deliverables across {projects.length} projects</span>
+            <div className="flex items-center gap-2 text-2xs text-slate-500 dark:text-slate-400 px-2">
+              <span>Tracking {overallMetrics.totalTasks} deliverables across {projects.length} projects</span>
+            </div>
           )}
         </div>
+
+        {/* Row 2: Search, Filters, Sorting & View Toggle (when in tasks view) */}
+        {mainView === 'tasks' && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
+            <div className="flex flex-wrap items-center gap-2 flex-1">
+              {/* Search */}
+              <div className="relative min-w-[210px] flex-1 max-w-sm">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={taskSearchQuery}
+                  onChange={(e) => setTaskSearchQuery(e.target.value)}
+                  placeholder="Search task title, description, assignee..."
+                  className="w-full pl-8 pr-7 py-1.5 rounded-xl text-xs bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 focus:outline-hidden focus:border-blue-500 text-slate-800 dark:text-slate-200 shadow-2xs placeholder-slate-400"
+                />
+                {taskSearchQuery && (
+                  <button
+                    onClick={() => setTaskSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Project Filter */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
+                <FolderKanban className="w-3.5 h-3.5 text-blue-500" />
+                <select
+                  value={taskProjectFilter}
+                  onChange={(e) => setTaskProjectFilter(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="all">All Projects ({projects.length})</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Assignee Filter */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
+                <User className="w-3.5 h-3.5 text-slate-400" />
+                <select
+                  value={taskAssigneeFilter}
+                  onChange={(e) => setTaskAssigneeFilter(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="all">All Assignees</option>
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort By */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
+                <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                <select
+                  value={taskSortBy}
+                  onChange={(e) => setTaskSortBy(e.target.value as any)}
+                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
+                >
+                  <option value="date-desc">Newest Completed First</option>
+                  <option value="date-asc">Oldest Completed First</option>
+                  <option value="priority">Priority (High to Low)</option>
+                  <option value="project">Project Name (A–Z)</option>
+                  <option value="title">Task Title (A–Z)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* View Mode Toggle: Table vs Cards */}
+            <div className="flex items-center glass-card-subtle p-1 rounded-xl shadow-2xs">
+              <button
+                onClick={() => setTaskViewMode('table')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  taskViewMode === 'table'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Table View (Detailed Rows)"
+              >
+                <TableIcon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Table</span>
+              </button>
+              <button
+                onClick={() => setTaskViewMode('card')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  taskViewMode === 'card'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Card View (Visual Deliverables)"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Cards</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* VIEW A: PROJECTS OVERVIEW */}
@@ -1743,174 +1984,35 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       {/* VIEW B: TASK LISTING (COMPLETED TASKS WITH DATE RANGE FILTER) */}
       {mainView === 'tasks' && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          {/* Date Range Selector Toolbar */}
-          <div className="glass-panel p-4 rounded-2xl shadow-2xs space-y-3">
-            {/* Row 1: Modern Date Range Picker & Presets */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>Period:</span>
-                </span>
-
-                {/* Modern Custom Date Range Picker (No native browser popup!) */}
-                <ModernDateRangePicker
-                  startDate={startDate}
-                  endDate={endDate}
-                  onChange={(start, end, preset) => {
-                    setStartDate(start);
-                    setEndDate(end);
-                    if (preset) setDatePreset(preset as DateRangePreset);
-                    else setDatePreset('custom');
-                  }}
-                />
-
-                {/* Quick Presets Pills */}
-                <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
-                  {[
-                    { id: 'this-week', label: 'This Week' },
-                    { id: 'last-week', label: 'Last Week' },
-                    { id: 'this-month', label: 'This Month' },
-                    { id: 'all', label: 'All Time' },
-                  ].map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => applyPreset(p.id as DateRangePreset)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        datePreset === p.id
-                          ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right: Reset Button */}
-              {(startDate || endDate) && datePreset !== 'this-week' && (
-                <button
-                  onClick={() => applyPreset('this-week')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 glass-card-subtle rounded-xl text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
-                  title="Reset to current week"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset to This Week</span>
-                </button>
-              )}
-            </div>
-
-            {/* Row 2: Search, Filters, Sorting & View Toggle */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
-              <div className="flex flex-wrap items-center gap-2 flex-1">
-                {/* Search */}
-                <div className="relative min-w-[210px] flex-1 max-w-sm">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={taskSearchQuery}
-                    onChange={(e) => setTaskSearchQuery(e.target.value)}
-                    placeholder="Search task title, description, assignee..."
-                    className="w-full pl-8 pr-7 py-1.5 rounded-xl text-xs bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 focus:outline-hidden focus:border-blue-500 text-slate-800 dark:text-slate-200 shadow-2xs placeholder-slate-400"
-                  />
-                  {taskSearchQuery && (
-                    <button
-                      onClick={() => setTaskSearchQuery('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Project Filter */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
-                  <FolderKanban className="w-3.5 h-3.5 text-blue-500" />
-                  <select
-                    value={taskProjectFilter}
-                    onChange={(e) => setTaskProjectFilter(e.target.value)}
-                    className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
-                  >
-                    <option value="all">All Projects ({projects.length})</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Assignee Filter */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
-                  <User className="w-3.5 h-3.5 text-slate-400" />
-                  <select
-                    value={taskAssigneeFilter}
-                    onChange={(e) => setTaskAssigneeFilter(e.target.value)}
-                    className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
-                  >
-                    <option value="all">All Assignees</option>
-                    {teamMembers.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Sort By */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
-                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
-                  <select
-                    value={taskSortBy}
-                    onChange={(e) => setTaskSortBy(e.target.value as any)}
-                    className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
-                  >
-                    <option value="date-desc">Newest Completed First</option>
-                    <option value="date-asc">Oldest Completed First</option>
-                    <option value="priority">Priority (High to Low)</option>
-                    <option value="project">Project Name (A–Z)</option>
-                    <option value="title">Task Title (A–Z)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* View Mode Toggle: Table vs Cards */}
-              <div className="flex items-center glass-card-subtle p-1 rounded-xl shadow-2xs">
-                <button
-                  onClick={() => setTaskViewMode('table')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    taskViewMode === 'table'
-                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  title="Table View (Detailed Rows)"
-                >
-                  <TableIcon className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Table</span>
-                </button>
-                <button
-                  onClick={() => setTaskViewMode('card')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                    taskViewMode === 'card'
-                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                  title="Card View (Visual Deliverables)"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Cards</span>
-                </button>
-              </div>
-            </div>
-          </div>
 
           {/* Subheader Status Line */}
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 flex-wrap gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span>
                 Showing <strong className="text-slate-900 dark:text-white font-extrabold">{finalFilteredTasks.length}</strong> completed tasks
               </span>
+              <span className="text-slate-300 dark:text-slate-600">•</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-bold bg-blue-100/80 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800/70">
+                <CheckSquare className="w-3 h-3" />
+                <span>{selectedTasksInView.length} selected for report</span>
+              </span>
+              {finalFilteredTasks.length > 0 && (
+                <div className="flex items-center gap-1.5 text-2xs font-semibold ml-1">
+                  <button
+                    onClick={selectAllVisible}
+                    className="hover:underline text-blue-600 dark:text-blue-400 cursor-pointer"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-slate-300 dark:text-slate-600">/</span>
+                  <button
+                    onClick={deselectAllVisible}
+                    className="hover:underline text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              )}
               <span className="text-slate-300 dark:text-slate-600">•</span>
               <span className="font-semibold text-blue-700 dark:text-blue-400">
                 Period: {formattedDateRangeText}
@@ -1971,7 +2073,21 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200/80 dark:border-slate-800/80 bg-white/40 dark:bg-slate-800/50 backdrop-blur-xs text-2xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                      <th className="py-3 px-3 text-center w-12">#</th>
+                      <th className="py-3 px-3 text-center w-14">
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={isAllSelected}
+                            ref={(el) => {
+                              if (el) el.indeterminate = isSomeSelected;
+                            }}
+                            onChange={toggleSelectAll}
+                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                            title={isAllSelected ? 'Deselect all visible tasks' : 'Select all visible tasks for report'}
+                            aria-label="Select or deselect all tasks"
+                          />
+                        </div>
+                      </th>
                       <th className="py-3 px-4 min-w-[240px]">Deliverable Title</th>
                       <th className="py-3 px-4 min-w-[170px]">Project</th>
                       <th className="py-3 px-4 min-w-[160px]">Assignee</th>
@@ -1982,30 +2098,56 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {finalFilteredTasks.map((t, idx) => (
-                      <tr
-                        key={t.id}
-                        onClick={() => onOpenTaskModal && onOpenTaskModal(t)}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
-                      >
-                        <td className="py-3 px-3 text-center text-slate-400 font-mono text-2xs">
-                          {idx + 1}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                            <div className="min-w-0">
-                              <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate block max-w-[320px]">
-                                {t.title}
+                    {finalFilteredTasks.map((t, idx) => {
+                      const isSelected = selectedTaskIds.has(t.id);
+                      return (
+                        <tr
+                          key={t.id}
+                          onClick={() => onOpenTaskModal && onOpenTaskModal(t)}
+                          className={`transition-colors cursor-pointer group ${
+                            isSelected
+                              ? 'hover:bg-slate-50/90 dark:hover:bg-slate-800/60 bg-blue-50/15 dark:bg-blue-950/15'
+                              : 'opacity-60 hover:opacity-90 hover:bg-slate-50/60 dark:hover:bg-slate-800/30'
+                          }`}
+                        >
+                          <td
+                            className="py-3 px-3 text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center justify-center gap-1.5">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => toggleTaskSelect(t.id, e)}
+                                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                                aria-label={`Select ${t.title} for report`}
+                              />
+                              <span className="text-slate-400 font-mono text-3xs w-4 text-right">
+                                {idx + 1}
                               </span>
-                              {t.description && (
-                                <span className="text-3xs text-slate-500 dark:text-slate-400 truncate block max-w-[320px]">
-                                  {t.description}
-                                </span>
-                              )}
                             </div>
-                          </div>
-                        </td>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2
+                                className={`w-4 h-4 shrink-0 ${
+                                  isSelected
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-slate-400 dark:text-slate-500'
+                                }`}
+                              />
+                              <div className="min-w-0">
+                                <span className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate block max-w-[320px]">
+                                  {t.title}
+                                </span>
+                                {t.description && (
+                                  <span className="text-3xs text-slate-500 dark:text-slate-400 truncate block max-w-[320px]">
+                                    {t.description}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
                         <td className="py-3 px-4">
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-2xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 max-w-[160px] truncate">
                             <span
@@ -2061,7 +2203,8 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>
@@ -2069,24 +2212,44 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
           ) : (
             /* Card View */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {finalFilteredTasks.map((t) => (
-                <div
-                  key={t.id}
-                  onClick={() => onOpenTaskModal && onOpenTaskModal(t)}
-                  className="p-4 rounded-xl bg-white/85 dark:bg-slate-800/80 backdrop-blur-xs border border-slate-200/80 dark:border-slate-700/60 shadow-2xs hover:shadow-sm hover:border-blue-400 dark:hover:border-blue-600 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-3xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-700/60">
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ backgroundColor: t.projectColor }}
-                          />
-                          <span className="truncate max-w-[130px]">{t.projectName}</span>
-                        </span>
-                        <PriorityBadge priority={t.priority} size="xs" />
-                      </div>
+              {finalFilteredTasks.map((t) => {
+                const isSelected = selectedTaskIds.has(t.id);
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => onOpenTaskModal && onOpenTaskModal(t)}
+                    className={`p-4 rounded-xl backdrop-blur-xs border shadow-2xs hover:shadow-sm transition-all cursor-pointer group ${
+                      isSelected
+                        ? 'bg-white/85 dark:bg-slate-800/80 border-slate-200/80 dark:border-slate-700/60 hover:border-blue-400 dark:hover:border-blue-600'
+                        : 'bg-white/50 dark:bg-slate-800/40 border-slate-200/40 dark:border-slate-700/30 opacity-60 hover:opacity-90'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          {/* Checkbox for report */}
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center mr-0.5"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => toggleTaskSelect(t.id, e)}
+                              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                              title={isSelected ? 'Included in report' : 'Excluded from report'}
+                              aria-label={`Select ${t.title} for report`}
+                            />
+                          </div>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-3xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-700/60">
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: t.projectColor }}
+                            />
+                            <span className="truncate max-w-[130px]">{t.projectName}</span>
+                          </span>
+                          <PriorityBadge priority={t.priority} size="xs" />
+                        </div>
 
                       <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         ✓ {t.title}
@@ -2131,7 +2294,8 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
         </div>
