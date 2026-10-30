@@ -702,15 +702,27 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
         }
         return;
       }
-      // Copy only Project Name and Deliverable Title for selected tasks (no extra data)
-      const text = selectedTasksInView.map((t) => `[${t.projectName}] ${t.title}`).join('\n');
+
+      const lines: string[] = [
+        `📋 COMPLETED TASKS SUMMARY`,
+        `Date Range: ${formattedDateRangeText}`,
+        `Total Completed: ${selectedTasksInView.length} Deliverables`,
+        `Generated On: ${new Date().toLocaleString()}`,
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      ];
+      selectedTasksInView.forEach((t) => {
+        lines.push(`[${t.projectName}] ${t.title}`);
+      });
+      lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+      const text = lines.join('\n');
       navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
       if (onShowToast) {
         onShowToast(
           'success',
-          `Copied ${selectedTasksInView.length} selected task${selectedTasksInView.length === 1 ? '' : 's'} (Project & Deliverable Title only)!`
+          `Copied report with ${selectedTasksInView.length} selected deliverable${selectedTasksInView.length === 1 ? '' : 's'}!`
         );
       }
       return;
