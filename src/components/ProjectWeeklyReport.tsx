@@ -111,7 +111,24 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
   const [taskSearchQuery, setTaskSearchQuery] = useState<string>('');
   const [taskProjectFilter, setTaskProjectFilter] = useState<string>('all');
   const [taskAssigneeFilter, setTaskAssigneeFilter] = useState<string>('all');
-  const [taskSortBy, setTaskSortBy] = useState<'date-desc' | 'date-asc' | 'priority' | 'project' | 'title'>('date-desc');
+  const [taskSortBy, setTaskSortBy] = useState<
+    'project' | 'project-desc' | 'date-desc' | 'date-asc' | 'priority' | 'title' | 'assignee'
+  >(() => {
+    try {
+      const saved = localStorage.getItem('weekly_summary_task_sort_by');
+      if (saved) return saved as any;
+    } catch {}
+    return 'project'; // Default: Sort tasks by project
+  });
+
+  const handleSortChange = (
+    newSort: 'project' | 'project-desc' | 'date-desc' | 'date-asc' | 'priority' | 'title' | 'assignee'
+  ) => {
+    setTaskSortBy(newSort);
+    try {
+      localStorage.setItem('weekly_summary_task_sort_by', newSort);
+    } catch {}
+  };
   const [taskViewMode, setTaskViewMode] = useState<'table' | 'card'>('table');
 
   // Helper: Format date to local YYYY-MM-DD
@@ -356,24 +373,43 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
     // Sort
     const priorityWeights: Record<string, number> = { Urgent: 4, High: 3, Medium: 2, Low: 1 };
     return [...result].sort((a, b) => {
-      if (taskSortBy === 'date-desc') {
+      if (taskSortBy === 'project') {
+        const pDiff = a.projectName.localeCompare(b.projectName);
+        if (pDiff !== 0) return pDiff;
+        // Secondary sort: newest completed first within project
         const da = a.completionDateStr || '';
         const db = b.completionDateStr || '';
         return db.localeCompare(da);
       }
+      if (taskSortBy === 'project-desc') {
+        const pDiff = b.projectName.localeCompare(a.projectName);
+        if (pDiff !== 0) return pDiff;
+        const da = a.completionDateStr || '';
+        const db = b.completionDateStr || '';
+        return db.localeCompare(da);
+      }
+      if (taskSortBy === 'date-desc') {
+        const da = a.completionDateStr || '';
+        const db = b.completionDateStr || '';
+        if (da !== db) return db.localeCompare(da);
+        return a.projectName.localeCompare(b.projectName);
+      }
       if (taskSortBy === 'date-asc') {
         const da = a.completionDateStr || '';
         const db = b.completionDateStr || '';
-        return da.localeCompare(db);
+        if (da !== db) return da.localeCompare(db);
+        return a.projectName.localeCompare(b.projectName);
       }
       if (taskSortBy === 'priority') {
-        return (priorityWeights[b.priority] || 0) - (priorityWeights[a.priority] || 0);
-      }
-      if (taskSortBy === 'project') {
+        const pDiff = (priorityWeights[b.priority] || 0) - (priorityWeights[a.priority] || 0);
+        if (pDiff !== 0) return pDiff;
         return a.projectName.localeCompare(b.projectName);
       }
       if (taskSortBy === 'title') {
         return a.title.localeCompare(b.title);
+      }
+      if (taskSortBy === 'assignee') {
+        return a.assigneeName.localeCompare(b.assigneeName);
       }
       return 0;
     });
@@ -975,222 +1011,65 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
         </div>
       </div>
 
-      {/* Unified Main Navigation & Filter Toolbar Panel */}
-      <div className="glass-panel p-3.5 sm:p-4 rounded-2xl shadow-2xs space-y-3">
-        {/* Row 1: View Tabs (Left) + Period Range Picker & Presets (Right) */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-          {/* Main View Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl w-fit shrink-0">
-            {/* Main Tab 1: Task Listing (Completed) */}
-            <button
-              onClick={() => handleSwitchMainView('tasks')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+      {/* Main View Switcher: Projects Overview vs Task Listing */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 glass-panel rounded-2xl shadow-2xs">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl">
+          {/* Main Tab 1: Task Listing (Completed) */}
+          <button
+            onClick={() => handleSwitchMainView('tasks')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              mainView === 'tasks'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <CheckSquare className="w-4 h-4" />
+            <span>Task Listing (Completed)</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-md text-3xs font-extrabold ${
                 mainView === 'tasks'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300'
+                  : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
               }`}
             >
-              <CheckSquare className="w-4 h-4" />
-              <span>Task Listing (Completed)</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-md text-3xs font-extrabold ${
-                  mainView === 'tasks'
-                    ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300'
-                    : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                {dateFilteredCompletedTasks.length}
-              </span>
-            </button>
+              {dateFilteredCompletedTasks.length}
+            </span>
+          </button>
 
-            {/* Main Tab 2: Projects Overview */}
-            <button
-              onClick={() => handleSwitchMainView('projects')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+          {/* Main Tab 2: Projects Overview */}
+          <button
+            onClick={() => handleSwitchMainView('projects')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              mainView === 'projects'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <FolderKanban className="w-4 h-4" />
+            <span>Projects Overview</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-md text-3xs font-extrabold ${
                 mainView === 'projects'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300'
+                  : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
               }`}
             >
-              <FolderKanban className="w-4 h-4" />
-              <span>Projects Overview</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-md text-3xs font-extrabold ${
-                  mainView === 'projects'
-                    ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300'
-                    : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
-                }`}
-              >
-                {projects.length}
-              </span>
-            </button>
-          </div>
-
-          {/* Right side: Period Controls for Tasks, or status summary for Projects */}
-          {mainView === 'tasks' ? (
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>Period:</span>
-              </span>
-
-              {/* Modern Custom Date Range Picker */}
-              <ModernDateRangePicker
-                startDate={startDate}
-                endDate={endDate}
-                onChange={(start, end, preset) => {
-                  setStartDate(start);
-                  setEndDate(end);
-                  if (preset) setDatePreset(preset as DateRangePreset);
-                  else setDatePreset('custom');
-                }}
-              />
-
-              {/* Quick Presets Pills */}
-              <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
-                {[
-                  { id: 'this-week', label: 'This Week' },
-                  { id: 'last-week', label: 'Last Week' },
-                  { id: 'this-month', label: 'This Month' },
-                  { id: 'all', label: 'All Time' },
-                ].map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => applyPreset(p.id as DateRangePreset)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      datePreset === p.id
-                        ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Reset to This Week */}
-              {(startDate || endDate) && datePreset !== 'this-week' && (
-                <button
-                  onClick={() => applyPreset('this-week')}
-                  className="flex items-center gap-1.5 px-2.5 py-1 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 glass-card-subtle rounded-xl text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
-                  title="Reset to current week"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Reset</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-2xs text-slate-500 dark:text-slate-400 px-2">
-              <span>Tracking {overallMetrics.totalTasks} deliverables across {projects.length} projects</span>
-            </div>
-          )}
+              {projects.length}
+            </span>
+          </button>
         </div>
 
-        {/* Row 2: Search, Filters, Sorting & View Toggle (when in tasks view) */}
-        {mainView === 'tasks' && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
-            <div className="flex flex-wrap items-center gap-2 flex-1">
-              {/* Search */}
-              <div className="relative min-w-[210px] flex-1 max-w-sm">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={taskSearchQuery}
-                  onChange={(e) => setTaskSearchQuery(e.target.value)}
-                  placeholder="Search task title, description, assignee..."
-                  className="w-full pl-8 pr-7 py-1.5 rounded-xl text-xs bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 focus:outline-hidden focus:border-blue-500 text-slate-800 dark:text-slate-200 shadow-2xs placeholder-slate-400"
-                />
-                {taskSearchQuery && (
-                  <button
-                    onClick={() => setTaskSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Project Filter */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
-                <FolderKanban className="w-3.5 h-3.5 text-blue-500" />
-                <select
-                  value={taskProjectFilter}
-                  onChange={(e) => setTaskProjectFilter(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
-                >
-                  <option value="all">All Projects ({projects.length})</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Assignee Filter */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
-                <User className="w-3.5 h-3.5 text-slate-400" />
-                <select
-                  value={taskAssigneeFilter}
-                  onChange={(e) => setTaskAssigneeFilter(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
-                >
-                  <option value="all">All Assignees</option>
-                  {teamMembers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sort By */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
-                <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
-                <select
-                  value={taskSortBy}
-                  onChange={(e) => setTaskSortBy(e.target.value as any)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
-                >
-                  <option value="date-desc">Newest Completed First</option>
-                  <option value="date-asc">Oldest Completed First</option>
-                  <option value="priority">Priority (High to Low)</option>
-                  <option value="project">Project Name (A–Z)</option>
-                  <option value="title">Task Title (A–Z)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* View Mode Toggle: Table vs Cards */}
-            <div className="flex items-center glass-card-subtle p-1 rounded-xl shadow-2xs">
-              <button
-                onClick={() => setTaskViewMode('table')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  taskViewMode === 'table'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Table View (Detailed Rows)"
-              >
-                <TableIcon className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Table</span>
-              </button>
-              <button
-                onClick={() => setTaskViewMode('card')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  taskViewMode === 'card'
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-                title="Card View (Visual Deliverables)"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Cards</span>
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Quick status text */}
+        <div className="flex items-center gap-2 text-2xs text-slate-500 dark:text-slate-400 px-2">
+          {mainView === 'tasks' ? (
+            <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-medium">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Range: {formattedDateRangeText}</span>
+            </span>
+          ) : (
+            <span>Tracking {overallMetrics.totalTasks} deliverables across {projects.length} projects</span>
+          )}
+        </div>
       </div>
 
       {/* VIEW A: PROJECTS OVERVIEW */}
@@ -1984,6 +1863,169 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
       {/* VIEW B: TASK LISTING (COMPLETED TASKS WITH DATE RANGE FILTER) */}
       {mainView === 'tasks' && (
         <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Date Range Selector Toolbar */}
+          <div className="glass-panel p-4 rounded-2xl shadow-2xs space-y-3">
+            {/* Row 1: Modern Date Range Picker & Presets */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-2xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Period:</span>
+                </span>
+
+                {/* Modern Custom Date Range Picker (No native browser popup!) */}
+                <ModernDateRangePicker
+                  startDate={startDate}
+                  endDate={endDate}
+                  onChange={(start, end, preset) => {
+                    setStartDate(start);
+                    setEndDate(end);
+                    if (preset) setDatePreset(preset as DateRangePreset);
+                    else setDatePreset('custom');
+                  }}
+                />
+
+                {/* Quick Presets Pills */}
+                <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 shadow-2xs">
+                  {[
+                    { id: 'this-week', label: 'This Week' },
+                    { id: 'last-week', label: 'Last Week' },
+                    { id: 'this-month', label: 'This Month' },
+                    { id: 'all', label: 'All Time' },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => applyPreset(p.id as DateRangePreset)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        datePreset === p.id
+                          ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: Reset Button */}
+              {(startDate || endDate) && datePreset !== 'this-week' && (
+                <button
+                  onClick={() => applyPreset('this-week')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 glass-card-subtle rounded-xl text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+                  title="Reset to current week"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset to This Week</span>
+                </button>
+              )}
+            </div>
+
+            {/* Row 2: Search, Filters, Sorting & View Toggle */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
+              <div className="flex flex-wrap items-center gap-2 flex-1">
+                {/* Search */}
+                <div className="relative min-w-[210px] flex-1 max-w-sm">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={taskSearchQuery}
+                    onChange={(e) => setTaskSearchQuery(e.target.value)}
+                    placeholder="Search task title, description, assignee..."
+                    className="w-full pl-8 pr-7 py-1.5 rounded-xl text-xs bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 focus:outline-hidden focus:border-blue-500 text-slate-800 dark:text-slate-200 shadow-2xs placeholder-slate-400"
+                  />
+                  {taskSearchQuery && (
+                    <button
+                      onClick={() => setTaskSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Project Filter */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
+                  <FolderKanban className="w-3.5 h-3.5 text-blue-500" />
+                  <select
+                    value={taskProjectFilter}
+                    onChange={(e) => setTaskProjectFilter(e.target.value)}
+                    className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="all">All Projects ({projects.length})</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Assignee Filter */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <select
+                    value={taskAssigneeFilter}
+                    onChange={(e) => setTaskAssigneeFilter(e.target.value)}
+                    className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="all">All Assignees</option>
+                    {teamMembers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Sort By */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/85 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-blue-500" />
+                  <select
+                    value={taskSortBy}
+                    onChange={(e) => handleSortChange(e.target.value as any)}
+                    className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="project">Sort by Project (A–Z)</option>
+                    <option value="project-desc">Sort by Project (Z–A)</option>
+                    <option value="date-desc">Newest Completed First</option>
+                    <option value="date-asc">Oldest Completed First</option>
+                    <option value="priority">Priority (High to Low)</option>
+                    <option value="title">Task Title (A–Z)</option>
+                    <option value="assignee">Assignee Name (A–Z)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* View Mode Toggle: Table vs Cards */}
+              <div className="flex items-center glass-card-subtle p-1 rounded-xl shadow-2xs">
+                <button
+                  onClick={() => setTaskViewMode('table')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    taskViewMode === 'table'
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="Table View (Detailed Rows)"
+                >
+                  <TableIcon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Table</span>
+                </button>
+                <button
+                  onClick={() => setTaskViewMode('card')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    taskViewMode === 'card'
+                      ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="Card View (Visual Deliverables)"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Cards</span>
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Subheader Status Line */}
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 flex-wrap gap-2">
@@ -2088,12 +2130,89 @@ export const ProjectWeeklyReport: React.FC<ProjectWeeklyReportProps> = ({
                           />
                         </div>
                       </th>
-                      <th className="py-3 px-4 min-w-[240px]">Deliverable Title</th>
-                      <th className="py-3 px-4 min-w-[170px]">Project</th>
-                      <th className="py-3 px-4 min-w-[160px]">Assignee</th>
-                      <th className="py-3 px-4 min-w-[150px]">Completed Date</th>
+                      <th
+                        onClick={() => handleSortChange(taskSortBy === 'title' ? 'date-desc' : 'title')}
+                        className="py-3 px-4 min-w-[240px] cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors select-none group"
+                        title="Sort by Deliverable Title"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Deliverable Title</span>
+                          {taskSortBy === 'title' ? (
+                            <ChevronUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-slate-500" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortChange(taskSortBy === 'project' ? 'project-desc' : 'project')}
+                        className={`py-3 px-4 min-w-[170px] cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors select-none group ${
+                          taskSortBy === 'project' || taskSortBy === 'project-desc'
+                            ? 'text-blue-600 dark:text-blue-400 font-extrabold'
+                            : ''
+                        }`}
+                        title="Sort by Project"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Project</span>
+                          {taskSortBy === 'project' ? (
+                            <ChevronUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          ) : taskSortBy === 'project-desc' ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-slate-500" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortChange(taskSortBy === 'assignee' ? 'date-desc' : 'assignee')}
+                        className="py-3 px-4 min-w-[160px] cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors select-none group"
+                        title="Sort by Assignee"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Assignee</span>
+                          {taskSortBy === 'assignee' ? (
+                            <ChevronUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-slate-500" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortChange(taskSortBy === 'date-desc' ? 'date-asc' : 'date-desc')}
+                        className={`py-3 px-4 min-w-[150px] cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors select-none group ${
+                          taskSortBy === 'date-desc' || taskSortBy === 'date-asc'
+                            ? 'text-blue-600 dark:text-blue-400 font-extrabold'
+                            : ''
+                        }`}
+                        title="Sort by Completed Date"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Completed Date</span>
+                          {taskSortBy === 'date-desc' ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          ) : taskSortBy === 'date-asc' ? (
+                            <ChevronUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-slate-500" />
+                          )}
+                        </div>
+                      </th>
                       <th className="py-3 px-4 min-w-[120px]">Due Date</th>
-                      <th className="py-3 px-4 min-w-[110px]">Priority</th>
+                      <th
+                        onClick={() => handleSortChange(taskSortBy === 'priority' ? 'date-desc' : 'priority')}
+                        className="py-3 px-4 min-w-[110px] cursor-pointer hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors select-none group"
+                        title="Sort by Priority"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span>Priority</span>
+                          {taskSortBy === 'priority' ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 text-slate-300 dark:text-slate-600 group-hover:text-slate-500" />
+                          )}
+                        </div>
+                      </th>
                       <th className="py-3 px-4 text-right min-w-[70px]">Action</th>
                     </tr>
                   </thead>
